@@ -46,10 +46,11 @@
       filters.innerHTML = '<span class="text-xs text-slate-500">Chưa có kỹ sư đang hoạt động.</span>';
       return;
     }
-    const allButton = `<button type="button" data-tech-id="all" aria-pressed="${state.selectedTech === 'all'}" class="shrink-0 rounded-full px-3 py-1.5 text-[10px] font-bold transition ${state.selectedTech === 'all' ? 'bg-[#213664] text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}">Tất cả</button>`;
+    const allButton = `<button type="button" data-tech-id="all" aria-pressed="${state.selectedTech === 'all'}" class="shrink-0 rounded-full px-3.5 py-2 text-[10px] font-bold transition ${state.selectedTech === 'all' ? 'bg-[#213664] text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}">Tất cả kỹ sư</button>`;
     const engineerButtons = engineers.map((engineer) => {
       const active = state.selectedTech === engineer.id;
-      return `<button type="button" data-tech-id="${escapeHtml(engineer.id)}" aria-pressed="${active}" title="${escapeHtml(engineer.name)} · ${visibleRows.filter((row) => row.tech_id === engineer.id).length} ca" class="flex shrink-0 items-center gap-1.5 rounded-full border px-2 py-1 transition ${active ? 'border-blue-400 bg-blue-50 text-blue-900 ring-1 ring-blue-200' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'}">${avatar(engineer.name, engineer.avatar)}<span class="max-w-28 truncate text-[10px] font-semibold">${escapeHtml(engineer.name)}</span></button>`;
+      const shiftCount = visibleRows.filter((row) => row.tech_id === engineer.id).length;
+      return `<button type="button" data-tech-id="${escapeHtml(engineer.id)}" aria-label="${escapeHtml(engineer.name)} · ${shiftCount} ca" aria-pressed="${active}" title="${escapeHtml(engineer.name)} · ${shiftCount} ca" class="grid h-10 w-10 shrink-0 place-items-center rounded-full transition ${active ? 'ring-2 ring-blue-400 ring-offset-2' : 'opacity-90 hover:opacity-100'}">${avatar(engineer.name, engineer.avatar, 'h-10 w-10')}</button>`;
     }).join('');
     filters.innerHTML = allButton + engineerButtons;
     filters.querySelectorAll('[data-tech-id]').forEach((button) => button.addEventListener('click', () => {
@@ -125,8 +126,13 @@
       const dateStyle = isToday ? 'bg-blue-600 text-white' : (inMonth ? 'text-slate-800' : 'text-slate-300');
       const eventDots = dayRows.slice(0, 4).map((row) => `<span title="${row.status === 'APPROVED' ? 'Đã duyệt' : 'Chờ duyệt'}" class="h-1.5 w-1.5 rounded-full ${row.status === 'APPROVED' ? 'bg-emerald-600' : 'bg-amber-500'}"></span>`).join('');
       const desktopEvents = dayRows.slice(0, 3).map((row) => {
-        const tone = row.status === 'APPROVED' ? 'border-l-emerald-600 bg-emerald-50 text-emerald-900' : 'border-l-amber-500 bg-amber-50 text-amber-900';
-        return `<button type="button" data-event-date="${day}" data-event-id="${visibleRows.indexOf(row)}" class="hidden w-full min-w-0 items-center gap-1 overflow-hidden rounded border-l-2 px-1 py-0.5 text-left text-[9px] leading-tight sm:flex ${tone}" title="Mở chi tiết công việc"><span class="shrink-0 font-bold">${timeLabel(row.start_time)}</span><span class="truncate">${escapeHtml(state.selectedTech === 'all' ? row.engineer_name : (row.work_title || 'Ca trực'))}</span></button>`;
+        const approved = row.status === 'APPROVED';
+        const tone = approved ? 'bg-[#34752b] hover:bg-[#2f6928]' : 'bg-[#f97316] hover:bg-[#ea6a0c]';
+        const statusIcon = approved
+          ? '<svg class="h-3 w-3" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="m5 10 3.2 3.2L15.5 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+          : '<svg class="h-3 w-3" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="m6 8 4 4 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+        const time = `${timeLabel(row.start_time)}${row.end_time ? `–${timeLabel(row.end_time)}` : ''}`;
+        return `<button type="button" data-event-id="${visibleRows.indexOf(row)}" aria-label="${escapeHtml(row.engineer_name)} · ${time} · ${approved ? 'Đã duyệt' : 'Chờ duyệt'} · Xem chi tiết" class="hidden h-8 w-full min-w-0 items-center gap-1.5 overflow-hidden rounded-full px-1.5 text-left text-white shadow-sm transition ${tone} sm:flex" title="${escapeHtml(row.engineer_name)} · ${time} · ${approved ? 'Đã duyệt' : 'Chờ duyệt'}"><span class="shrink-0 rounded-full bg-white p-0.5">${avatar(row.engineer_name, row.engineer_avatar, 'h-6 w-6')}</span><span class="min-w-0 flex-1 truncate text-[9px] font-bold">${escapeHtml(row.engineer_name)}</span><span class="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-black/10">${statusIcon}</span></button>`;
       }).join('');
       const extra = dayRows.length > 3 ? `<button type="button" data-day-details="${day}" class="hidden pl-1 text-left text-[9px] font-semibold text-slate-600 hover:underline sm:block">+${dayRows.length - 3} ca</button>` : '';
       const mobileCount = dayRows.length ? `<span class="mt-0.5 flex items-center justify-center gap-0.5 sm:hidden">${eventDots}<span class="ml-0.5 text-[8px] font-bold text-slate-500">${dayRows.length}</span></span>` : '';
