@@ -369,10 +369,14 @@ const BookingData = {
     }
 
     try {
-      // 1. Fetch Technicians from Supabase Cloud
-      const { data: remoteTechs, error: techError } = await client.from('technicians').select('tech_id,name,email,skills,phone,avatar,is_active,created_at');
+      // 1. Fetch Technicians from Supabase Cloud (deduplicated by tech_id)
+      const { data: remoteTechs, error: techError } = await client.from('technicians').select('tech_id,name,email,skills,phone,avatar,is_active,created_at').order('tech_id', { ascending: true });
       if (!techError && Array.isArray(remoteTechs)) {
-        this.technicians = remoteTechs;
+        const uniqueTechMap = new Map();
+        remoteTechs.forEach(t => {
+          if (t && t.tech_id) uniqueTechMap.set(t.tech_id, t);
+        });
+        this.technicians = Array.from(uniqueTechMap.values());
         this.saveTechnicians();
       }
 
@@ -490,7 +494,7 @@ const BookingData = {
             console.log('⚡ Realtime sync [bookings]:', payload);
             this.syncWithSupabase();
           })
-          .on('postgres_changes', { event: '*', schema: 'public', table: 'technicians', select: ['tech_id', 'name', 'email', 'skills', 'phone', 'avatar', 'is_active', 'created_at'] }, (payload) => {
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'technicians' }, (payload) => {
             console.log('⚡ Realtime sync [technicians]:', payload);
             this.syncWithSupabase();
           })
@@ -977,6 +981,7 @@ const BookingData = {
           action: 'create',
           account_type: 'technician', tech_id: techId, name: (tech.name || '').trim(), email,
           phone: (tech.phone || '').trim(), skills, avatar: (tech.avatar || '').trim(),
+          password: (tech.password || '').trim(),
           is_active: tech.is_active !== undefined ? Boolean(tech.is_active) : true,
           redirect_to: new URL('reset-password.html', window.location.href).href
         }
@@ -991,9 +996,22 @@ const BookingData = {
         return { success: false, error: message };
       }
       if (!data?.success || !data.profile) return { success: false, error: data?.error || 'Supabase không tạo được tài khoản kỹ sư.' };
-      this.technicians.push(data.profile);
+      // Prevent duplicate entry if Realtime sync already inserted this tech_id while awaiting Edge Function
+      const existingIdx = this.technicians.findIndex(t => t.tech_id === data.profile.tech_id || (t.email && t.email.toLowerCase() === email));
+      if (existingIdx !== -1) {
+        this.technicians[existingIdx] = { ...this.technicians[existingIdx], ...data.profile };
+      } else {
+        this.technicians.push(data.profile);
+      }
       this.saveTechnicians();
-      return { success: true, technician: data.profile, invitationSent: true };
+      return {
+        success: true,
+        technician: data.profile,
+        invitationSent: Boolean(data.invitationSent),
+        passwordSet: Boolean(data.passwordSet),
+        rateLimitedFallback: Boolean(data.rateLimitedFallback),
+        tempPassword: data.tempPassword || ''
+      };
     } catch (error) {
       return { success: false, error: error?.message || 'Không thể gửi lời mời Supabase Auth.' };
     }
@@ -1004,6 +1022,9 @@ const BookingData = {
     if (idx === -1) return { success: false, error: 'Không tìm thấy hồ sơ kỹ sư.' };
 
     const normalized = { ...updatedData };
+    const newPassword = (normalized.password || '').trim();
+    delete normalized.password;
+
     if (normalized.skills !== undefined && typeof normalized.skills === 'string') {
       normalized.skills = normalized.skills.split(',').map(s => s.trim()).filter(Boolean);
     }
@@ -1034,13 +1055,32 @@ const BookingData = {
         console.error('❌ Supabase update technician error:', error);
         return { success: false, error: error.message || 'Database từ chối cập nhật kỹ sư.' };
       }
+
+      if (newPassword) {
+        if (newPassword.length < 6) {
+          return { success: false, error: 'Mật khẩu mới phải có tối thiểu 6 ký tự.' };
+        }
+        const targetEmail = normalized.email || this.technicians[idx].email;
+        const { data: pwData, error: pwErr } = await client.functions.invoke('admin-create-user', {
+          body: {
+            action: 'set_password',
+            account_type: 'technician',
+            email: targetEmail,
+            password: newPassword,
+            name: normalized.name || this.technicians[idx].name
+          }
+        });
+        if (pwErr || !pwData?.success) {
+          return { success: false, error: pwData?.error || pwErr?.message || 'Không thể cập nhật mật khẩu kỹ sư.' };
+        }
+      }
     } catch (err) {
       return { success: false, error: err?.message || 'Không thể đồng bộ dữ liệu kỹ sư lên Supabase.' };
     }
 
     this.technicians[idx] = { ...this.technicians[idx], ...normalized };
     this.saveTechnicians();
-    return { success: true, technician: this.technicians[idx] };
+    return { success: true, technician: this.technicians[idx], passwordUpdated: Boolean(newPassword) };
   },
 
   async toggleTechnicianStatus(tech_id) {
@@ -1123,6 +1163,7 @@ const BookingData = {
           phone: (userData.phone || '').trim(),
           referrer_email: (userData.referrer_email || '').trim().toLowerCase(),
           avatar: (userData.avatar || '').trim(),
+          password: (userData.password || '').trim(),
           redirect_to: new URL('reset-password.html', window.location.href).href,
           permissions: Array.isArray(userData.permissions) ? userData.permissions : []
         }
@@ -1138,9 +1179,21 @@ const BookingData = {
       }
       if (!data?.success || !data.profile) return { success: false, error: data?.error || 'Supabase không tạo được tài khoản.' };
 
-      this.users.push(data.profile);
+      const existingIdx = this.users.findIndex(u => (u.email || '').toLowerCase() === email);
+      if (existingIdx !== -1) {
+        this.users[existingIdx] = { ...this.users[existingIdx], ...data.profile };
+      } else {
+        this.users.push(data.profile);
+      }
       this.saveUsers();
-      return { success: true, user: data.profile, invitationSent: true };
+      return {
+        success: true,
+        user: data.profile,
+        invitationSent: Boolean(data.invitationSent),
+        passwordSet: Boolean(data.passwordSet),
+        rateLimitedFallback: Boolean(data.rateLimitedFallback),
+        tempPassword: data.tempPassword || ''
+      };
     } catch (error) {
       return { success: false, error: error?.message || 'Không thể gửi lời mời Supabase Auth.' };
     }
@@ -1156,6 +1209,7 @@ const BookingData = {
 
     // Never persist passwords in user profile records.
     const nextData = { ...updatedData };
+    const newPassword = (nextData.password || '').trim();
     delete nextData.password;
     delete nextData.new_email;
 
@@ -1185,6 +1239,24 @@ const BookingData = {
       }
       if (error) {
         return { success: false, error: error.message || 'Không thể lưu thay đổi lên Supabase.' };
+      }
+
+      if (newPassword) {
+        if (newPassword.length < 6) {
+          return { success: false, error: 'Mật khẩu mới phải có tối thiểu 6 ký tự.' };
+        }
+        const { data: pwData, error: pwErr } = await client.functions.invoke('admin-create-user', {
+          body: {
+            action: 'set_password',
+            account_type: 'user',
+            email: cleanEmail,
+            password: newPassword,
+            full_name: payload.full_name
+          }
+        });
+        if (pwErr || !pwData?.success) {
+          return { success: false, error: pwData?.error || pwErr?.message || 'Không thể cập nhật mật khẩu trên Supabase Auth.' };
+        }
       }
     } catch (err) {
       return { success: false, error: err?.message || 'Lỗi kết nối khi lưu thông tin người dùng.' };
