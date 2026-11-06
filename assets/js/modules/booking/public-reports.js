@@ -87,14 +87,14 @@
       $('detail-subtitle').textContent = `${detail.engineer_name} · ${dateLabel(detail.booking_date)}`;
       $('detail-content').innerHTML = `<div class="space-y-3 text-sm">
         <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <section class="rounded-2xl border border-slate-200 bg-slate-50/80 p-3.5">
+          <section class="px-1 py-1">
             <h3 class="mb-2.5 text-[11px] font-semibold uppercase tracking-wide text-slate-500">Kỹ sư phụ trách</h3>
             <div class="flex min-w-0 items-center gap-3">
               ${avatar(detail.engineer_name, detail.engineer_avatar, 'h-10 w-10')}
               <strong class="min-w-0 truncate text-xs text-slate-900">${escapeHtml(detail.engineer_name)}</strong>
             </div>
           </section>
-          <section class="rounded-2xl border border-slate-200 bg-slate-50/80 p-3.5">
+          <section class="px-1 py-1">
             <div class="mb-2.5 flex items-center justify-between gap-2"><h3 class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Thời gian thực hiện</h3>${statusBadge(detail.status)}</div>
             <div class="px-0.5">
               <p class="font-bold text-slate-900">${dateLabel(detail.booking_date)}${detail.end_date && detail.end_date !== detail.booking_date ? ` → ${dateLabel(detail.end_date)}` : ''}</p>
@@ -105,7 +105,7 @@
         <div class="space-y-2 px-1 py-1.5 text-xs">
           <p class="flex gap-2"><span class="shrink-0 font-semibold text-slate-500">Địa điểm:</span><span class="break-words font-medium text-slate-800">${escapeHtml(detail.work_location || 'Chưa cập nhật')}</span></p>
         </div>
-        <section class="rounded-xl border border-slate-100 bg-slate-50 p-3.5">
+        <section class="border-t border-slate-100 pt-3">
           <h3 class="text-xs font-bold text-slate-700">Ghi chú công việc</h3>
           <p class="mt-1 whitespace-pre-wrap break-words text-xs leading-5 text-slate-600">${escapeHtml(detail.work_notes || 'Không có ghi chú')}</p>
         </section>

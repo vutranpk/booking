@@ -2770,7 +2770,7 @@ const BookingUI = {
         <!-- 2 Information Cards Grid -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
           <!-- Card 1: Technician -->
-          <div class="bg-slate-50/80 p-3.5 rounded-2xl border border-slate-200/80 flex flex-col justify-between">
+          <div class="flex flex-col justify-between px-1 py-1">
             <span class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block mb-2.5">Kỹ sư phụ trách</span>
             <div class="flex items-center gap-3">
               <img src="${tech ? tech.avatar : ''}" class="w-10 h-10 rounded-full object-cover flex-shrink-0 border-2 border-white shadow-2xs ring-1 ring-slate-100">
@@ -2784,7 +2784,7 @@ const BookingUI = {
           </div>
 
           <!-- Card 2: Date & Shift Duration (Editable on PENDING and APPROVED shifts) -->
-          <div class="bg-slate-50/80 p-3.5 rounded-2xl border border-slate-200/80 flex flex-col justify-between relative">
+          <div class="flex flex-col justify-between px-1 py-1 relative">
             <div class="flex items-center justify-between mb-2.5">
               <span class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block">Thời gian thực hiện</span>
             </div>
@@ -2924,7 +2924,7 @@ const BookingUI = {
             </div>
           ` : ''}
           ${b.reject_reason ? `
-            <div class="p-3 rounded-xl bg-burgundy-50 border border-burgundy-200 text-burgundy-800 flex items-start gap-2">
+            <div class="border-t border-burgundy-100 pt-3 text-burgundy-800 flex items-start gap-2">
               <span class="mt-0.5 text-burgundy-800 flex-shrink-0">${Lucide.x}</span>
               <div>
                 <strong class="block text-burgundy-900 font-semibold mb-0.5">Lý do từ chối:</strong>
@@ -2933,7 +2933,7 @@ const BookingUI = {
             </div>
           ` : ''}
           ${b.notes ? `
-            <div class="p-3 rounded-xl bg-slate-50 border border-slate-100 text-slate-600 flex items-start gap-2">
+            <div class="border-t border-slate-100 pt-3 text-slate-600 flex items-start gap-2">
               <span class="mt-0.5 text-slate-400 flex-shrink-0">${Lucide.fileText}</span>
               <div>
                 <strong class="block text-slate-800 font-semibold mb-0.5">Ghi chú công việc:</strong>
