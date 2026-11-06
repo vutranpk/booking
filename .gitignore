@@ -1,0 +1,21 @@
+# Bảo mật & Khóa cá nhân (TUYỆT ĐỐI KHÔNG PUSH)
+token.html
+*.pem
+*.key
+.env
+.env.*
+
+# Logs & File tạm / nội bộ phát triển
+*.log
+edge_err.log
+scratch/
+GEMINI.md
+docs/
+mermaid-diagram.svg
+design-system.html
+
+# Hệ điều hành & Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
