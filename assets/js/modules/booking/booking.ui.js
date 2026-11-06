@@ -1950,7 +1950,7 @@ const BookingUI = {
                 if (isSingleDay) {
                   // Single-day shift: compact pill on mobile (avatar + mini status), full on desktop
                   return `
-                    <div onclick="if (BookingUI.justDropped) return; event.stopPropagation(); BookingUI.openDetailModal('${b.booking_id}')"
+                    <div onclick="event.stopPropagation(); if (!BookingUI.justDropped) BookingUI.openDetailModal('${b.booking_id}')"
                          ${dragAttrs}
                          class="h-7 sm:h-10 w-full px-1 sm:px-2 rounded-full ${baseBg} border ${borderColor} text-white transition-all flex items-center justify-between gap-1 shadow-xs hover:shadow-md group/b ${dragCursorClass}"
                          title="${tech ? tech.name : ''}: ${b.title} (${b.location}) • ${isApproved ? 'Đã duyệt' : 'Chờ duyệt'}${dragHint}">
@@ -1966,7 +1966,7 @@ const BookingUI = {
                   const isWeekContinuation = isFirstCol && !isStart;
                   const rightMargin = extendRight ? 'w-[calc(100%+0.125rem+2px)] sm:w-[calc(100%+0.5rem+2px)] -mr-[calc(0.125rem+2px)] sm:-mr-[calc(0.5rem+2px)] rounded-r-none border-r-0' : 'w-full mr-0 rounded-r-full border-r';
                   return `
-                    <div onclick="if (BookingUI.justDropped) return; event.stopPropagation(); BookingUI.openDetailModal('${b.booking_id}')"
+                    <div onclick="event.stopPropagation(); if (!BookingUI.justDropped) BookingUI.openDetailModal('${b.booking_id}')"
                          ${dragAttrs}
                          class="h-7 sm:h-10 ${rightMargin} pl-0.5 sm:pl-1.5 pr-1 sm:pr-2 rounded-l-full ${baseBg} border-y border-l ${borderColor} text-white flex items-center gap-1 sm:gap-2 z-20 shadow-xs hover:shadow-md transition-all ${dragCursorClass}"
                          title="${tech ? tech.name : ''}: ${b.title} (${bStart} đến ${bEnd}) • ${isApproved ? 'Đã duyệt' : 'Chờ duyệt'}${dragHint}">
@@ -1980,7 +1980,7 @@ const BookingUI = {
                   // End or wrapping to next week: seamless ribbon ending in rounded-r-full
                   const leftMargin = extendLeft ? 'w-[calc(100%+0.125rem+2px)] sm:w-[calc(100%+0.5rem+2px)] -ml-[calc(0.125rem+2px)] sm:-ml-[calc(0.5rem+2px)] rounded-l-none border-l-0' : 'w-full ml-0 rounded-l-full border-l';
                   return `
-                    <div onclick="if (BookingUI.justDropped) return; event.stopPropagation(); BookingUI.openDetailModal('${b.booking_id}')"
+                    <div onclick="event.stopPropagation(); if (!BookingUI.justDropped) BookingUI.openDetailModal('${b.booking_id}')"
                          ${dragAttrs}
                          class="h-7 sm:h-10 ${leftMargin} px-1 sm:px-2.5 rounded-r-full ${baseBg} border-y border-r ${borderColor} text-white flex items-center justify-end z-20 shadow-xs hover:shadow-md transition-all ${dragCursorClass}"
                          title="${tech ? tech.name : ''}: ${b.title} (${isEnd ? `Hết ca lúc ${bEnd}` : 'Tiếp tục tuần sau'}) • ${isApproved ? 'Đã duyệt' : 'Chờ duyệt'}${dragHint}">
@@ -1998,7 +1998,7 @@ const BookingUI = {
                     spanClass = 'w-[calc(100%+0.125rem+2px)] sm:w-[calc(100%+0.5rem+2px)] ml-0 -mr-[calc(0.125rem+2px)] sm:-mr-[calc(0.5rem+2px)] rounded-none border-l border-r-0';
                   }
                   return `
-                    <div onclick="if (BookingUI.justDropped) return; event.stopPropagation(); BookingUI.openDetailModal('${b.booking_id}')"
+                    <div onclick="event.stopPropagation(); if (!BookingUI.justDropped) BookingUI.openDetailModal('${b.booking_id}')"
                          ${dragAttrs}
                          class="h-7 sm:h-10 ${spanClass} ${baseBg} border-y ${borderColor} text-white flex items-center justify-center z-20 shadow-xs hover:shadow-md transition-all ${dragCursorClass}"
                          title="${tech ? tech.name : ''}: ${b.title} (${bStart} đến ${bEnd}) • ${isApproved ? 'Đã duyệt' : 'Chờ duyệt'}${dragHint}">

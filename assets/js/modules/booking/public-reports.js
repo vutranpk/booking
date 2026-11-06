@@ -85,13 +85,31 @@
       if (!detail) throw new Error('Ca này không còn khả dụng.');
       $('detail-title').textContent = detail.work_title || row.work_title || 'Ca làm việc';
       $('detail-subtitle').textContent = `${detail.engineer_name} · ${dateLabel(detail.booking_date)}`;
-      $('detail-content').innerHTML = `<dl class="grid grid-cols-1 gap-2.5 text-sm sm:grid-cols-2 sm:gap-3">
-        <div class="rounded-xl bg-slate-50 p-3"><dt class="text-[10px] font-bold uppercase tracking-wide text-slate-500">Kỹ sư</dt><dd class="mt-2 flex min-w-0 items-center gap-2 font-semibold">${avatar(detail.engineer_name, detail.engineer_avatar, 'h-9 w-9')}<span class="truncate">${escapeHtml(detail.engineer_name)}</span></dd></div>
-        <div class="rounded-xl bg-slate-50 p-3"><dt class="text-[10px] font-bold uppercase tracking-wide text-slate-500">Trạng thái</dt><dd class="mt-2">${statusBadge(detail.status)}</dd></div>
-        <div class="rounded-xl bg-slate-50 p-3"><dt class="text-[10px] font-bold uppercase tracking-wide text-slate-500">Thời gian</dt><dd class="mt-1.5 font-semibold leading-5">${dateLabel(detail.booking_date)}${detail.end_date && detail.end_date !== detail.booking_date ? ` – ${dateLabel(detail.end_date)}` : ''}<br>${timeLabel(detail.start_time) || 'Chưa cập nhật'}${detail.end_time ? `–${timeLabel(detail.end_time)}` : ''}</dd></div>
-        <div class="rounded-xl bg-slate-50 p-3"><dt class="text-[10px] font-bold uppercase tracking-wide text-slate-500">Địa điểm</dt><dd class="mt-1.5 break-words font-semibold">${escapeHtml(detail.work_location || 'Chưa cập nhật')}</dd></div>
-        <div class="rounded-xl bg-slate-50 p-3 sm:col-span-2"><dt class="text-[10px] font-bold uppercase tracking-wide text-slate-500">Ghi chú công việc</dt><dd class="mt-1.5 whitespace-pre-wrap break-words font-medium text-slate-700">${escapeHtml(detail.work_notes || 'Không có ghi chú')}</dd></div>
-      </dl>`;
+      $('detail-content').innerHTML = `<div class="space-y-3 text-sm">
+        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <section class="rounded-2xl border border-slate-200 bg-slate-50/80 p-3.5">
+            <h3 class="mb-2.5 text-[11px] font-semibold uppercase tracking-wide text-slate-500">Kỹ sư phụ trách</h3>
+            <div class="flex min-w-0 items-center gap-3 rounded-xl border border-slate-200 bg-white p-3">
+              ${avatar(detail.engineer_name, detail.engineer_avatar, 'h-10 w-10')}
+              <strong class="min-w-0 truncate text-xs text-slate-900">${escapeHtml(detail.engineer_name)}</strong>
+            </div>
+          </section>
+          <section class="rounded-2xl border border-slate-200 bg-slate-50/80 p-3.5">
+            <div class="mb-2.5 flex items-center justify-between gap-2"><h3 class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Thời gian thực hiện</h3>${statusBadge(detail.status)}</div>
+            <div class="rounded-xl border border-slate-200 bg-white p-3">
+              <p class="font-bold text-slate-900">${dateLabel(detail.booking_date)}${detail.end_date && detail.end_date !== detail.booking_date ? ` → ${dateLabel(detail.end_date)}` : ''}</p>
+              <p class="mt-2 border-t border-slate-100 pt-2 text-xs text-slate-600">${timeLabel(detail.start_time) || 'Chưa cập nhật'}${detail.end_time ? `–${timeLabel(detail.end_time)}` : ''}</p>
+            </div>
+          </section>
+        </div>
+        <div class="space-y-2 px-1 py-1.5 text-xs">
+          <p class="flex gap-2"><span class="shrink-0 font-semibold text-slate-500">Địa điểm:</span><span class="break-words font-medium text-slate-800">${escapeHtml(detail.work_location || 'Chưa cập nhật')}</span></p>
+        </div>
+        <section class="rounded-xl border border-slate-100 bg-slate-50 p-3.5">
+          <h3 class="text-xs font-bold text-slate-700">Ghi chú công việc</h3>
+          <p class="mt-1 whitespace-pre-wrap break-words text-xs leading-5 text-slate-600">${escapeHtml(detail.work_notes || 'Không có ghi chú')}</p>
+        </section>
+      </div>`;
     } catch (error) {
       if (requestId === state.detailRequestId) {
         const message = error?.code === 'PGRST202' || /schema cache|could not find the function/i.test(error?.message || '')
