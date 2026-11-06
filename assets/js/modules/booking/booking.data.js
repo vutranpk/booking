@@ -2,15 +2,15 @@
 const BookingData = {
   // Granular System Permissions
   ALL_PERMISSIONS: [
-    { key: 'view_schedule', label: 'Xem lịch kỹ thuật', group: 'Lịch & Timeline', desc: 'Xem bảng lịch ca trực' },
+    { key: 'view_schedule', label: 'Xem lịch kỹ sư', group: 'Lịch & Timeline', desc: 'Xem bảng lịch ca trực' },
     { key: 'drag_reschedule', label: 'Kéo thả dời lịch', group: 'Lịch & Timeline', desc: 'Kéo thả đổi ngày trực tiếp trên lịch' },
-    { key: 'create_booking', label: 'Đặt lịch mới', group: 'Đặt Lịch', desc: 'Gửi yêu cầu booking kỹ thuật mới' },
+    { key: 'create_booking', label: 'Đặt lịch mới', group: 'Đặt Lịch', desc: 'Gửi yêu cầu ca trực mới' },
     { key: 'cancel_own_booking', label: 'Hủy đơn của mình', group: 'Đặt Lịch', desc: 'Chủ động hủy yêu cầu do mình tạo' },
     { key: 'edit_booking', label: 'Chỉnh sửa ca trực', group: 'Đặt Lịch', desc: 'Sửa ngày hoặc nội dung ca trực' },
     { key: 'view_approval_queue', label: 'Xem danh sách duyệt', group: 'Phê Duyệt', desc: 'Xem danh sách ca chờ duyệt' },
     { key: 'approve_booking', label: 'Phê duyệt ca trực', group: 'Phê Duyệt', desc: 'Chấp thuận đơn booking' },
     { key: 'reject_booking', label: 'Từ chối ca trực', group: 'Phê Duyệt', desc: 'Từ chối đơn kèm lý do' },
-    { key: 'view_technicians', label: 'Xem danh sách kỹ sư', group: 'Quản Lý Kỹ Sư', desc: 'Xem danh sách hồ sơ kỹ thuật viên' },
+    { key: 'view_technicians', label: 'Xem danh sách kỹ sư', group: 'Quản Lý Kỹ Sư', desc: 'Xem hồ sơ kỹ sư' },
     { key: 'manage_technicians', label: 'Thêm & Sửa kỹ sư', group: 'Quản Lý Kỹ Sư', desc: 'Thêm mới, sửa thông tin, bật/tắt kỹ sư' },
     { key: 'view_users', label: 'Xem danh sách người dùng', group: 'Quản Trị Người Dùng', desc: 'Xem danh sách tài khoản thành viên' },
     { key: 'manage_users', label: 'Thêm & Sửa người dùng', group: 'Quản Trị Người Dùng', desc: 'Thêm mới hoặc sửa thông tin user' },
@@ -35,6 +35,14 @@ const BookingData = {
 
   // Default System Password
   DEFAULT_PASSWORD: '',
+
+  syncGoogleCalendarBooking(bookingId) {
+    const client = window.SupabaseConfig?.getClient();
+    if (!client) return;
+    client.functions.invoke('google-calendar', { body: { action: 'sync_booking', booking_id: bookingId } })
+      .then(({ error, data }) => { if (error || data?.error) console.warn('Google Calendar sync warning:', error || data.error); })
+      .catch((error) => console.warn('Google Calendar sync warning:', error));
+  },
 
   // Original authenticated admin email while using the local role preview.
   originalAdminEmail: null,
@@ -123,6 +131,7 @@ const BookingData = {
           read: false,
           tab: 'approval',
           booking_id: b.booking_id,
+          tech_id: b.tech_id,
           required_perm: 'approve_booking',
           target_roles: ['admin', 'approver']
         });
@@ -136,8 +145,9 @@ const BookingData = {
           read: idx > 0,
           tab: 'my-bookings',
           booking_id: b.booking_id,
+          tech_id: b.tech_id,
           target_user: b.requester_email,
-          target_roles: ['admin', 'approver', 'requester']
+          target_roles: ['admin', 'approver', 'requester', 'technician']
         });
       }
     });
@@ -168,10 +178,22 @@ const BookingData = {
 
     const userEmail = (user.email || '').toLowerCase();
     const userRole = user.role || 'requester';
+    const isTechnician = userRole === 'technician' || Boolean(user.is_technician);
     const isSuper = this.isSuperAdmin ? this.isSuperAdmin() : (userRole === 'admin');
 
     // Contextual Permission Filtering for Notifications
     const userNotifs = this.notifications.filter(n => {
+      // 0. Exclusive scoping for Technician: ONLY see notifications for their own assigned shifts (tech_id)
+      if (isTechnician) {
+        if (!user.tech_id) return false;
+        if (n.tech_id && n.tech_id === user.tech_id) return true;
+        if (n.booking_id) {
+          const b = this.bookings.find(item => item.booking_id === n.booking_id);
+          return Boolean(b && b.tech_id === user.tech_id);
+        }
+        return false;
+      }
+
       // 1. Direct recipient check
       if (n.target_user) {
         if (n.target_user.toLowerCase() === userEmail) return true;
@@ -378,6 +400,28 @@ const BookingData = {
         });
         this.technicians = Array.from(uniqueTechMap.values());
         this.saveTechnicians();
+
+        // Refresh currentUser context if logged-in user is a Technician
+        if (this.currentUser && (this.currentUser.role === 'technician' || this.currentUser.is_technician)) {
+          const matchedTech = this.technicians.find(t =>
+            (this.currentUser.tech_id && t.tech_id === this.currentUser.tech_id) ||
+            (t.email && t.email.toLowerCase() === (this.currentUser.email || '').toLowerCase())
+          );
+          if (matchedTech) {
+            this.currentUser.tech_id = matchedTech.tech_id;
+            this.currentUser.full_name = this.cleanUserName(matchedTech.name || this.currentUser.full_name);
+            this.currentUser.avatar = matchedTech.avatar || this.currentUser.avatar || '';
+            this.currentUser.phone = matchedTech.phone || this.currentUser.phone || '';
+            this.currentUser.skills = matchedTech.skills || [];
+            this.persistSession(this.currentUser);
+            if (window.App && typeof App.updateUserBadge === 'function') {
+              App.updateUserBadge();
+            }
+            if (window.BookingUI && typeof BookingUI.applyRolePermissions === 'function') {
+              BookingUI.applyRolePermissions();
+            }
+          }
+        }
       }
 
       // 2. Fetch Users from Supabase Cloud
@@ -408,8 +452,8 @@ const BookingData = {
               ? ru.permissions
               : (localUser.permissions || this.ROLE_PERMISSIONS[ru.role || localUser.role]);
 
-            this.users[idx] = { 
-              ...this.users[idx], 
+            this.users[idx] = {
+              ...this.users[idx],
               ...ru,
               full_name: this.cleanUserName(ru.full_name || localUser.full_name),
               referrer_email: finalReferrer,
@@ -528,7 +572,7 @@ const BookingData = {
       };
     }
 
-    const techBookings = this.bookings.filter(b => 
+    const techBookings = this.bookings.filter(b =>
       b.tech_id === tech_id &&
       (b.status === 'APPROVED' || b.status === 'PENDING') &&
       b.booking_id !== exclude_booking_id
@@ -596,6 +640,7 @@ const BookingData = {
       message: `${newBooking.requester_name} đã gửi yêu cầu: "${newBooking.title}" (${newBooking.booking_date}).`,
       tab: 'approval',
       booking_id: newBooking.booking_id,
+      tech_id: newBooking.tech_id,
       required_perm: 'approve_booking',
       target_roles: ['admin', 'approver']
     });
@@ -624,21 +669,22 @@ const BookingData = {
     const tech = this.technicians.find(t => t.tech_id === booking.tech_id);
     const techName = tech ? tech.name : booking.tech_id;
 
-    // Live Notification for requester
+    // Live Notification for requester & assigned technician
     this.addNotification({
       type: 'approval_success',
       title: 'Ca trực đã được phê duyệt',
       message: `Ca trực "${booking.title}" của Kỹ sư ${techName} (${booking.booking_date}) đã được duyệt thành công.`,
       tab: 'my-bookings',
       booking_id: booking.booking_id,
+      tech_id: booking.tech_id,
       target_user: booking.requester_email,
-      target_roles: ['admin', 'approver', 'requester']
+      target_roles: ['admin', 'approver', 'requester', 'technician']
     });
 
     const client = window.SupabaseConfig ? window.SupabaseConfig.getClient() : null;
     if (client) {
       client.from('bookings').update({ status: 'APPROVED', approver_email, reject_reason: '' }).eq('booking_id', booking_id).then(({ error }) => {
-        if (error) console.warn('Supabase approve warning:', error);
+        if (error) console.warn('Supabase approve warning:', error); else this.syncGoogleCalendarBooking(booking_id);
       });
     }
 
@@ -663,6 +709,7 @@ const BookingData = {
       message: `Đơn "${booking.title}" đã bị từ chối. Lý do: ${reason.trim()}`,
       tab: 'my-bookings',
       booking_id: booking.booking_id,
+      tech_id: booking.tech_id,
       target_user: booking.requester_email,
       target_roles: ['admin', 'approver', 'requester']
     });
@@ -670,7 +717,7 @@ const BookingData = {
     const client = window.SupabaseConfig ? window.SupabaseConfig.getClient() : null;
     if (client) {
       client.from('bookings').update({ status: 'REJECTED', approver_email, reject_reason: reason.trim() }).eq('booking_id', booking_id).then(({ error }) => {
-        if (error) console.warn('Supabase reject warning:', error);
+        if (error) console.warn('Supabase reject warning:', error); else this.syncGoogleCalendarBooking(booking_id);
       });
     }
 
@@ -691,13 +738,14 @@ const BookingData = {
       message: `Ca trực "${booking.title}" (${booking.booking_date}) đã được hủy bởi người yêu cầu.`,
       tab: 'timeline',
       booking_id: booking.booking_id,
+      tech_id: booking.tech_id,
       target_roles: ['admin', 'approver']
     });
 
     const client = window.SupabaseConfig ? window.SupabaseConfig.getClient() : null;
     if (client) {
       client.rpc('cancel_my_booking', { p_booking_id: booking_id }).then(({ data, error }) => {
-        if (error || !data) console.warn('Supabase cancel rejected:', error || 'Booking is not owned by the authenticated user or is no longer cancellable.');
+        if (error || !data) console.warn('Supabase cancel rejected:', error || 'Booking is not owned by the authenticated user or is no longer cancellable.'); else this.syncGoogleCalendarBooking(booking_id);
       });
     }
 
@@ -757,14 +805,15 @@ const BookingData = {
     const techName = tech ? tech.name : booking.tech_id;
     const dateRangeLabel = durationDays > 0 ? `${newStartDateStr} → ${newEndDateStr}` : newStartDateStr;
 
-    // Live Notification for requester
-    if (booking.requester_email) {
+    // Live Notification for requester & assigned technician
+    if (booking.requester_email || booking.tech_id) {
       this.addNotification({
         type: 'shift_reminder',
         title: 'Lịch ca trực đã được dời ngày',
         message: `Ca trực "${booking.title}" của Kỹ sư ${techName} đã được dời sang ngày ${dateRangeLabel}.`,
         tab: 'my-bookings',
         booking_id: booking.booking_id,
+        tech_id: booking.tech_id,
         target_user: booking.requester_email
       });
     }
@@ -772,7 +821,7 @@ const BookingData = {
     const client = window.SupabaseConfig ? window.SupabaseConfig.getClient() : null;
     if (client) {
       client.from('bookings').update({ booking_date: newStartDateStr, end_date: newEndDateStr }).eq('booking_id', booking_id).then(({ error }) => {
-        if (error) console.warn('Supabase reschedule warning:', error);
+        if (error) console.warn('Supabase reschedule warning:', error); else this.syncGoogleCalendarBooking(booking_id);
       });
     }
 
@@ -830,6 +879,20 @@ const BookingData = {
     }
   },
 
+  ROLE_LABELS: {
+    admin: 'Admin cấp cao',
+    approver: 'Người vận hành',
+    requester: 'User PM',
+    technician: 'Kỹ Sư Hiện Trường'
+  },
+
+  ROLE_BADGES: {
+    admin: 'bg-amber-50 text-amber-800 border border-amber-300',
+    approver: 'bg-brand-50 text-brand-700 border border-brand-200',
+    requester: 'bg-slate-100 text-slate-700 border border-slate-200',
+    technician: 'bg-accent-50 text-accent-800 border border-accent-300'
+  },
+
   // ==========================================
   // REFERRER & PROFILE MANAGEMENT HELPERS
   // ==========================================
@@ -857,8 +920,13 @@ const BookingData = {
 
   async updateUserProfile(email, profileData) {
     const cleanEmail = (email || '').trim().toLowerCase();
-    const user = this.users.find(u => u.email.toLowerCase() === cleanEmail);
-    if (!user) return { success: false, error: 'Không tìm thấy người dùng' };
+    let user = this.users.find(u => u.email.toLowerCase() === cleanEmail);
+    const isCurrentTech = !user && this.currentUser && (this.currentUser.email || '').toLowerCase() === cleanEmail && (this.currentUser.role === 'technician' || this.currentUser.is_technician);
+
+    if (!user && !isCurrentTech) return { success: false, error: 'Không tìm thấy người dùng' };
+    if (!user && isCurrentTech) {
+      user = this.currentUser;
+    }
 
     // Email changes must be performed through Supabase Auth and a server-side profile operation.
     if (profileData.new_email && profileData.new_email.trim().toLowerCase() !== cleanEmail) {
@@ -868,15 +936,24 @@ const BookingData = {
     // 1. Personal info
     if (profileData.full_name) user.full_name = profileData.full_name.trim();
     if (profileData.phone !== undefined) user.phone = profileData.phone.trim();
-    if (profileData.department) user.department = profileData.department.trim();
+    if (profileData.department && !isCurrentTech) user.department = profileData.department.trim();
     if (profileData.avatar !== undefined) {
       user.avatar = profileData.avatar.trim();
       user.avatar_updated_at = Date.now(); // Record update timestamp so sync won't revert
     }
 
+    if (isCurrentTech) {
+      const techIdx = this.technicians.findIndex(t => t.tech_id === user.tech_id || (t.email && t.email.toLowerCase() === cleanEmail));
+      if (techIdx !== -1) {
+        if (profileData.full_name) this.technicians[techIdx].name = profileData.full_name.trim();
+        if (profileData.phone !== undefined) this.technicians[techIdx].phone = profileData.phone.trim();
+        if (profileData.avatar !== undefined) this.technicians[techIdx].avatar = profileData.avatar.trim();
+      }
+    }
+
     // 2. ONLY Admin Cấp Cao can modify user's email or referrer_email!
     const isCallerAdmin = this.isSuperAdmin();
-    if (isCallerAdmin) {
+    if (isCallerAdmin && !isCurrentTech) {
       if (profileData.new_email && profileData.new_email.toLowerCase() !== cleanEmail) {
         const newEmailClean = profileData.new_email.trim().toLowerCase();
         if (this.users.some(u => u.email.toLowerCase() === newEmailClean && u.email.toLowerCase() !== cleanEmail)) {
@@ -927,7 +1004,7 @@ const BookingData = {
       this.persistSession(this.currentUser);
     }
 
-    // Remote cloud update to Supabase public.users
+    // Remote cloud update to Supabase public.users / public.technicians
     const client = window.SupabaseConfig ? window.SupabaseConfig.getClient() : null;
     if (client) {
       try {
@@ -1022,8 +1099,6 @@ const BookingData = {
         technician: data.profile,
         invitationSent: Boolean(data.invitationSent),
         passwordSet: Boolean(data.passwordSet),
-        rateLimitedFallback: Boolean(data.rateLimitedFallback),
-        tempPassword: data.tempPassword || ''
       };
     } catch (error) {
       return { success: false, error: error?.message || 'Không thể gửi lời mời Supabase Auth.' };
@@ -1204,8 +1279,6 @@ const BookingData = {
         user: data.profile,
         invitationSent: Boolean(data.invitationSent),
         passwordSet: Boolean(data.passwordSet),
-        rateLimitedFallback: Boolean(data.rateLimitedFallback),
-        tempPassword: data.tempPassword || ''
       };
     } catch (error) {
       return { success: false, error: error?.message || 'Không thể gửi lời mời Supabase Auth.' };
@@ -1599,7 +1672,7 @@ const BookingData = {
     const tech = this.technicians.find(t => t.tech_id === (booking.tech_id || booking.technician_id));
     const techName = tech ? tech.name : 'Kỹ sư K-Coffee';
     const techEmail = tech?.email || `${(booking.tech_id || 'tech').toLowerCase()}@kcoffee.vn`;
-    
+
     const startStr = (booking.booking_date || booking.date || '').replace(/-/g, '');
     const endRaw = booking.end_date || booking.booking_date || booking.date;
     const endDateObj = new Date(endRaw);
@@ -1628,4 +1701,3 @@ const BookingData = {
 
 window.BookingData = BookingData;
 BookingData.init();
-

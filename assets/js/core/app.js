@@ -216,14 +216,17 @@ const App = {
     const availableCount = totalTechs - busyTodayTechIds.size;
     const pendingCount = BookingData.bookings.filter(b => b.status === 'PENDING').length;
     const userRole = BookingData.currentUser?.role;
+    const isTechnician = userRole === 'technician' || Boolean(BookingData.currentUser?.is_technician);
     const isApprover = userRole === 'approver' || userRole === 'admin' || userRole === 'manager';
     const curEmailLower = (BookingData.currentUser?.email || '').toLowerCase().trim();
-    const myBookingsCount = isApprover
-      ? (BookingData.bookings || []).length
-      : (BookingData.bookings || []).filter(b => 
-          ((b.requester_email || '').toLowerCase().trim() === curEmailLower) ||
-          ((b.created_by || '').toLowerCase().trim() === curEmailLower)
-        ).length;
+    const myBookingsCount = isTechnician
+      ? (BookingData.bookings || []).filter(b => b.tech_id === BookingData.currentUser?.tech_id).length
+      : isApprover
+        ? (BookingData.bookings || []).length
+        : (BookingData.bookings || []).filter(b =>
+            ((b.requester_email || '').toLowerCase().trim() === curEmailLower) ||
+            ((b.created_by || '').toLowerCase().trim() === curEmailLower)
+          ).length;
 
     const elAvail = document.getElementById('stat-available-techs');
     const elPending = document.getElementById('stat-pending-approvals');
@@ -255,23 +258,21 @@ const App = {
     // Check if current user is root admin (eligible to see debug bubble and preserve identity during tests)
     const canAccessBubble = (typeof BookingData !== 'undefined' && BookingData.canAccessDebugRoleSwitcher)
       ? BookingData.canAccessDebugRoleSwitcher()
-      : (u.email === 'vutranpk@gmail.com' || u.email === 'louisdang.design@gmail.com');
+      : false;
 
     const isSuper = (typeof BookingData !== 'undefined' && BookingData.isSuperAdmin)
       ? BookingData.isSuperAdmin()
       : (u.role === 'admin');
     const isAdmin = u.role === 'admin';
     const isApprover = u.role === 'approver';
-    const isThai = (u.email || '').toLowerCase() === 'louisdang.design@gmail.com';
+    const isTechnician = u.role === 'technician' || Boolean(u.is_technician);
     const isTestMode = Boolean(u.test_mode);
-    
+
     let roleLabel = 'User PM';
-    let avatarInitials = u.avatar_text || 'HN';
     let displayName = BookingData.cleanUserName ? BookingData.cleanUserName(u.full_name) : (u.full_name || 'Người dùng');
+    let avatarInitials = u.avatar_text || (displayName.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'U');
 
     if (canAccessBubble) {
-      displayName = isThai ? 'Thai Dang' : 'Vu Tran';
-      avatarInitials = isThai ? 'TD' : 'VT';
       if (isAdmin) {
         roleLabel = 'Admin';
       } else if (isApprover) {
@@ -281,16 +282,15 @@ const App = {
       }
     } else if (isAdmin) {
       roleLabel = 'Admin';
-      avatarInitials = isThai ? 'TD' : 'VT';
-      displayName = BookingData.cleanUserName ? BookingData.cleanUserName(u.full_name || (isThai ? 'Thai Dang' : 'Vu Tran')) : (u.full_name || 'Admin');
     } else if (isApprover) {
       roleLabel = 'Vận hành';
-      avatarInitials = u.avatar_text || 'AT';
-      displayName = BookingData.cleanUserName ? BookingData.cleanUserName(u.full_name) : (u.full_name || 'Trần Anh Tuấn');
+      avatarInitials = u.avatar_text || (displayName.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'AT');
+    } else if (isTechnician) {
+      roleLabel = u.tech_id ? `Kỹ Sư (${u.tech_id})` : 'Kỹ Sư Hiện Trường';
+      avatarInitials = u.avatar_text || (displayName.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'KS');
     } else {
       roleLabel = 'User PM';
-      avatarInitials = u.avatar_text || 'HN';
-      displayName = BookingData.cleanUserName ? BookingData.cleanUserName(u.full_name) : (u.full_name || 'Hoàng Trọng Nghĩa');
+      avatarInitials = u.avatar_text || (displayName.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'PM');
     }
 
     if (nameEl) nameEl.textContent = displayName;
@@ -304,6 +304,8 @@ const App = {
         avatarEl.className = 'w-8 h-8 rounded-full bg-amber-500 text-white font-bold flex items-center justify-center text-xs border border-amber-600 flex-shrink-0 shadow-2xs overflow-hidden';
       } else if (isApprover) {
         avatarEl.className = 'w-8 h-8 rounded-full bg-brand-50 text-brand-700 font-bold flex items-center justify-center text-xs border border-brand-200 flex-shrink-0 shadow-2xs overflow-hidden';
+      } else if (isTechnician) {
+        avatarEl.className = 'w-8 h-8 rounded-full bg-accent-600 text-white font-bold flex items-center justify-center text-xs border border-accent-700 flex-shrink-0 shadow-2xs overflow-hidden';
       } else {
         avatarEl.className = 'w-8 h-8 rounded-full bg-slate-200 text-slate-700 font-bold flex items-center justify-center text-xs border border-slate-300 flex-shrink-0 shadow-2xs overflow-hidden';
       }
@@ -319,6 +321,9 @@ const App = {
       } else if (isApprover) {
         roleEl.textContent = 'Người vận hành';
         roleEl.className = 'text-[10px] font-bold text-brand-700 bg-brand-50 px-2 py-0.5 rounded-full inline-block mt-0.5 border border-brand-200';
+      } else if (isTechnician) {
+        roleEl.textContent = roleLabel;
+        roleEl.className = 'text-[10px] font-bold text-accent-800 bg-accent-50 px-2 py-0.5 rounded-full inline-block mt-0.5 border border-accent-300';
       } else {
         roleEl.textContent = 'User bình thường';
         roleEl.className = 'text-[10px] font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-full inline-block mt-0.5 border border-slate-200';
@@ -336,6 +341,8 @@ const App = {
         topAvatarEl.className = 'w-8 h-8 rounded-full bg-amber-500 text-white font-bold flex items-center justify-center text-xs flex-shrink-0 border border-amber-600 shadow-2xs overflow-hidden';
       } else if (isApprover) {
         topAvatarEl.className = 'w-8 h-8 rounded-full bg-brand-50 text-brand-700 font-bold flex items-center justify-center text-xs flex-shrink-0 border border-brand-200 shadow-2xs overflow-hidden';
+      } else if (isTechnician) {
+        topAvatarEl.className = 'w-8 h-8 rounded-full bg-accent-600 text-white font-bold flex items-center justify-center text-xs flex-shrink-0 border border-accent-700 shadow-2xs overflow-hidden';
       } else {
         topAvatarEl.className = 'w-8 h-8 rounded-full bg-slate-200 text-slate-700 font-bold flex items-center justify-center text-xs flex-shrink-0 border border-slate-300 shadow-2xs overflow-hidden';
       }
@@ -346,6 +353,8 @@ const App = {
         topRoleEl.className = 'text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200 inline-block mt-0.5';
       } else if (isApprover) {
         topRoleEl.className = 'text-[10px] font-bold text-brand-700 bg-brand-50 px-2 py-0.5 rounded-full border border-brand-200 inline-block mt-0.5';
+      } else if (isTechnician) {
+        topRoleEl.className = 'text-[10px] font-bold text-accent-800 bg-accent-50 px-2 py-0.5 rounded-full border border-accent-300 inline-block mt-0.5';
       } else {
         topRoleEl.className = 'text-[10px] font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200 inline-block mt-0.5';
       }
@@ -412,6 +421,8 @@ const App = {
         roleLabelEl.innerHTML = '<svg class="w-4 h-4 text-amber-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg> <span>Admin cấp cao</span>';
       } else if (isApprover) {
         roleLabelEl.innerHTML = '<svg class="w-4 h-4 text-brand-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg> <span>Người vận hành (Lead)</span>';
+      } else if (isTechnician) {
+        roleLabelEl.innerHTML = '<svg class="w-4 h-4 text-accent-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg> <span>' + roleLabel + '</span>';
       } else {
         roleLabelEl.innerHTML = '<svg class="w-4 h-4 text-slate-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg> <span>User bình thường (PM)</span>';
       }
@@ -536,7 +547,7 @@ const App = {
       const keywords = (el.getAttribute('data-keywords') || '').toLowerCase();
       const title = (el.querySelector('.hub-tool-title')?.textContent || '').toLowerCase();
       const match = !q || keywords.includes(q) || title.includes(q);
-      
+
       if (match) {
         el.classList.remove('hidden');
         visibleCount++;

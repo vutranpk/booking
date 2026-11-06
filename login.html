@@ -3,10 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <title>Đăng Nhập Bảo Mật | K-Workspace Portal</title>
-  
+
   <link rel="icon" type="image/png" href="images/favicon.png">
-  
+
   <!-- Dual Fonts: Inter (UI & Body) + Roboto Condensed (Data & Numbers) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -75,13 +77,13 @@
   <!-- 🎯 RIGHT SIDE: LOGIN ACTION WORKSPACE -->
   <!-- ======================================================== -->
   <main class="lg:w-[55%] xl:w-[58%] flex flex-col justify-between p-6 sm:p-12 lg:p-16 xl:p-20 bg-white">
-    
+
     <!-- Top Spacer for Balance -->
     <div class="hidden lg:block"></div>
 
     <!-- Centered Form Container (Open Layout, No Card Box) -->
     <div class="w-full max-w-md mx-auto my-auto py-4">
-      
+
       <!-- Headline & Subtitle -->
       <div class="mb-8">
         <h1 class="text-2xl sm:text-3xl font-bold text-brand-600 tracking-tight">
@@ -105,7 +107,7 @@
 
       <!-- Form (Inputs default to empty, 100% accessible) -->
       <form id="standalone-login-form" onsubmit="handleStandaloneLogin(event)" class="space-y-4" autocomplete="on">
-        
+
         <!-- Email Input -->
         <div>
           <label for="login-email-input" class="block text-xs font-bold text-slate-700 mb-1.5">
@@ -115,16 +117,16 @@
             <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207"/></svg>
             </div>
-            <input id="login-email-input" 
-                   type="email" 
+            <input id="login-email-input"
+                   type="email"
                    name="email"
-                   required 
+                   required
                    autofocus
-                   autocomplete="username" 
-                   spellcheck="false" 
+                   autocomplete="username"
+                   spellcheck="false"
                    autocapitalize="none"
-                   value="" 
-                   placeholder="name@company.com" 
+                   value=""
+                   placeholder="name@company.com"
                    class="w-full text-xs bg-slate-50/70 hover:bg-slate-50 focus:bg-white border border-slate-200/90 focus:border-brand-600 focus:ring-4 focus:ring-brand-500/10 rounded-xl pl-10 pr-3.5 py-3.5 text-slate-900 placeholder:text-slate-400 font-medium transition-all shadow-2xs">
           </div>
         </div>
@@ -132,25 +134,24 @@
         <!-- Password Input -->
         <div>
           <div class="flex items-center justify-between mb-1.5">
-            <label for="login-password-input" class="block text-xs font-bold text-slate-700">
-              Mật khẩu
-            </label>
+            <label for="login-password-input" class="block text-xs font-bold text-slate-700">Mật khẩu</label>
+            <button type="button" onclick="requestPasswordReset()" class="text-[11px] font-semibold text-brand-600 hover:text-brand-800 cursor-pointer">Quên mật khẩu?</button>
           </div>
           <div class="relative">
             <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
             </div>
-            <input id="login-password-input" 
-                   type="password" 
+            <input id="login-password-input"
+                   type="password"
                    name="password"
-                   required 
+                   required
                    autocomplete="current-password"
-                   value="" 
-                   placeholder="••••••••" 
+                   value=""
+                   placeholder="••••••••"
                    class="w-full text-xs bg-slate-50/70 hover:bg-slate-50 focus:bg-white border border-slate-200/90 focus:border-brand-600 focus:ring-4 focus:ring-brand-500/10 rounded-xl pl-10 pr-10 py-3.5 text-slate-900 placeholder:text-slate-400 font-medium transition-all shadow-2xs">
-            <button type="button" 
-                    onclick="togglePassword()" 
-                    class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-700 cursor-pointer transition-colors" 
+            <button type="button"
+                    onclick="togglePassword()"
+                    class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-700 cursor-pointer transition-colors"
                     title="Ẩn/Hiện mật khẩu"
                     aria-label="Ẩn hoặc hiện mật khẩu">
               <svg id="login-eye-icon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -158,20 +159,21 @@
               </svg>
             </button>
           </div>
+          <p id="password-reset-message" role="status" aria-live="polite" class="hidden mt-2 rounded-xl border px-3 py-2 text-[11px] font-medium leading-relaxed break-words"></p>
         </div>
 
-        <div class="text-right -mt-2"><button type="button" onclick="requestPasswordReset()" class="text-[11px] font-semibold text-brand-600 hover:text-brand-800 cursor-pointer">Quên mật khẩu?</button></div>
-        <p id="password-reset-message" role="status" class="hidden text-[11px] text-emerald-700"></p>
-
         <!-- Submit Button (Phúc Sinh Corporate Navy) -->
-        <button id="login-submit-btn" 
-                type="submit" 
+        <button id="login-submit-btn"
+                type="submit"
                 class="w-full mt-3 py-3.5 px-5 rounded-xl bg-brand-600 hover:bg-brand-700 active:bg-brand-800 active:scale-[0.99] text-white font-bold text-xs shadow-xs hover:shadow-sm flex items-center justify-center gap-2 transition-all cursor-pointer">
           <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/></svg>
           <span>Đăng Nhập</span>
         </button>
 
       </form>
+      <a href="public-reports.html" class="mt-3 flex w-full items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-3 text-xs font-bold text-slate-700 transition-colors hover:bg-slate-50">
+        Xem lịch & báo cáo kỹ sư
+      </a>
 
       <!-- Minimalist Support Notice -->
       <div class="mt-6 text-center">
@@ -242,20 +244,26 @@
     async function requestPasswordReset() {
       const email = document.getElementById('login-email-input')?.value.trim().toLowerCase();
       const message = document.getElementById('password-reset-message');
+      const showMessage = (text, tone = 'info') => {
+        if (!message) return;
+        const colors = {
+          info: 'border-slate-200 bg-slate-50 text-slate-700',
+          success: 'border-emerald-200 bg-emerald-50 text-emerald-800',
+          warning: 'border-amber-200 bg-amber-50 text-amber-800',
+          error: 'border-rose-200 bg-rose-50 text-rose-800'
+        };
+        message.textContent = text;
+        message.className = `block mt-2 rounded-xl border px-3 py-2 text-[11px] font-medium leading-relaxed break-words ${colors[tone] || colors.info}`;
+      };
+
       if (!email) {
-        if (message) {
-          message.textContent = 'Nhập email tài khoản trước khi yêu cầu đặt lại mật khẩu.';
-          message.className = 'text-[11px] text-amber-700 font-medium block mt-1';
-        }
+        showMessage('Nhập email công việc để yêu cầu đặt lại mật khẩu.', 'warning');
         document.getElementById('login-email-input')?.focus();
         return;
       }
       const client = window.SupabaseConfig?.getClient();
       if (!client?.auth) {
-        if (message) {
-          message.textContent = 'Dịch vụ xác thực hiện không khả dụng.';
-          message.className = 'text-[11px] text-rose-700 font-medium block mt-1';
-        }
+        showMessage('Dịch vụ xác thực hiện không khả dụng. Vui lòng thử lại sau.', 'error');
         return;
       }
 
@@ -263,31 +271,24 @@
         window.location.protocol === 'file:' ||
         window.location.hostname === 'localhost' ||
         window.location.hostname === '127.0.0.1';
-
       const redirectTo = isLocalOrFile
         ? 'https://vutranpk.github.io/booking/reset-password.html'
         : new URL('reset-password.html', window.location.href).href;
 
-      if (message) {
-        message.textContent = 'Đang gửi yêu cầu khôi phục mật khẩu...';
-        message.className = 'text-[11px] text-slate-600 font-medium block mt-1';
-      }
-
+      showMessage('Đang gửi yêu cầu đặt lại mật khẩu…');
       const { error } = await client.auth.resetPasswordForEmail(email, { redirectTo });
-      if (message) {
-        if (error) {
-          const isRateLimit = /rate limit|429/i.test(error.message || '');
-          message.textContent = isRateLimit
-            ? 'Đã vượt hạn mức gửi email của Supabase (tối đa ~3 mail/giờ). Nhờ Admin đặt lại mật khẩu trực tiếp trong Quản lý Người dùng/Kỹ sư hoặc thử lại sau.'
-            : `Chưa gửi được email (${error.message || 'Lỗi cấu hình Auth'}).`;
-          message.className = 'text-[11px] text-rose-700 font-medium block mt-1';
-        } else {
-          message.textContent = `Đã gửi link đặt lại mật khẩu đến ${email} (chuyển hướng về ${redirectTo}). Vui lòng kiểm tra hộp thư!`;
-          message.className = 'text-[11px] text-emerald-700 font-medium block mt-1';
-        }
+      if (error) {
+        const isRateLimit = /rate limit|429/i.test(error.message || '');
+        showMessage(
+          isRateLimit
+            ? 'Tạm vượt giới hạn gửi email. Hãy thử lại sau hoặc liên hệ quản trị viên để được hỗ trợ.'
+            : `Chưa gửi được yêu cầu (${error.message || 'Lỗi cấu hình Auth'}). Vui lòng thử lại hoặc liên hệ quản trị viên.`,
+          'error'
+        );
+      } else {
+        showMessage('Nếu email này có tài khoản, hệ thống sẽ gửi liên kết đặt lại mật khẩu. Hãy kiểm tra hộp thư đến và Spam.', 'success');
       }
     }
-
     async function handleStandaloneLogin(event) {
       if (event && event.preventDefault) event.preventDefault();
       const email = document.getElementById('login-email-input')?.value.trim().toLowerCase() || '';

@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Lịch & báo cáo kỹ sư | K-Workspace</title>
+  <link rel="icon" type="image/png" href="images/favicon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: Inter, system-ui, sans-serif; }
+    .safe-bottom { padding-bottom: max(1rem, env(safe-area-inset-bottom)); }
+  </style>
+</head>
+<body class="min-h-screen bg-slate-50 text-slate-900">
+  <header class="sticky top-0 z-20 border-b border-slate-200 bg-white/95 backdrop-blur">
+    <div class="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
+      <div class="flex min-w-0 items-center gap-3">
+        <img src="images/symbol.png" alt="" class="h-9 w-auto shrink-0 object-contain">
+        <div class="min-w-0"><p class="truncate text-sm font-extrabold">Lịch & báo cáo kỹ sư</p><p class="text-[11px] text-slate-500">Chỉ xem lịch và thống kê</p></div>
+      </div>
+      <a href="login.html" class="shrink-0 rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">← Đăng nhập</a>
+    </div>
+  </header>
+
+  <main class="safe-bottom mx-auto max-w-6xl space-y-5 px-4 py-5 sm:px-6 sm:py-7">
+    <section class="flex flex-col gap-4 rounded-2xl bg-[#132140] p-5 text-white sm:flex-row sm:items-center sm:justify-between sm:p-6">
+      <div><h1 class="text-xl font-extrabold tracking-tight sm:text-2xl">Lịch trực & báo cáo</h1><p class="mt-1 max-w-2xl text-xs leading-relaxed text-slate-300">Lịch ca theo tháng và thống kê của từng kỹ sư.</p></div>
+      <div class="flex items-center justify-between gap-3 rounded-xl border border-white/15 bg-white/10 p-1.5 sm:justify-start">
+        <button id="month-previous" type="button" aria-label="Tháng trước" class="grid h-9 w-9 place-items-center rounded-lg text-lg hover:bg-white/10">‹</button>
+        <p id="month-label" class="min-w-32 text-center text-sm font-bold">—</p>
+        <button id="month-next" type="button" aria-label="Tháng sau" class="grid h-9 w-9 place-items-center rounded-lg text-lg hover:bg-white/10">›</button>
+      </div>
+    </section>
+
+    <section aria-label="Báo cáo tổng quan tháng" class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <article class="rounded-2xl border border-slate-200 bg-white p-4"><p class="text-xs font-semibold text-slate-500">Kỹ sư</p><p id="summary-engineers" class="mt-2 text-2xl font-extrabold">—</p></article>
+      <article class="rounded-2xl border border-slate-200 bg-white p-4"><p class="text-xs font-semibold text-slate-500">Tổng số ca</p><p id="summary-shifts" class="mt-2 text-2xl font-extrabold">—</p></article>
+      <article class="rounded-2xl border border-slate-200 bg-white p-4"><p class="text-xs font-semibold text-emerald-700">Đã duyệt</p><p id="summary-approved" class="mt-2 text-2xl font-extrabold text-emerald-700">—</p></article>
+      <article class="rounded-2xl border border-slate-200 bg-white p-4"><p class="text-xs font-semibold text-amber-700">Chờ duyệt</p><p id="summary-pending" class="mt-2 text-2xl font-extrabold text-amber-700">—</p></article>
+    </section>
+
+    <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+      <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-4 py-3.5 sm:px-5">
+        <div><h2 class="font-bold">Đội ngũ kỹ sư</h2><p class="mt-0.5 text-xs text-slate-500">Chọn kỹ sư để lọc lịch và báo cáo trong tháng</p></div>
+        <button id="engineer-filter-reset" type="button" class="hidden rounded-lg bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-200">Xem tất cả</button>
+      </div>
+      <div id="report-engineers" class="grid grid-cols-1 gap-2 p-3 sm:grid-cols-2 lg:grid-cols-3"><p class="p-3 text-sm text-slate-500">Đang tải kỹ sư…</p></div>
+    </section>
+
+    <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+      <div class="border-b border-slate-100 px-4 py-3.5 sm:px-5"><h2 id="schedule-heading" class="font-bold">Lịch các ca trong tháng</h2><p class="mt-0.5 text-xs text-slate-500">Hiển thị giờ trực và trạng thái duyệt</p></div>
+      <div id="report-schedule" class="divide-y divide-slate-100"><p class="p-5 text-sm text-slate-500">Đang tải lịch…</p></div>
+    </section>
+    <p id="report-message" role="status" aria-live="polite" class="text-center text-xs text-slate-500"></p>
+    <p class="text-center text-[11px] text-slate-400">Trang chỉ xem lịch và thống kê. Không thể đặt lịch hoặc sửa dữ liệu.</p>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="assets/js/core/supabase.js"></script>
+  <script src="assets/js/modules/booking/public-reports.js"></script>
+</body>
+</html>

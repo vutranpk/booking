@@ -32,7 +32,7 @@ const BookingUI = {
     if (avatarUrl) {
       return `<img src="${avatarUrl}" alt="${cleanName}" class="${size} rounded-full object-cover border border-slate-200 shadow-2xs flex-shrink-0">`;
     }
-    const isSuper = BookingData.ROOT_ADMIN_EMAILS ? BookingData.ROOT_ADMIN_EMAILS.includes((email || '').toLowerCase()) : false;
+    const isSuper = u?.role === 'admin' || (isCurrentUser && BookingData.isSuperAdmin());
     const isApprover = u?.role === 'approver';
     const bgClass = isSuper ? 'bg-amber-500 text-white' : (isApprover ? 'bg-brand-50 text-brand-700' : 'bg-slate-200 text-slate-700');
     return `<div class="${size} rounded-full ${bgClass} font-bold ${textSize} flex items-center justify-center flex-shrink-0 shadow-2xs border border-black/5">${initials}</div>`;
@@ -108,7 +108,7 @@ const BookingUI = {
           Hiển thị <strong class="text-slate-800 font-condensed font-bold">${startIdx}–${endIdx}</strong> trên tổng số <strong class="text-slate-800 font-condensed font-bold">${totalItems}</strong> bản ghi
         </div>
         <div class="flex items-center gap-1.5 flex-wrap justify-center">
-          <button type="button" 
+          <button type="button"
                   ${hasPrev ? `onclick="BookingUI.setPage('${moduleName}', ${currentPage - 1})"` : 'disabled'}
                   class="px-2.5 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors flex items-center gap-1 font-semibold disabled:opacity-40 disabled:pointer-events-none cursor-pointer">
             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
@@ -117,7 +117,7 @@ const BookingUI = {
           <div class="flex items-center gap-1">
             ${pagesHtml}
           </div>
-          <button type="button" 
+          <button type="button"
                   ${hasNext ? `onclick="BookingUI.setPage('${moduleName}', ${currentPage + 1})"` : 'disabled'}
                   class="px-2.5 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors flex items-center gap-1 font-semibold disabled:opacity-40 disabled:pointer-events-none cursor-pointer">
             <span class="hidden sm:inline">Sau</span>
@@ -266,7 +266,7 @@ const BookingUI = {
     if (phoneEl) phoneEl.innerHTML = `<span class="inline-flex items-center gap-1.5 text-slate-500 font-medium">${Lucide.phone} SĐT: <strong class="text-slate-800 font-semibold">${tech.phone}</strong></span>`;
   },
 
-  // Context-aware Tab Permissions (3 Roles + Granular Capabilities)
+  // Context-aware Tab Permissions (3 Roles + Technician + Granular Capabilities)
   applyRolePermissions() {
     const canViewSchedule = BookingData.hasPermission('view_schedule');
     const canViewApproval = BookingData.hasPermission('view_approval_queue');
@@ -275,6 +275,14 @@ const BookingUI = {
     const canCreateBooking = BookingData.hasPermission('create_booking');
     const canManageTechs = BookingData.hasPermission('manage_technicians');
     const canManageUsers = BookingData.hasPermission('manage_users');
+
+    const user = BookingData.currentUser;
+    const isTechnician = user?.role === 'technician' || Boolean(user?.is_technician);
+
+    // Lock calendar filter strictly to the technician's own tech_id
+    if (isTechnician && user?.tech_id) {
+      this.selectedTechId = user.tech_id;
+    }
 
     const setElemVisible = (el, visible) => {
       if (!el) return;
@@ -309,6 +317,24 @@ const BookingUI = {
 
     setElemVisible(tabMyBookings, true);
 
+    const tabMyBookingsLabel = document.getElementById('tab-my-bookings-label');
+    if (tabMyBookingsLabel) {
+      tabMyBookingsLabel.textContent = isTechnician ? 'Lịch của tôi' : 'Lịch điều phối';
+    }
+
+    const myPanelTitle = document.getElementById('my-bookings-panel-title');
+    const myPanelSub = document.getElementById('my-bookings-panel-subtitle');
+    if (myPanelTitle) {
+      myPanelTitle.textContent = isTechnician
+        ? `Lịch Điều Phối Cá Nhân (${user?.tech_id || 'Kỹ Sư'})`
+        : 'Lịch điều phối Kỹ Thuật';
+    }
+    if (myPanelSub) {
+      myPanelSub.textContent = isTechnician
+        ? 'Ca trực được phân công cho bạn.'
+        : 'Theo dõi yêu cầu và trạng thái ca trực.';
+    }
+
     setElemVisible(tabApproval, canViewApproval);
     setElemVisible(mobileApproval, canViewApproval);
 
@@ -334,6 +360,15 @@ const BookingUI = {
     const btnQuickNew = document.getElementById('btn-quick-new-booking');
     if (btnQuickNew) btnQuickNew.classList.toggle('hidden', !canCreateBooking);
 
+    const btnOverviewNew = document.getElementById('btn-overview-new-booking');
+    if (btnOverviewNew) btnOverviewNew.classList.toggle('hidden', !canCreateBooking);
+
+    const btnMyBookingsNew = document.getElementById('btn-my-bookings-new');
+    if (btnMyBookingsNew) btnMyBookingsNew.classList.toggle('hidden', !canCreateBooking);
+
+    const mobileBookingAction = document.getElementById('mobile-bottom-booking-action');
+    if (mobileBookingAction) mobileBookingAction.classList.toggle('hidden', !canCreateBooking);
+
     const btnOpenTech = document.getElementById('btn-open-tech-modal');
     if (btnOpenTech) btnOpenTech.classList.toggle('hidden', !canManageTechs);
 
@@ -351,7 +386,7 @@ const BookingUI = {
       this.switchTab(targetTab);
     }
 
-    // 4. Extensions Visibility (User bình thường không thấy - chuẩn bị phân quyền tương lai)
+    // 4. Extensions Visibility (User bình thường & Kỹ sư không thấy)
     const sideExt = document.getElementById('sidebar-extensions-group');
     const overExt = document.getElementById('overview-extensions-group');
     if (sideExt) sideExt.classList.toggle('hidden', !canViewExtensions);
@@ -569,7 +604,7 @@ const BookingUI = {
       const unreadBg = !item.read ? 'bg-slate-50/70 hover:bg-slate-100/80' : 'bg-white hover:bg-slate-50';
 
       return `
-        <div onclick="BookingUI.handleNotificationClick('${item.id}', '${item.booking_id || ''}', '${item.tab || ''}')" 
+        <div onclick="BookingUI.handleNotificationClick('${item.id}', '${item.booking_id || ''}', '${item.tab || ''}')"
              class="group p-3.5 flex items-start gap-3 transition-colors cursor-pointer relative ${unreadBg}">
           ${iconMarkup}
           <div class="flex-1 min-w-0 pr-1">
@@ -714,8 +749,8 @@ const BookingUI = {
     const monthNames = ['Tháng 1', 'Tháng 2', 'Tháng 3', 'Tháng 4', 'Tháng 5', 'Tháng 6', 'Tháng 7', 'Tháng 8', 'Tháng 9', 'Tháng 10', 'Tháng 11', 'Tháng 12'];
     gridEl.innerHTML = monthNames.map((name, idx) => {
       const isSelected = this.currentMonth === idx && this.currentYear === this.pickerYear;
-      const activeClass = isSelected 
-        ? 'bg-brand-600 text-white font-bold shadow-xs' 
+      const activeClass = isSelected
+        ? 'bg-brand-600 text-white font-bold shadow-xs'
         : 'text-slate-700 hover:bg-slate-100 font-semibold hover:text-slate-900';
       return `
         <button type="button" onclick="BookingUI.selectCalendarMonth(${this.pickerYear}, ${idx})" class="py-2.5 px-1.5 rounded-xl text-center text-xs transition-all cursor-pointer ${activeClass}">
@@ -789,7 +824,7 @@ const BookingUI = {
     menu.innerHTML = BookingData.technicians.map(t => {
       const isSelected = t.tech_id === selectedTechId;
       return `
-        <div onclick="BookingUI.selectCustomTech('${t.tech_id}')" 
+        <div onclick="BookingUI.selectCustomTech('${t.tech_id}')"
              class="p-2.5 flex items-center justify-between gap-3 hover:bg-slate-50 cursor-pointer transition-colors ${isSelected ? 'bg-brand-50/70 font-semibold' : ''}">
           <div class="flex items-center gap-2.5 min-w-0">
             <img src="${t.avatar}" class="w-8 h-8 rounded-full object-cover border border-slate-200 shadow-2xs flex-shrink-0" alt="${t.name}">
@@ -1097,11 +1132,11 @@ const BookingUI = {
       }
 
       html += `
-        <button type="button" 
+        <button type="button"
                 data-date="${dayStr}"
-                onclick="event.stopPropagation(); BookingUI.selectDatePickerDate('${dayStr}', event)" 
+                onclick="event.stopPropagation(); BookingUI.selectDatePickerDate('${dayStr}', event)"
                 onmouseenter="BookingUI.handleDatePickerHover('${dayStr}')"
-                class="${cellClass}" 
+                class="${cellClass}"
                 ${isPast ? 'disabled' : ''}>
           ${day}
         </button>
@@ -1251,19 +1286,19 @@ const BookingUI = {
     const breadcrumbCurrentEl = document.getElementById('page-breadcrumb-current');
 
     if (tabName === 'overview') {
-      if (titleEl) titleEl.textContent = 'Tổng Quan Workspace';
+      if (titleEl) titleEl.textContent = 'Tổng quan';
       if (breadcrumbCurrentEl) breadcrumbCurrentEl.textContent = 'Tổng Quan';
     } else if (tabName === 'timeline') {
-      if (titleEl) titleEl.textContent = 'Lịch Kỹ Thuật';
-      if (breadcrumbCurrentEl) breadcrumbCurrentEl.textContent = 'Lịch Kỹ Thuật';
+      if (titleEl) titleEl.textContent = 'Lịch trực';
+      if (breadcrumbCurrentEl) breadcrumbCurrentEl.textContent = 'Lịch trực';
     } else if (tabName === 'approval') {
       if (titleEl) titleEl.textContent = 'Duyệt Yêu Cầu';
       if (breadcrumbCurrentEl) breadcrumbCurrentEl.textContent = 'Duyệt Yêu Cầu';
     } else if (tabName === 'my-bookings') {
-      if (titleEl) titleEl.textContent = 'Lịch Sử Điều Phối';
-      if (breadcrumbCurrentEl) breadcrumbCurrentEl.textContent = 'Lịch Sử Điều Phối';
+      if (titleEl) titleEl.textContent = 'Lịch điều phối';
+      if (breadcrumbCurrentEl) breadcrumbCurrentEl.textContent = 'Lịch điều phối';
     } else if (tabName === 'technicians') {
-      if (titleEl) titleEl.textContent = 'Đội Ngũ Kỹ Sư';
+      if (titleEl) titleEl.textContent = 'Đội ngũ kỹ sư';
       if (breadcrumbCurrentEl) breadcrumbCurrentEl.textContent = 'Kỹ Sư & Năng Lực';
     } else if (tabName === 'users') {
       if (titleEl) titleEl.textContent = 'Người Dùng & Phân Quyền';
@@ -1381,11 +1416,11 @@ const BookingUI = {
     const greetingSubEl = document.getElementById('overview-user-subtitle');
     if (greetingSubEl) {
       if (user.role === 'admin') {
-        greetingSubEl.textContent = 'Hệ thống vận hành ổn định. Bạn có toàn quyền quản trị kỹ sư, người dùng và điều phối ca trực.';
+        greetingSubEl.textContent = 'Quản lý tài khoản và điều phối lịch.';
       } else if (user.role === 'approver') {
-        greetingSubEl.textContent = 'Chào mừng Trưởng nhóm kỹ thuật. Bạn có thể duyệt các đơn booking và theo dõi tiến độ ca trực.';
+        greetingSubEl.textContent = 'Duyệt yêu cầu và theo dõi ca trực.';
       } else {
-        greetingSubEl.textContent = 'Chào mừng bạn quay lại. Tạo đơn đặt lịch và theo dõi tiến độ ca trực kỹ thuật viên dễ dàng.';
+        greetingSubEl.textContent = 'Đặt lịch và theo dõi tiến độ yêu cầu.';
       }
     }
 
@@ -1424,7 +1459,7 @@ const BookingUI = {
     });
     const approvedCount = shifts30Days.length;
     const userEmailLower = (user?.email || '').toLowerCase().trim();
-    const myBookings = BookingData.bookings.filter(b => 
+    const myBookings = BookingData.bookings.filter(b =>
       ((b.requester_email || '').toLowerCase().trim() === userEmailLower) ||
       ((b.created_by || '').toLowerCase().trim() === userEmailLower)
     );
@@ -1528,10 +1563,10 @@ const BookingUI = {
             <svg class="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
           </div>
           <p class="text-xs font-bold text-slate-700">Chưa có ca trực nào hôm nay & sắp tới</p>
-          <p class="text-[11px] text-slate-400 mt-0.5">Nhấp nút "Đặt Lịch Mới" để lên lịch làm việc cho kỹ sư.</p>
-          <button onclick="BookingUI.openBookingModal()" class="mt-3 px-3 py-1.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold transition-all inline-flex items-center gap-1.5 cursor-pointer shadow-2xs">
+          <p class="text-[11px] text-slate-400 mt-0.5">Chưa có lịch trực sắp tới.</p>
+          <button onclick="BookingUI.openBookingModal()" class="mt-3 hidden sm:inline-flex px-3 py-1.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold transition-all items-center gap-1.5 cursor-pointer shadow-2xs">
             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
-            <span>Tạo Ca Trực Mới</span>
+            <span>Đặt lịch</span>
           </button>
         </div>
       `;
@@ -1567,8 +1602,8 @@ const BookingUI = {
           </div>
 
           <div class="flex items-center gap-2 flex-shrink-0">
-            ${isApproved 
-              ? '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-accent-50 text-accent-700 border border-accent-200 flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-accent-500"></span> Đã duyệt</span>' 
+            ${isApproved
+              ? '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-accent-50 text-accent-700 border border-accent-200 flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-accent-500"></span> Đã duyệt</span>'
               : '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200 flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Chờ duyệt</span>'}
             <span class="text-slate-400 text-xs group-hover:text-slate-700 group-hover:translate-x-0.5 transition-transform">→</span>
           </div>
@@ -1585,7 +1620,7 @@ const BookingUI = {
     const pendingCount = (BookingData.bookings || []).filter(b => b.status === 'PENDING').length;
     const approvedCount = (BookingData.bookings || []).filter(b => b.status === 'APPROVED').length;
     const totalCount = (BookingData.bookings || []).filter(b => b.status !== 'CANCELLED' && b.status !== 'REJECTED').length;
-    const myBookings = (BookingData.bookings || []).filter(b => 
+    const myBookings = (BookingData.bookings || []).filter(b =>
       ((b.requester_email || '').toLowerCase().trim() === userEmailLower) ||
       ((b.created_by || '').toLowerCase().trim() === userEmailLower)
     );
@@ -1642,10 +1677,10 @@ const BookingUI = {
 
     let html = `
       <!-- "Tất cả kỹ sư" Button -->
-      <button onclick="BookingUI.selectTech('all')" 
+      <button onclick="BookingUI.selectTech('all')"
               class="h-8 sm:h-10 px-3 sm:px-3.5 rounded-full text-[11px] sm:text-xs font-bold transition-all flex items-center justify-center flex-shrink-0 shadow-xs cursor-pointer ${
-                isAllActive 
-                  ? 'bg-brand-600 text-white shadow-sm' 
+                isAllActive
+                  ? 'bg-brand-600 text-white shadow-sm'
                   : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
               }"
               title="Xem lịch tất cả kỹ sư">
@@ -1659,12 +1694,12 @@ const BookingUI = {
       html += `
         <button onclick="BookingUI.selectTech('${tech.tech_id}')"
                 class="relative rounded-full transition-all hover:scale-110 flex-shrink-0 group cursor-pointer ${
-                  isSelected 
-                    ? 'ring-2 sm:ring-3 ring-brand-600 ring-offset-1 sm:ring-offset-2 scale-105 shadow-md' 
+                  isSelected
+                    ? 'ring-2 sm:ring-3 ring-brand-600 ring-offset-1 sm:ring-offset-2 scale-105 shadow-md'
                     : 'opacity-90 hover:opacity-100 hover:ring-2 hover:ring-slate-300 hover:ring-offset-1'
                 }"
                 title="${tech.name} • ${tech.skills.join(', ')} (Click để lọc riêng)">
-          <img src="${tech.avatar}" alt="${tech.name}" 
+          <img src="${tech.avatar}" alt="${tech.name}"
                class="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover border sm:border-2 border-white shadow-xs">
           <!-- Active Dot -->
           ${isSelected ? `
@@ -1844,13 +1879,13 @@ const BookingUI = {
                ondragleave="BookingUI.handleDragLeave(event, this)"
                ondrop="BookingUI.handleDrop(event, '${dateStr}', this)"
                class="min-h-[85px] sm:min-h-[142px] p-0.5 sm:p-2 flex flex-col justify-start gap-0.5 sm:gap-1 transition-all relative group/cell cursor-pointer ${
-                 isToday 
-                   ? 'bg-blue-50/20 ring-1 ring-inset ring-blue-300 z-10' 
-                   : dayInfo.isCurrentMonth 
-                     ? 'bg-white hover:bg-slate-50/60' 
+                 isToday
+                   ? 'bg-blue-50/20 ring-1 ring-inset ring-blue-300 z-10'
+                   : dayInfo.isCurrentMonth
+                     ? 'bg-white hover:bg-slate-50/60'
                      : 'bg-slate-50/40 hover:bg-slate-100/50'
                }">
-            
+
             <!-- Date Number (Compact on Mobile, Full on Desktop) -->
             <div class="h-5 sm:h-7 flex items-center justify-center select-none mb-0.5 sm:mb-1">
               ${isToday ? `
@@ -1861,8 +1896,8 @@ const BookingUI = {
                 <span class="px-1 sm:px-2 py-0.5 rounded-full flex items-center justify-center text-[10px] sm:text-xs ${
                   !dayInfo.isCurrentMonth
                     ? 'text-slate-400 font-normal'
-                    : isSunday 
-                      ? 'text-burgundy-800 font-bold' 
+                    : isSunday
+                      ? 'text-burgundy-800 font-bold'
                       : 'text-slate-700 font-medium'
                 } hover:bg-slate-100 transition-colors">
                   ${showMonthTag ? `<span class="sm:hidden">${dayNum}</span><span class="hidden sm:inline">${dayNum} thg ${monthNum}</span>` : dayNum}
@@ -1901,12 +1936,12 @@ const BookingUI = {
                 const baseBg = isApproved ? 'bg-accent-600 hover:bg-accent-700' : 'bg-orange-500 hover:bg-orange-600';
                 const borderColor = isApproved ? 'border-accent-500/60' : 'border-orange-400/60';
 
-                const statusIndicator = isApproved 
-                  ? `<span class="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-accent-700/80 flex items-center justify-center text-white flex-shrink-0 shadow-2xs pointer-events-none" title="Đã duyệt"><svg class="w-2.5 h-2.5 sm:w-3 sm:h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg></span>` 
+                const statusIndicator = isApproved
+                  ? `<span class="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-accent-700/80 flex items-center justify-center text-white flex-shrink-0 shadow-2xs pointer-events-none" title="Đã duyệt"><svg class="w-2.5 h-2.5 sm:w-3 sm:h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg></span>`
                   : `<span class="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-orange-600/80 flex items-center justify-center text-white flex-shrink-0 shadow-2xs pointer-events-none" title="Chờ duyệt"><svg class="w-2.5 h-2.5 sm:w-3 sm:h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3"/></svg></span>`;
 
-                const endStatusIndicator = isApproved 
-                  ? `<span class="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-accent-700/80 mr-0.5 sm:mr-1 flex items-center justify-center text-white flex-shrink-0 shadow-2xs pointer-events-none" title="Đã duyệt"><svg class="w-2.5 h-2.5 sm:w-3 sm:h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg></span>` 
+                const endStatusIndicator = isApproved
+                  ? `<span class="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-accent-700/80 mr-0.5 sm:mr-1 flex items-center justify-center text-white flex-shrink-0 shadow-2xs pointer-events-none" title="Đã duyệt"><svg class="w-2.5 h-2.5 sm:w-3 sm:h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg></span>`
                   : `<span class="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-orange-600/80 mr-0.5 sm:mr-1 flex items-center justify-center text-white flex-shrink-0 shadow-2xs pointer-events-none" title="Chờ duyệt"><svg class="w-2.5 h-2.5 sm:w-3 sm:h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3"/></svg></span>`;
 
                 const extendRight = !isLastCol && !isEnd;
@@ -2187,6 +2222,7 @@ const BookingUI = {
             ((b.requester_email || '').toLowerCase().trim() === curEmailLower) ||
             ((b.created_by || '').toLowerCase().trim() === curEmailLower)
           );
+
     if (headerCount) {
       headerCount.innerHTML = `
         <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200 font-condensed">
@@ -2198,7 +2234,7 @@ const BookingUI = {
     if (list.length === 0) {
       container.innerHTML = `
         <div class="py-16 text-center">
-          <p class="text-sm font-semibold text-slate-800">${isApprover ? 'Chưa có dữ liệu đơn đặt lịch nào trong hệ thống.' : 'Bạn chưa tạo yêu cầu booking nào.'}</p>
+          <p class="text-sm font-semibold text-slate-800">${isApprover ? 'Chưa có lịch cần xử lý.' : (isTechnician ? 'Chưa có ca được phân công.' : 'Chưa có yêu cầu đặt lịch.')}</p>
         </div>
       `;
       return;
@@ -2490,7 +2526,7 @@ const BookingUI = {
     const res = BookingData.approveBooking(bookingId, BookingData.currentUser.email);
     if (res.success) {
       Toast.show(`Đã phê duyệt đơn ${bookingId}! Khung giờ đã được khóa bảo vệ.`, 'success', 'Duyệt thành công');
-      
+
       const reqEmail = booking ? booking.requester_email : '';
       const bTitle = booking ? booking.title : '';
 
@@ -2542,7 +2578,7 @@ const BookingUI = {
       const res = BookingData.cancelBooking(bookingId);
       if (res.success) {
         Toast.show(`Đã hủy đơn ${bookingId}.`, 'info', 'Đã hủy');
-        
+
         const reqEmail = booking ? booking.requester_email : BookingData.currentUser?.email;
         const bTitle = booking ? booking.title : '';
 
@@ -2635,10 +2671,10 @@ const BookingUI = {
       cellEl.classList.remove('cell-drag-over', 'cell-drag-invalid', 'bg-amber-100/70', 'bg-rose-50/70', 'ring-2', 'ring-amber-500', 'ring-rose-400', 'ring-inset');
     }
 
-    const bookingId = e.dataTransfer.getData('text/plain') 
-                   || e.dataTransfer.getData('text') 
-                   || this.activeDragBookingId 
-                   || this.draggedBookingId 
+    const bookingId = e.dataTransfer.getData('text/plain')
+                   || e.dataTransfer.getData('text')
+                   || this.activeDragBookingId
+                   || this.draggedBookingId
                    || window._activeDragBookingId;
 
     this.activeDragBookingId = null;
@@ -2928,7 +2964,7 @@ const BookingUI = {
                   <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                 </span>
                 <div>
-                  <h4 class="text-xs font-bold text-slate-900 leading-tight">Đồng Bộ Lịch & Lời Mời KTV</h4>
+                  <h4 class="text-xs font-bold text-slate-900 leading-tight">Đồng bộ lịch cho kỹ sư</h4>
                   <span class="text-[10px] text-slate-500">Google Calendar & Tải File .ICS Offline</span>
                 </div>
               </div>
@@ -2936,9 +2972,9 @@ const BookingUI = {
                 <span class="w-1.5 h-1.5 rounded-full bg-brand-500 animate-pulse"></span> Sẵn sàng đồng bộ
               </span>
             </div>
-            
+
             <p class="text-[11px] text-slate-600 leading-relaxed mb-3">
-              Gửi sự kiện ca trực đến email kỹ sư <strong class="text-slate-800">${tech?.email || tech?.name || 'KTV'}</strong> hoặc mở trực tiếp trên Google Calendar cá nhân.
+              Gửi sự kiện ca trực đến email kỹ sư <strong class="text-slate-800">${tech?.email || tech?.name || 'Kỹ sư'}</strong> hoặc mở trực tiếp trên Google Calendar cá nhân.
             </p>
 
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
@@ -3189,11 +3225,11 @@ const BookingUI = {
       }
 
       html += `
-        <button type="button" 
+        <button type="button"
                 data-date="${dayStr}"
-                onclick="event.stopPropagation(); BookingUI.selectDetailDpDate('${dayStr}', event)" 
+                onclick="event.stopPropagation(); BookingUI.selectDetailDpDate('${dayStr}', event)"
                 onmouseenter="BookingUI.handleDetailDpHover('${dayStr}')"
-                class="${cellClass}" 
+                class="${cellClass}"
                 ${isPast ? 'disabled' : ''}>
           ${day}
         </button>
@@ -3420,8 +3456,8 @@ const BookingUI = {
     const footer = document.getElementById('detail-modal-footer');
     if (!modal || !content || !footer) return;
 
-    const backAction = from === 'detail' 
-      ? `BookingUI.openDetailModal('${bookingId}')` 
+    const backAction = from === 'detail'
+      ? `BookingUI.openDetailModal('${bookingId}')`
       : `BookingUI.closeDetailModal()`;
 
     content.innerHTML = `
@@ -3834,7 +3870,7 @@ const BookingUI = {
         if (activeCheckbox) activeCheckbox.checked = tech.is_active;
       }
     } else {
-      if (titleEl) titleEl.textContent = 'Thêm Mới Kỹ Thuật Viên';
+      if (titleEl) titleEl.textContent = 'Thêm kỹ sư';
       if (submitTextEl) submitTextEl.textContent = 'Lưu Kỹ Sư';
       if (idInput) idInput.value = '';
       if (nameInput) nameInput.value = '';
@@ -4024,13 +4060,7 @@ const BookingUI = {
           Toast.show(result.error, 'error');
           return;
         }
-        if (result.rateLimitedFallback) {
-          Toast.show(
-            `Đã tạo kỹ sư ${name} (${result.technician.tech_id}) trên Supabase Auth! Do hạn mức gửi mail, mật khẩu tạm là: ${result.tempPassword}`,
-            'warning',
-            'Tạo kỹ sư thành công'
-          );
-        } else if (result.passwordSet || password) {
+        if (result.passwordSet || password) {
           Toast.show(
             `Đã tạo kỹ sư ${name} (${result.technician.tech_id}) và kích hoạt tài khoản đăng nhập trên Authentication!`,
             'success',
@@ -4210,20 +4240,7 @@ const BookingUI = {
       return;
     }
 
-    // ⭐ Root Admin luôn xếp đầu tiên trong bảng admin
-    filtered.sort((a, b) => {
-      const aEmail = (a.email || '').toLowerCase();
-      const bEmail = (b.email || '').toLowerCase();
-      const aIsSuper = BookingData.ROOT_ADMIN_EMAILS ? BookingData.ROOT_ADMIN_EMAILS.includes(aEmail) : (aEmail === 'vutranpk@gmail.com' || aEmail === 'louisdang.design@gmail.com');
-      const bIsSuper = BookingData.ROOT_ADMIN_EMAILS ? BookingData.ROOT_ADMIN_EMAILS.includes(bEmail) : (bEmail === 'vutranpk@gmail.com' || bEmail === 'louisdang.design@gmail.com');
-
-      if (aIsSuper && !bIsSuper) return -1;
-      if (!aIsSuper && bIsSuper) return 1;
-      if (aIsSuper && bIsSuper) {
-        return aEmail === 'vutranpk@gmail.com' ? -1 : 1;
-      }
-      return 0;
-    });
+    filtered.sort((a, b) => Number(b.role === 'admin') - Number(a.role === 'admin'));
 
     const canManageUsers = BookingData.hasPermission('manage_users');
     const canManagePerms = BookingData.hasPermission('manage_permissions');
@@ -4237,10 +4254,7 @@ const BookingUI = {
 
     // Build Mobile Cards
     const cardsHtml = pagedUsers.map(u => {
-      const uEmail = (u.email || '').toLowerCase();
-      const isSuper = (typeof BookingData !== 'undefined' && BookingData.ROOT_ADMIN_EMAILS)
-        ? BookingData.ROOT_ADMIN_EMAILS.includes(uEmail)
-        : (uEmail === 'vutranpk@gmail.com' || uEmail === 'louisdang.design@gmail.com');
+      const isSuper = u.role === 'admin';
       const initials = (u.full_name || 'U').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
       const perms = u.permissions || BookingData.ROLE_PERMISSIONS[u.role] || [];
       const totalPerms = BookingData.ALL_PERMISSIONS.length;
@@ -4318,10 +4332,7 @@ const BookingUI = {
 
     // Build Desktop Table Rows
     const tableRowsHtml = pagedUsers.map(u => {
-      const uEmail = (u.email || '').toLowerCase();
-      const isSuper = (typeof BookingData !== 'undefined' && BookingData.ROOT_ADMIN_EMAILS)
-        ? BookingData.ROOT_ADMIN_EMAILS.includes(uEmail)
-        : (uEmail === 'vutranpk@gmail.com' || uEmail === 'louisdang.design@gmail.com');
+      const isSuper = u.role === 'admin';
       const initials = (u.full_name || 'U').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
       const perms = u.permissions || BookingData.ROLE_PERMISSIONS[u.role] || [];
       const totalPerms = BookingData.ALL_PERMISSIONS.length;
@@ -4547,7 +4558,7 @@ const BookingUI = {
       if (nameDisplay) nameDisplay.textContent = cleanName;
       if (emailDisplay) emailDisplay.textContent = user.email;
       if (deptDisplay) deptDisplay.innerHTML = `<svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg> <span>Phòng Ban: ${user.department || 'Chưa cập nhật'}</span>`;
-      const isTargetSuper = BookingData.ROOT_ADMIN_EMAILS.includes((user.email || '').toLowerCase()) || Boolean(user.is_super_admin);
+      const isTargetSuper = Boolean(user.is_super_admin) || user.role === 'admin';
       if (superBadge) {
         superBadge.classList.toggle('hidden', !isTargetSuper);
       }
@@ -4816,13 +4827,7 @@ const BookingUI = {
       });
 
       if (res.success) {
-        if (res.rateLimitedFallback) {
-          Toast.show(
-            `Đã tạo tài khoản ${email} trên Supabase Auth! Do hạn mức gửi mail, mật khẩu tạm là: ${res.tempPassword}`,
-            'warning',
-            'Tạo người dùng thành công'
-          );
-        } else if (res.passwordSet || password) {
+        if (res.passwordSet || password) {
           Toast.show(
             `Đã tạo tài khoản ${email} và kích hoạt đăng nhập trên Supabase Authentication!`,
             'success',
@@ -4958,7 +4963,7 @@ const BookingUI = {
     }
 
     const emailLower = email.toLowerCase().trim();
-    const bookings = (BookingData.bookings || []).filter(b => 
+    const bookings = (BookingData.bookings || []).filter(b =>
       ((b.created_by || '').toLowerCase().trim() === emailLower) ||
       ((b.requester_email || '').toLowerCase().trim() === emailLower)
     );
@@ -4992,7 +4997,7 @@ const BookingUI = {
       const statusClass = BookingData.STATUS_CLASSES[b.status] || 'bg-slate-100 text-slate-600';
       const statusLabel = BookingData.STATUS_LABELS[b.status] || b.status;
 
-      const techAvatarHtml = tech && tech.avatar 
+      const techAvatarHtml = tech && tech.avatar
         ? `<img src="${tech.avatar}" alt="${tech.name}" class="w-6 h-6 rounded-full object-cover flex-shrink-0 border border-slate-200 shadow-2xs">`
         : `<span class="w-6 h-6 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center text-[10px] font-bold flex-shrink-0">${tech ? tech.name.slice(0, 1) : '?'}</span>`;
 
@@ -5148,11 +5153,17 @@ const BookingUI = {
     if (!modal) return;
 
     const callerIsAdmin = BookingData.isSuperAdmin();
-    const emailToLoad = (targetEmail && callerIsAdmin) ? targetEmail : (BookingData.currentUser?.email || 'vutranpk@gmail.com');
+    const emailToLoad = (targetEmail && callerIsAdmin) ? targetEmail : (BookingData.currentUser?.email || '');
     const user = BookingData.users.find(u => u.email.toLowerCase() === emailToLoad.toLowerCase()) || BookingData.currentUser;
     if (!user) return;
 
     this.profileTargetEmail = user.email;
+    const calendarPanel = document.getElementById('google-calendar-connect-panel');
+    const currentTech = BookingData.technicians.find(t => (t.email || '').toLowerCase() === (BookingData.currentUser?.email || '').toLowerCase());
+    if (calendarPanel) {
+      calendarPanel.classList.toggle('hidden', !currentTech || (targetEmail && callerIsAdmin && targetEmail.toLowerCase() !== (BookingData.currentUser?.email || '').toLowerCase()));
+      if (currentTech && !calendarPanel.classList.contains('hidden')) this.loadGoogleCalendarStatus();
+    }
 
     // Avatar preview & input
     const avatarInput = document.getElementById('profile-avatar-input');
@@ -5238,6 +5249,34 @@ const BookingUI = {
       modal.classList.add('hidden');
       modal.classList.remove('flex');
     }
+  },
+
+  async loadGoogleCalendarStatus() {
+    const client = window.SupabaseConfig?.getClient();
+    if (!client) return;
+    const { data, error } = await client.functions.invoke('google-calendar', { body: { action: 'status' } });
+    const status = document.getElementById('google-calendar-connect-status');
+    const connect = document.getElementById('google-calendar-connect-button');
+    const disconnect = document.getElementById('google-calendar-disconnect-button');
+    if (error || data?.error) { if (status) status.textContent = data?.error || 'Không tải được trạng thái kết nối.'; return; }
+    if (status) status.textContent = data.connected ? `Đã kết nối ${data.email || 'Google Calendar'}. Ca đã duyệt sẽ được đồng bộ.` : 'Kết nối lịch cá nhân để tự đồng bộ ca đã duyệt.';
+    connect?.classList.toggle('hidden', !!data.connected);
+    disconnect?.classList.toggle('hidden', !data.connected);
+  },
+
+  async connectGoogleCalendar() {
+    const client = window.SupabaseConfig?.getClient();
+    const { data, error } = client ? await client.functions.invoke('google-calendar', { body: { action: 'connect' } }) : { error: true };
+    if (error || !data?.url) return Toast.show(data?.error || 'Chưa cấu hình Google OAuth trên máy chủ.', 'error');
+    window.location.assign(data.url);
+  },
+
+  async disconnectGoogleCalendar() {
+    const client = window.SupabaseConfig?.getClient();
+    const { data, error } = client ? await client.functions.invoke('google-calendar', { body: { action: 'disconnect' } }) : { error: true };
+    if (error || data?.error) return Toast.show(data?.error || 'Không thể ngắt kết nối.', 'error');
+    Toast.show('Đã ngắt kết nối Google Calendar.', 'success');
+    this.loadGoogleCalendarStatus();
   },
 
   updateProfileAvatarPreview(url, name = '') {
@@ -5774,7 +5813,7 @@ const BookingUI = {
     }
 
     const tplNames = {
-      tech_invite: 'Lời mời Google Calendar (.ics) cho KTV',
+      tech_invite: 'Lời mời lịch cho kỹ sư (.ics)',
       requester_approved: 'Thông báo Duyệt Ca Trực gửi PM',
       requester_rejected: 'Thông báo Từ Chối Ca Trực gửi PM'
     };
