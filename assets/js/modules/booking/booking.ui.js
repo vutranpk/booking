@@ -1329,7 +1329,12 @@ const BookingUI = {
   },
 
   selectTech(techId) {
-    this.selectedTechId = techId;
+    const user = BookingData.currentUser;
+    if (user?.role === 'technician' || user?.is_technician) {
+      this.selectedTechId = user.tech_id || null;
+    } else {
+      this.selectedTechId = techId;
+    }
     this.renderHorizontalTechList();
     this.render28DaysView();
   },
@@ -2168,16 +2173,20 @@ const BookingUI = {
     const headerCount = document.getElementById('my-bookings-header-count-container');
     if (!container) return;
 
-    const role = BookingData.currentUser?.role;
+    const user = BookingData.currentUser;
+    const role = user?.role;
+    const isTechnician = role === 'technician' || Boolean(user?.is_technician);
     const isApprover = role === 'approver' || role === 'manager' || role === 'admin';
-    const curEmailLower = (BookingData.currentUser?.email || '').toLowerCase().trim();
-    const list = isApprover 
-      ? BookingData.bookings 
-      : BookingData.bookings.filter(b => 
-          ((b.requester_email || '').toLowerCase().trim() === curEmailLower) ||
-          ((b.created_by || '').toLowerCase().trim() === curEmailLower)
-        );
-
+    const curEmailLower = (user?.email || '').toLowerCase().trim();
+    const techId = user?.tech_id || null;
+    const list = isApprover
+      ? BookingData.bookings
+      : isTechnician
+        ? BookingData.bookings.filter(b => Boolean(techId) && b.tech_id === techId)
+        : BookingData.bookings.filter(b =>
+            ((b.requester_email || '').toLowerCase().trim() === curEmailLower) ||
+            ((b.created_by || '').toLowerCase().trim() === curEmailLower)
+          );
     if (headerCount) {
       headerCount.innerHTML = `
         <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200 font-condensed">

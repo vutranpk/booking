@@ -556,6 +556,7 @@ const BookingData = {
 
   createBooking(data) {
     if (!this.isAuthenticated()) return { success: false, error: 'Vui lòng đăng nhập để đặt lịch.' };
+    if (!this.hasPermission('create_booking')) return { success: false, error: 'Tài khoản kỹ sư chỉ được xem ca trực được phân công, không có quyền đặt lịch.' };
     const startDate = data.booking_date;
     const endDate = data.end_date || data.booking_date;
 
