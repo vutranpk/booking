@@ -2223,7 +2223,7 @@ const BookingUI = {
 
     if (list.length === 0) {
       container.innerHTML = `
-        <div class="py-16 text-center">
+        <div class="py-8 sm:py-12 text-center">
           <p class="text-sm font-semibold text-slate-800">${isApprover ? 'Chưa có lịch cần xử lý.' : (isTechnician ? 'Chưa có ca được phân công.' : 'Chưa có yêu cầu đặt lịch.')}</p>
         </div>
       `;
@@ -3597,7 +3597,7 @@ const BookingUI = {
 
     if (filtered.length === 0) {
       container.innerHTML = `
-        <div class="py-16 text-center">
+        <div class="py-8 sm:py-12 text-center">
           <div class="w-12 h-12 rounded-full bg-slate-100 text-slate-400 mx-auto flex items-center justify-center mb-3">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
           </div>
