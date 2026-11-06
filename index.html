@@ -987,10 +987,9 @@
                 </div>
 
                 <div class="pt-2 border-t border-slate-100">
-                  <label class="block text-xs font-bold text-slate-700 mb-1">Mật khẩu tài khoản</label>
-                  <p class="text-[10px] text-slate-500">Mật khẩu do Supabase Auth quản lý. Không đặt hoặc xem mật khẩu của thành viên tại đây.</p>
-                  <input id="user-detail-password" type="password" disabled autocomplete="new-password" class="hidden">
-                  <span id="user-detail-pass-lock-hint" class="hidden"></span>
+                  <label class="block text-xs font-bold text-slate-700 mb-1">Cấp lại mật khẩu đăng nhập (Tùy chọn)</label>
+                  <input id="user-detail-password" type="password" autocomplete="new-password" placeholder="Nhập mật khẩu mới (>= 6 ký tự) hoặc để trống" class="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-800 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-brand-500/20 font-medium">
+                  <p id="user-detail-pass-lock-hint" class="text-[10px] text-slate-400 mt-1">Nếu nhập mật khẩu mới, tài khoản Supabase Authentication sẽ được kích hoạt/cập nhật ngay lập tức.</p>
                 </div>
 
                 <div>
@@ -1139,7 +1138,7 @@
               <button onclick="BookingUI.showUsersList()" type="button" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer">
                 Hủy
               </button>
-              <button onclick="BookingUI.saveUserFromAdd()" type="button" class="px-5 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold shadow-xs flex items-center gap-1.5 transition-colors cursor-pointer">
+              <button id="btn-user-add-top" onclick="BookingUI.saveUserFromAdd()" type="button" class="px-5 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold shadow-xs flex items-center gap-1.5 transition-colors cursor-pointer">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                 <span>Tạo Tài Khoản Mới</span>
               </button>
@@ -1190,9 +1189,9 @@
                 </div>
 
                 <div class="pt-2 border-t border-slate-100">
-                  <label class="block text-xs font-bold text-slate-700 mb-1">Thiết lập tài khoản đăng nhập</label>
-                  <p class="text-[10px] text-slate-500">Hệ thống sẽ tạo tài khoản và gửi email mời để thành viên tự đặt mật khẩu.</p>
-                  <input id="user-add-password" type="password" disabled autocomplete="new-password" class="hidden">
+                  <label class="block text-xs font-bold text-slate-700 mb-1">Mật Khẩu Khởi Tạo (Tùy chọn)</label>
+                  <input id="user-add-password" type="password" autocomplete="new-password" placeholder="Nhập mật khẩu (>= 6 ký tự) hoặc để trống gửi email mời" class="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-800 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-brand-500/20 font-medium">
+                  <p class="text-[10px] text-slate-500 mt-1">Nếu nhập mật khẩu, tài khoản được kích hoạt ngay trên Supabase Authentication mà không phụ thuộc giới hạn gửi email.</p>
                 </div>
 
                 <div>
@@ -1279,7 +1278,7 @@
             <button onclick="BookingUI.showUsersList()" type="button" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer">
               Hủy
             </button>
-            <button onclick="BookingUI.saveUserFromAdd()" type="button" class="px-6 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold shadow-xs flex items-center gap-1.5 transition-colors cursor-pointer">
+            <button id="btn-user-add-bottom" onclick="BookingUI.saveUserFromAdd()" type="button" class="px-6 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold shadow-xs flex items-center gap-1.5 transition-colors cursor-pointer">
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
               <span>Lưu & Tạo Tài Khoản</span>
             </button>
@@ -1817,6 +1816,12 @@
           </div>
         </div>
 
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Mật khẩu đăng nhập khởi tạo (Tùy chọn)</label>
+          <input id="tech-modal-password" type="password" autocomplete="new-password" placeholder="Nhập mật khẩu (>= 6 ký tự) hoặc để trống gửi email mời" class="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-800 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-brand-500/20 font-medium">
+          <p class="text-[10px] text-slate-400 mt-1">Nếu nhập mật khẩu, kỹ sư có thể đăng nhập xem lịch ngay lập tức mà không cần chờ email mời.</p>
+        </div>
+
         <div class="flex items-center gap-2 pt-1">
           <input id="tech-modal-active" type="checkbox" checked class="w-4 h-4 rounded-md text-brand-600 focus:ring-brand-500 border-slate-300">
           <label for="tech-modal-active" class="text-xs font-semibold text-slate-700 cursor-pointer">Sẵn sàng nhận lịch điều phối (Kỹ sư đang hoạt động)</label>
@@ -1824,7 +1829,7 @@
 
         <div class="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 sm:gap-3 pt-3 border-t border-slate-100">
           <button type="button" onclick="BookingUI.closeTechModal()" class="w-full sm:w-auto h-11 sm:h-10 px-4 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition-colors flex items-center justify-center cursor-pointer">Hủy</button>
-          <button type="submit" class="w-full sm:w-auto h-11 sm:h-10 px-5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold shadow-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer">
+          <button id="btn-tech-modal-submit" type="submit" class="w-full sm:w-auto h-11 sm:h-10 px-5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold shadow-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer">
             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
             <span id="tech-modal-submit-text">Lưu Kỹ Sư</span>
           </button>
