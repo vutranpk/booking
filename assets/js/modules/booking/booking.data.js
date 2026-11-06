@@ -957,6 +957,18 @@ const BookingData = {
     localStorage.removeItem('kcoffee_technicians_data_v3');
   },
 
+  getResetRedirectUrl() {
+    if (
+      typeof window === 'undefined' ||
+      window.location.protocol === 'file:' ||
+      window.location.hostname === 'localhost' ||
+      window.location.hostname === '127.0.0.1'
+    ) {
+      return 'https://vutranpk.github.io/booking/reset-password.html';
+    }
+    return new URL('reset-password.html', window.location.href).href;
+  },
+
   async addTechnician(tech) {
     let nextNum = this.technicians.length + 1;
     let techId = `TECH-${String(nextNum).padStart(3, '0')}`;
@@ -983,7 +995,7 @@ const BookingData = {
           phone: (tech.phone || '').trim(), skills, avatar: (tech.avatar || '').trim(),
           password: (tech.password || '').trim(),
           is_active: tech.is_active !== undefined ? Boolean(tech.is_active) : true,
-          redirect_to: new URL('reset-password.html', window.location.href).href
+          redirect_to: this.getResetRedirectUrl()
         }
       });
       if (error) {
@@ -1164,7 +1176,7 @@ const BookingData = {
           referrer_email: (userData.referrer_email || '').trim().toLowerCase(),
           avatar: (userData.avatar || '').trim(),
           password: (userData.password || '').trim(),
-          redirect_to: new URL('reset-password.html', window.location.href).href,
+          redirect_to: this.getResetRedirectUrl(),
           permissions: Array.isArray(userData.permissions) ? userData.permissions : []
         }
       });
