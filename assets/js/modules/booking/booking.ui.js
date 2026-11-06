@@ -1285,6 +1285,12 @@ const BookingUI = {
     // 2. Dynamic Page Titles & Subtitles matching Monty Style
     const titleEl = document.getElementById('page-main-title');
     const breadcrumbCurrentEl = document.getElementById('page-breadcrumb-current');
+    const compactUsersHeader = tabName === 'users';
+    [titleEl, document.getElementById('notification-wrapper'), document.getElementById('top-user-menu-wrapper')].forEach(element => {
+      if (!element) return;
+      element.classList.toggle('hidden', compactUsersHeader);
+      element.classList.toggle('lg:block', compactUsersHeader);
+    });
 
     if (tabName === 'overview') {
       if (titleEl) titleEl.textContent = 'Tổng quan';
@@ -1956,8 +1962,7 @@ const BookingUI = {
                          class="h-7 sm:h-10 w-full px-1 sm:px-2 rounded-full ${baseBg} border ${borderColor} text-white transition-all flex items-center justify-between gap-1 shadow-xs hover:shadow-md group/b ${dragCursorClass}"
                          title="${tech ? tech.name : ''}: ${b.title} (${b.location}) • ${isApproved ? 'Đã duyệt' : 'Chờ duyệt'}${dragHint}">
                       <div class="flex items-center gap-1 sm:gap-2 min-w-0">
-                        <img src="${tech ? tech.avatar : ''}" class="w-5 h-5 sm:w-8 sm:h-8 rounded-full object-cover flex-shrink-0 border sm:border-2 border-white shadow-xs ring-1 ring-black/10 pointer-events-none">
-                        <span class="hidden sm:inline text-xs font-bold font-condensed tracking-tight text-white drop-shadow-2xs truncate leading-tight select-none">${techShortName}</span>
+                        <span class="text-[10px] sm:text-xs font-bold font-condensed tracking-tight text-white drop-shadow-2xs truncate leading-tight select-none">${techShortName}</span>
                       </div>
                       ${statusIndicator}
                     </div>
@@ -1971,8 +1976,7 @@ const BookingUI = {
                          ${dragAttrs}
                          class="h-7 sm:h-10 ${rightMargin} pl-0.5 sm:pl-1.5 pr-1 sm:pr-2 rounded-l-full ${baseBg} border-y border-l ${borderColor} text-white flex items-center gap-1 sm:gap-2 z-20 shadow-xs hover:shadow-md transition-all ${dragCursorClass}"
                          title="${tech ? tech.name : ''}: ${b.title} (${bStart} đến ${bEnd}) • ${isApproved ? 'Đã duyệt' : 'Chờ duyệt'}${dragHint}">
-                      <img src="${tech ? tech.avatar : ''}" class="w-5 h-5 sm:w-8 sm:h-8 rounded-full object-cover flex-shrink-0 border sm:border-2 border-white shadow-xs ring-1 ring-black/10 pointer-events-none">
-                      <span class="hidden sm:inline text-xs font-bold font-condensed tracking-tight text-white drop-shadow-2xs truncate flex-1 leading-tight select-none">
+                      <span class="text-[10px] sm:text-xs font-bold font-condensed tracking-tight text-white drop-shadow-2xs truncate flex-1 leading-tight select-none">
                         ${isWeekContinuation ? `(Tiếp) ${techShortName}` : techShortName}
                       </span>
                     </div>
@@ -2066,9 +2070,8 @@ const BookingUI = {
 
       return `
         <article class="rounded-xl border border-slate-200 bg-white p-3 shadow-2xs">
-          <div class="flex items-center justify-between gap-2">
+          <div class="flex items-center gap-2">
             <span class="text-[11px] font-bold font-condensed text-brand-600">${b.booking_id}</span>
-            <span class="inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-900">${Lucide.clock} Chờ duyệt</span>
           </div>
           <h4 class="mt-1.5 truncate text-sm font-bold leading-snug text-slate-900">${b.title}</h4>
           <div class="mt-2 flex items-center justify-between gap-2 text-[11px] text-slate-600">
@@ -4200,8 +4203,6 @@ const BookingUI = {
     const cardsHtml = pagedUsers.map(u => {
       const isSuper = u.role === 'admin';
       const initials = (u.full_name || 'U').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
-      const perms = u.permissions || BookingData.ROLE_PERMISSIONS[u.role] || [];
-      const totalPerms = BookingData.ALL_PERMISSIONS.length;
 
       let roleBadge = '';
       if (u.role === 'admin') {
@@ -4210,18 +4211,6 @@ const BookingUI = {
         roleBadge = `<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-brand-50 text-brand-800 border border-brand-200 shadow-2xs">🛡️ Người vận hành</span>`;
       } else {
         roleBadge = `<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200">👤 User bình thường</span>`;
-      }
-
-      const ref = BookingData.getReferrer(u);
-      let refDisplay = '';
-      if (isSuper) {
-        refDisplay = `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200">👑 Gốc hệ thống</span>`;
-      } else if (ref) {
-        refDisplay = `<span class="text-xs font-semibold text-slate-800 truncate">${BookingData.cleanUserName(ref.full_name)}</span>`;
-      } else if (u.referrer_email) {
-        refDisplay = `<span class="text-[11px] font-mono text-slate-600 truncate">${u.referrer_email}</span>`;
-      } else {
-        refDisplay = `<span class="text-[10px] text-slate-400 italic">Chưa liên kết</span>`;
       }
 
       const cleanName = BookingData.cleanUserName(u.full_name);
@@ -4245,26 +4234,10 @@ const BookingUI = {
             ${roleBadge}
           </div>
 
-          <div class="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100 text-xs">
-            <div>
-              <span class="text-[10px] font-bold uppercase text-slate-400 block mb-0.5">Phòng ban</span>
-              <span class="text-slate-700 font-medium truncate block">${u.department || 'Phòng Dự án'}</span>
-            </div>
-            <div>
-              <span class="text-[10px] font-bold uppercase text-slate-400 block mb-0.5">Quyền hạn</span>
-              <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold ${perms.length === totalPerms ? 'bg-amber-100 text-amber-800' : (perms.length >= 8 ? 'bg-brand-50 text-brand-700' : 'bg-slate-100 text-slate-600')} font-condensed inline-block">
-                ${perms.length}/${totalPerms} quyền
-              </span>
-            </div>
-          </div>
-
-          <div class="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
-            <div class="min-w-0 flex-1">
-              <span class="text-[10px] font-bold uppercase text-slate-400 block mb-0.5">Người giới thiệu</span>
-              <div class="truncate">${refDisplay}</div>
-            </div>
+          <div class="pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
+            ${u.department ? `<div class="min-w-0"><span class="text-[10px] font-bold uppercase text-slate-400 block mb-0.5">Phòng ban</span><span class="text-xs text-slate-700 font-medium truncate block">${u.department}</span></div>` : '<span></span>'}
             ${canManagePerms ? `
-              <button type="button" onclick="event.stopPropagation(); BookingUI.openUserDetail('${u.email}')" class="h-9 px-3 rounded-xl bg-slate-100 hover:bg-brand-50 text-slate-700 hover:text-brand-600 font-bold text-xs transition-colors flex items-center gap-1.5 ml-2 cursor-pointer flex-shrink-0">
+              <button type="button" onclick="event.stopPropagation(); BookingUI.openUserDetail('${u.email}')" class="h-9 px-3 rounded-xl bg-slate-100 hover:bg-brand-50 text-slate-700 hover:text-brand-600 font-bold text-xs transition-colors flex items-center gap-1.5 cursor-pointer flex-shrink-0">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/></svg>
                 <span>Phân quyền</span>
               </button>
