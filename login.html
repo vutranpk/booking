@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="vi" class="h-full bg-slate-50/60">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Đăng Nhập Bảo Mật | K-Workspace Portal</title>
+  
+  <link rel="icon" type="image/png" href="images/favicon.png">
+  
+  <!-- Dual Fonts: Inter (UI & Body) + Roboto Condensed (Data & Numbers) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Roboto+Condensed:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --color-brand-50: #f0f4fb;
+      --color-brand-100: #dbe5f5;
+      --color-brand-200: #bed0ee;
+      --color-brand-500: #396bb2;
+      --color-brand-600: #213664;
+      --color-brand-700: #192b52;
+      --color-brand-800: #132140;
+      --color-accent-50: #f2f8ef;
+      --color-accent-500: #569c43;
+      --color-accent-600: #39772a;
+      --color-accent-700: #2b5c1f;
+    }
+    .font-sans {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif !important;
+    }
+    .font-condensed {
+      font-family: 'Roboto Condensed', 'Inter', system-ui, sans-serif !important;
+    }
+  </style>
+
+  <!-- Centralized Design System & Tailwind CDN -->
+  <script src="assets/js/core/design-system.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="min-h-screen font-sans text-slate-800 antialiased bg-white selection:bg-brand-600 selection:text-white flex flex-col lg:flex-row overflow-x-hidden">
+
+  <!-- ======================================================== -->
+  <!-- 🌟 LEFT SIDE: BRAND IDENTITY & ATMOSPHERE -->
+  <!-- ======================================================== -->
+  <aside class=" bg-brand-600 w-full lg:w-[45%] xl:w-[42%] p-8 sm:p-12 lg:p-16 flex flex-col justify-between relative overflow-hidden flex-shrink-0">
+    <div class="absolute inset-0 bg-cover bg-center opacity-50"
+    style="background-image: url('images/bg-login.webp')"
+  ></div>
+
+  <!-- Optional color overlay -->
+  <div class="absolute inset-0 bg-brand-600  opacity-30"></div>
+
+    <!-- Top: Logo Presentation -->
+    <div class="relative z-10 flex items-center justify-between">
+      <div class="px-4 py-4 rounded-2xl inline-flex items-center bg-white">
+        <img src="images/logo-full.png" alt="Phúc Sinh Consumer Corp." class="h-10 sm:h-12 w-auto object-contain">
+      </div>
+    </div>
+
+    <!-- Center: Punchy Brand Editorial -->
+    <div class="relative z-10 my-10 lg:my-auto max-w-lg space-y-4">
+      <h2 class="text-4xl sm:text-4xl xl:text-7xl font-bold text-white tracking-tight leading-[1.12]">
+        Quản Trị & <br>Vận Hành
+      </h2>
+
+      <p class="text-xs sm:text-sm text-white/70 leading-relaxed font-normal pt-1">
+        Nền tảng quản lý & vận hành<br/> đồng bộ thời gian thực toàn hệ thống Phúc Sinh.
+      </p>
+    </div>
+
+  </aside>
+
+  <!-- ======================================================== -->
+  <!-- 🎯 RIGHT SIDE: LOGIN ACTION WORKSPACE -->
+  <!-- ======================================================== -->
+  <main class="lg:w-[55%] xl:w-[58%] flex flex-col justify-between p-6 sm:p-12 lg:p-16 xl:p-20 bg-white">
+    
+    <!-- Top Spacer for Balance -->
+    <div class="hidden lg:block"></div>
+
+    <!-- Centered Form Container (Open Layout, No Card Box) -->
+    <div class="w-full max-w-md mx-auto my-auto py-4">
+      
+      <!-- Headline & Subtitle -->
+      <div class="mb-8">
+        <h1 class="text-2xl sm:text-3xl font-bold text-brand-600 tracking-tight">
+          Đăng Nhập
+        </h1>
+        <p class="text-xs text-slate-500 mt-1.5">
+          Nhập tài khoản được phân quyền để truy cập hệ thống.
+        </p>
+      </div>
+
+      <!-- Dynamic Error Box -->
+      <div id="login-error-box" class="hidden mb-6 p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-left space-y-1 transition-all">
+        <div class="flex items-center gap-2 text-rose-800">
+          <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+          <p class="text-xs font-bold">Đăng nhập không thành công</p>
+        </div>
+        <p id="login-error-msg" class="text-[11px] text-rose-700 leading-normal pl-6">
+          Email hoặc mật khẩu không chính xác.
+        </p>
+      </div>
+
+      <!-- Form (Inputs default to empty, 100% accessible) -->
+      <form id="standalone-login-form" onsubmit="handleStandaloneLogin(event)" class="space-y-4" autocomplete="on">
+        
+        <!-- Email Input -->
+        <div>
+          <label for="login-email-input" class="block text-xs font-bold text-slate-700 mb-1.5">
+            Email làm việc
+          </label>
+          <div class="relative">
+            <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207"/></svg>
+            </div>
+            <input id="login-email-input" 
+                   type="email" 
+                   name="email"
+                   required 
+                   autofocus
+                   autocomplete="username" 
+                   spellcheck="false" 
+                   autocapitalize="none"
+                   value="" 
+                   placeholder="name@company.com" 
+                   class="w-full text-xs bg-slate-50/70 hover:bg-slate-50 focus:bg-white border border-slate-200/90 focus:border-brand-600 focus:ring-4 focus:ring-brand-500/10 rounded-xl pl-10 pr-3.5 py-3.5 text-slate-900 placeholder:text-slate-400 font-medium transition-all shadow-2xs">
+          </div>
+        </div>
+
+        <!-- Password Input -->
+        <div>
+          <div class="flex items-center justify-between mb-1.5">
+            <label for="login-password-input" class="block text-xs font-bold text-slate-700">
+              Mật khẩu
+            </label>
+          </div>
+          <div class="relative">
+            <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+            </div>
+            <input id="login-password-input" 
+                   type="password" 
+                   name="password"
+                   required 
+                   autocomplete="current-password"
+                   value="" 
+                   placeholder="••••••••" 
+                   class="w-full text-xs bg-slate-50/70 hover:bg-slate-50 focus:bg-white border border-slate-200/90 focus:border-brand-600 focus:ring-4 focus:ring-brand-500/10 rounded-xl pl-10 pr-10 py-3.5 text-slate-900 placeholder:text-slate-400 font-medium transition-all shadow-2xs">
+            <button type="button" 
+                    onclick="togglePassword()" 
+                    class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-700 cursor-pointer transition-colors" 
+                    title="Ẩn/Hiện mật khẩu"
+                    aria-label="Ẩn hoặc hiện mật khẩu">
+              <svg id="login-eye-icon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="text-right -mt-2"><button type="button" onclick="requestPasswordReset()" class="text-[11px] font-semibold text-brand-600 hover:text-brand-800 cursor-pointer">Quên mật khẩu?</button></div>
+        <p id="password-reset-message" role="status" class="hidden text-[11px] text-emerald-700"></p>
+
+        <!-- Submit Button (Phúc Sinh Corporate Navy) -->
+        <button id="login-submit-btn" 
+                type="submit" 
+                class="w-full mt-3 py-3.5 px-5 rounded-xl bg-brand-600 hover:bg-brand-700 active:bg-brand-800 active:scale-[0.99] text-white font-bold text-xs shadow-xs hover:shadow-sm flex items-center justify-center gap-2 transition-all cursor-pointer">
+          <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/></svg>
+          <span>Đăng Nhập</span>
+        </button>
+
+      </form>
+
+      <!-- Minimalist Support Notice -->
+      <div class="mt-6 text-center">
+        <p class="text-[11px] text-slate-400">
+          Chưa có quyền truy cập? Liên hệ <strong class="text-slate-600 font-semibold">Quản trị viên</strong> để được cấp tài khoản.
+        </p>
+      </div>
+
+    </div>
+
+    <!-- Clean Corporate Copyright Footer -->
+    <footer class="pt-8 text-center lg:text-left border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-2">
+      <p class="text-[11px] text-slate-400 font-medium">
+        &copy; Copyright Phuc Sinh Consumer Corp. All rights reserved.
+      </p>
+      <p class="text-[10px] text-slate-400 font-medium">
+        Designed by <span class="font-bold text-brand-600">Vu Tran</span>
+      </p>
+    </footer>
+
+  </main>
+
+  <!-- Scripts Bundle -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="assets/js/core/supabase.js"></script>
+  <script src="assets/js/core/toast.js"></script>
+  <script src="assets/js/modules/booking/booking.data.js"></script>
+
+  <script>
+    // Initialize Toast
+    if (window.Toast) Toast.init();
+
+    // Check if already authenticated -> go to app
+    document.addEventListener('DOMContentLoaded', async () => {
+      const client = window.SupabaseConfig?.getClient();
+      const recoveryFromUrl = new URLSearchParams(window.location.hash.slice(1)).get('type') === 'recovery';
+      if (client?.auth) {
+        const { data: { session } = {} } = await client.auth.getSession();
+        if (recoveryFromUrl && session?.user) {
+          sessionStorage.setItem('k_password_recovery', '1');
+          await BookingData.establishAuthenticatedUser(session.user);
+          window.location.replace('index.html');
+          return;
+        }
+      }
+      if (window.BookingData && BookingData.isAuthenticated()) {
+        window.location.replace('index.html');
+      }
+    });
+
+    function togglePassword() {
+      const input = document.getElementById('login-password-input');
+      const icon = document.getElementById('login-eye-icon');
+      if (!input) return;
+      if (input.type === 'password') {
+        input.type = 'text';
+        if (icon) {
+          icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18"/>';
+        }
+      } else {
+        input.type = 'password';
+        if (icon) {
+          icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>';
+        }
+      }
+    }
+
+    async function requestPasswordReset() {
+      const email = document.getElementById('login-email-input')?.value.trim().toLowerCase();
+      const message = document.getElementById('password-reset-message');
+      if (!email) {
+        if (message) { message.textContent = 'Nhập email tài khoản trước khi yêu cầu đặt lại mật khẩu.'; message.className = 'text-[11px] text-amber-700'; }
+        document.getElementById('login-email-input')?.focus();
+        return;
+      }
+      const client = window.SupabaseConfig?.getClient();
+      if (!client?.auth) {
+        if (message) { message.textContent = 'Dịch vụ xác thực hiện không khả dụng.'; message.className = 'text-[11px] text-rose-700'; }
+        return;
+      }
+      const redirectTo = new URL('reset-password.html', window.location.href).href;
+      const { error } = await client.auth.resetPasswordForEmail(email, { redirectTo });
+      if (message) {
+        message.textContent = error ? 'Chưa gửi được email. Kiểm tra cấu hình Auth hoặc thử lại sau.' : 'Nếu email thuộc tài khoản hợp lệ, link đặt lại mật khẩu sẽ được gửi đến hộp thư.';
+        message.className = error ? 'text-[11px] text-rose-700' : 'text-[11px] text-emerald-700';
+      }
+    }
+
+    async function handleStandaloneLogin(event) {
+      if (event && event.preventDefault) event.preventDefault();
+      const email = document.getElementById('login-email-input')?.value.trim().toLowerCase() || '';
+      const password = document.getElementById('login-password-input')?.value || '';
+      await executeLoginAction(email, password);
+    }
+
+    async function executeLoginAction(email, password) {
+      const errBox = document.getElementById('login-error-box');
+      const errMsg = document.getElementById('login-error-msg');
+      const btn = document.getElementById('login-submit-btn');
+
+      if (!email || !password) {
+        if (errBox && errMsg) {
+          errMsg.textContent = 'Vui lòng nhập đầy đủ email và mật khẩu!';
+          errBox.classList.remove('hidden');
+        }
+        return;
+      }
+
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = `<svg class="w-4 h-4 animate-spin flex-shrink-0" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> <span>Đang xác thực...</span>`;
+      }
+
+      try {
+        const result = await BookingData.loginWithEmailPassword(email, password);
+        if (!result.success) {
+          if (errBox && errMsg) {
+            errMsg.textContent = result.message || 'Email hoặc mật khẩu không chính xác!';
+            errBox.classList.remove('hidden');
+          }
+          if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = `<svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/></svg> <span>Đăng Nhập</span>`;
+          }
+          return;
+        }
+
+        // Login success!
+        if (errBox) errBox.classList.add('hidden');
+        if (btn) {
+          btn.innerHTML = `<span>Đang chuyển hướng...</span>`;
+        }
+        window.location.replace('index.html');
+      } catch (err) {
+        console.error('Login error:', err);
+        if (errBox && errMsg) {
+          errMsg.textContent = err.message || 'Đã xảy ra lỗi kết nối, vui lòng thử lại!';
+          errBox.classList.remove('hidden');
+        }
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = `<span>Đăng Nhập</span>`;
+        }
+      }
+    }
+  </script>
+</body>
+</html>
