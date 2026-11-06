@@ -63,6 +63,7 @@ const BookingUI = {
   renderPaginationHtml(moduleName, totalItems, currentPage, pageSize) {
     if (!totalItems || totalItems <= 0) return '';
     const totalPages = Math.ceil(totalItems / pageSize) || 1;
+    if (totalPages <= 1) return '';
     if (currentPage > totalPages) currentPage = totalPages;
     const startIdx = (currentPage - 1) * pageSize + 1;
     const endIdx = Math.min(currentPage * pageSize, totalItems);
@@ -1304,7 +1305,7 @@ const BookingUI = {
       if (titleEl) titleEl.textContent = 'Người Dùng & Phân Quyền';
       if (breadcrumbCurrentEl) breadcrumbCurrentEl.textContent = 'Quản Trị Người Dùng';
     } else if (tabName === 'email-settings') {
-      if (titleEl) titleEl.textContent = 'Mẫu Email & Lịch Invite';
+      if (titleEl) titleEl.textContent = 'Email & lịch mời';
       if (breadcrumbCurrentEl) breadcrumbCurrentEl.textContent = 'Cấu Hình Email & ICS';
     }
 
@@ -2041,12 +2042,12 @@ const BookingUI = {
 
     if (pendingList.length === 0) {
       container.innerHTML = `
-        <div class="py-16 text-center">
+        <div class="py-8 sm:py-12 text-center">
           <div class="w-12 h-12 rounded-full bg-accent-50 text-accent-700 mx-auto flex items-center justify-center mb-3">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
           </div>
-          <h4 class="text-base font-bold text-slate-900">Không có yêu cầu nào chờ duyệt</h4>
-          <p class="text-xs text-slate-500 mt-1">Tất cả các đơn booking đã được xử lý xong.</p>
+          <h4 class="text-sm font-bold text-slate-900">Không có yêu cầu chờ duyệt</h4>
+          <p class="text-xs text-slate-500 mt-1">Đã xử lý hết yêu cầu.</p>
         </div>
       `;
       return;
@@ -5111,6 +5112,7 @@ const BookingUI = {
     // Avatar preview & input
     const avatarInput = document.getElementById('profile-avatar-input');
     if (avatarInput) avatarInput.value = user.avatar || '';
+    this.syncProfileAvatarInputState(user.avatar || '');
     const fileInput = document.getElementById('profile-avatar-file-input');
     if (fileInput) fileInput.value = '';
     const cleanName = BookingData.cleanUserName(user.full_name);
@@ -5281,6 +5283,7 @@ const BookingUI = {
 
         const input = document.getElementById('profile-avatar-input');
         if (input) input.value = compressedBase64;
+        this.syncProfileAvatarInputState(compressedBase64);
         this.updateProfileAvatarPreview(compressedBase64);
         Toast.show(`Đã nén và tối ưu ảnh avatar sắc nét (~${approxKb} KB)! Bấm "Lưu Thay Đổi" để hoàn tất.`, 'success');
       };
@@ -5296,18 +5299,29 @@ const BookingUI = {
   },
 
   onProfileAvatarInput(url) {
+    this.syncProfileAvatarInputState(url);
     this.updateProfileAvatarPreview(url);
+  },
+
+  syncProfileAvatarInputState(value) {
+    const wrapper = document.getElementById('profile-avatar-url-field-wrap');
+    const status = document.getElementById('profile-avatar-upload-status');
+    const isUploadedImage = (value || '').startsWith('data:image/');
+    wrapper?.classList.toggle('hidden', isUploadedImage);
+    status?.classList.toggle('hidden', !isUploadedImage);
   },
 
   selectProfilePresetAvatar(url) {
     const input = document.getElementById('profile-avatar-input');
     if (input) input.value = url;
+    this.syncProfileAvatarInputState(url);
     this.updateProfileAvatarPreview(url);
   },
 
   clearProfileAvatar() {
     const input = document.getElementById('profile-avatar-input');
     if (input) input.value = '';
+    this.syncProfileAvatarInputState('');
     const fileInput = document.getElementById('profile-avatar-file-input');
     if (fileInput) fileInput.value = '';
     this.updateProfileAvatarPreview('');

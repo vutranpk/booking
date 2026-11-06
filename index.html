@@ -128,6 +128,8 @@
     }
     @media (max-width: 1023px) {
       #admin-role-bubble-container { display: none !important; }
+      /* Mobile and tablet navigation already exposes these destinations. */
+      #panel-overview > .grid > [class~="lg:col-span-5"] { display: none !important; }
     }
     /* Mobile-first refinement for the authenticated workspace */
     @media (max-width: 639px) {
@@ -160,6 +162,7 @@
       #panel-email-settings > .grid > div > div { padding: 1rem; border-radius: 1rem; }
       #panel-email-settings label { line-height: 1.35; }
       #panel-email-settings input:not([type="checkbox"]), #panel-email-settings select { min-height: 2.75rem; font-size: 0.8125rem; }
+      #panel-my-bookings .py-16, #panel-technicians .py-16 { padding-block: 2rem; }
       #tpl-tab-tech_invite, #tpl-tab-requester_approved, #tpl-tab-requester_rejected { flex: 1 1 0; padding-inline: 0.375rem; font-size: 0.6875rem; }
 
       #user-detail-view > div:first-child { padding: 0.75rem; }
@@ -279,7 +282,7 @@
             </div>
           </button>
 
-          <!-- Tab 6: Cấu Hình Mẫu Email & Calendar (.ics) -->
+          <!-- Tab 6: Email & lịch mời -->
           <button onclick="BookingUI.switchTab('email-settings')" data-tab="email-settings" id="sidebar-tab-email-settings" class="booking-nav-tab w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 flex items-center justify-between transition-all hidden">
             <div class="flex items-center gap-2.5 min-w-0">
               <svg class="w-4 h-4 text-accent-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
@@ -625,7 +628,7 @@
                     </div>
                     <div class="min-w-0">
                       <div class="flex items-center gap-1.5">
-                        <p class="text-xs font-bold text-slate-800 group-hover:text-accent-700 transition-colors">Cấu Hình Mẫu Email & Calendar</p>
+                        <p class="text-xs font-bold text-slate-800 group-hover:text-accent-700 transition-colors">Email & lịch mời</p>
                       </div>
                       <p class="text-[10px] text-slate-500 truncate mt-0.5">Tùy biến nội dung thư tự động, cơ chế gửi lời mời Google Calendar & file .ics</p>
                     </div>
@@ -1450,8 +1453,8 @@
                 <label class="flex items-start gap-3 p-3 rounded-xl bg-slate-50/80 hover:bg-slate-50 border border-slate-200/80 cursor-pointer transition-colors">
                   <input id="email-cfg-auto-invite" type="checkbox" checked class="mt-0.5 w-4 h-4 rounded text-brand-600 focus:ring-brand-500 border-slate-300 cursor-pointer">
                   <div class="min-w-0">
-                    <span class="font-bold text-slate-900 block leading-tight">Tự động phát Calendar Invite cho Kỹ Sư</span>
-                    <span class="text-[11px] text-slate-500 block mt-0.5">Khi duyệt ca, hệ thống gửi lời mời Google Calendar (.ics) tới email kỹ sư.</span>
+                    <span class="font-bold text-slate-900 block leading-tight">Tự gửi lời mời Google Calendar</span>
+                    <span class="text-[11px] text-slate-500 block mt-0.5">Tự gửi lịch ca đã duyệt tới email kỹ sư.</span>
                   </div>
                 </label>
 
@@ -1965,7 +1968,10 @@
               </div>
 
               <!-- URL Input -->
-              <input id="profile-avatar-input" oninput="BookingUI.onProfileAvatarInput(this.value)" type="text" placeholder="Hoặc nhập URL ảnh đại diện (https://...)" class="w-full text-xs bg-white border border-slate-200 rounded-xl px-3 py-2 text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-brand-500/20 font-medium">
+              <div id="profile-avatar-url-field-wrap">
+                <input id="profile-avatar-input" oninput="BookingUI.onProfileAvatarInput(this.value)" type="text" placeholder="Dán URL ảnh đại diện" class="w-full text-xs bg-white border border-slate-200 rounded-xl px-3 py-2 text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-brand-500/20 font-medium">
+              </div>
+              <p id="profile-avatar-upload-status" class="hidden text-[11px] font-medium text-accent-700">Ảnh đã tải lên và được tối ưu.</p>
             </div>
           </div>
         </div>
@@ -2252,7 +2258,7 @@
           </button>
           <button id="mobile-tab-email-settings" onclick="BookingUI.switchTab('email-settings'); document.getElementById('mobile-drawer-backdrop').click()" class="w-full text-left px-3 py-2.5 rounded-xl text-xs font-medium text-slate-600 hover:bg-slate-50 flex items-center gap-2.5 hidden">
             <svg class="w-4 h-4 text-accent-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
-            Mẫu Email & Lịch Invite
+            Email & lịch mời
           </button>
         </div>
       </div>
@@ -2268,7 +2274,7 @@
           </span>
           <div>
             <h3 class="text-sm font-bold text-slate-900">Gửi Email Thử Nghiệm</h3>
-            <p class="text-[10px] text-slate-500">Mô phỏng gửi thư & Calendar Invite thực tế</p>
+            <p class="text-[10px] text-slate-500">Kiểm tra email và lời mời lịch</p>
           </div>
         </div>
         <button onclick="BookingUI.closeSendTestModal()" type="button" class="w-7 h-7 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 flex items-center justify-center cursor-pointer">
