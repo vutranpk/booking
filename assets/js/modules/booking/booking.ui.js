@@ -1681,31 +1681,24 @@ const BookingUI = {
 
     const techs = BookingData.technicians.filter(t => t.is_active);
     const isAllActive = this.selectedTechId === 'all';
-
     let html = `
-      <!-- "Tất cả kỹ sư" Button -->
-      <button onclick="BookingUI.selectTech('all')"
-              class="h-8 sm:h-10 px-3 sm:px-3.5 rounded-full text-[11px] sm:text-xs font-bold transition-all flex items-center justify-center flex-shrink-0 shadow-xs cursor-pointer ${
-                isAllActive
-                  ? 'bg-brand-600 text-white shadow-sm'
-                  : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
-              }"
-              title="Xem lịch tất cả kỹ sư">
-        Tất cả kỹ sư
-      </button>
+      <button type="button" onclick="BookingUI.selectTech('all')"
+              class="hidden sm:flex h-10 px-3 rounded-full text-xs font-bold transition-all items-center justify-center flex-shrink-0 shadow-xs cursor-pointer ${isAllActive ? 'bg-brand-600 text-white shadow-sm' : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'}"
+              title="Xem lịch tất cả kỹ sư">Tất cả kỹ sư</button>
     `;
 
     techs.forEach(tech => {
       const isSelected = this.selectedTechId === tech.tech_id;
 
       html += `
-        <button onclick="BookingUI.selectTech('${tech.tech_id}')"
-                class="relative rounded-full transition-all hover:scale-110 flex-shrink-0 group cursor-pointer ${
+        <button onclick="BookingUI.selectTech(BookingUI.selectedTechId === '${tech.tech_id}' ? 'all' : '${tech.tech_id}')"
+                aria-label="${tech.name}. Chạm để lọc lịch; chạm lại để xem tất cả"
+                class="relative w-11 h-11 sm:w-10 sm:h-10 rounded-full transition-all hover:scale-110 flex-shrink-0 flex items-center justify-center group cursor-pointer ${
                   isSelected
                     ? 'ring-2 sm:ring-3 ring-brand-600 ring-offset-1 sm:ring-offset-2 scale-105 shadow-md'
                     : 'opacity-90 hover:opacity-100 hover:ring-2 hover:ring-slate-300 hover:ring-offset-1'
                 }"
-                title="${tech.name} • ${tech.skills.join(', ')} (Click để lọc riêng)">
+                title="${tech.name} • Nhấn để lọc lịch, nhấn lại để xem tất cả">
           <img src="${tech.avatar}" alt="${tech.name}"
                class="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover border sm:border-2 border-white shadow-xs">
           <!-- Active Dot -->
@@ -2039,7 +2032,7 @@ const BookingUI = {
     if (headerCount) {
       headerCount.innerHTML = `
         <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-800 border border-amber-300 font-condensed">
-          ${pendingList.length} yêu cầu chờ duyệt
+          ${pendingList.length} chờ duyệt
         </span>
       `;
     }
@@ -2082,13 +2075,13 @@ const BookingUI = {
             </span>
           </div>
           <div class="mt-3 grid grid-cols-[1fr_1fr_auto] gap-2 border-t border-slate-100 pt-3">
-            <button type="button" onclick="BookingUI.handleApprove('${b.booking_id}')" class="h-10 rounded-lg bg-accent-600 text-white font-bold text-xs transition-colors hover:bg-accent-700 active:bg-accent-800">
+            <button type="button" onclick="BookingUI.handleApprove('${b.booking_id}')" class="h-11 rounded-lg bg-accent-600 text-white font-bold text-xs transition-colors hover:bg-accent-700 active:bg-accent-800">
               ${Lucide.check} Duyệt
             </button>
-            <button type="button" onclick="BookingUI.openRejectModal('${b.booking_id}', 'list')" class="h-10 rounded-lg border border-rose-200 text-rose-700 font-bold text-xs transition-colors hover:bg-rose-50">
+            <button type="button" onclick="BookingUI.openRejectModal('${b.booking_id}', 'list')" class="h-11 rounded-lg border border-rose-200 text-rose-700 font-bold text-xs transition-colors hover:bg-rose-50">
               ${Lucide.x} Từ chối
             </button>
-            <button type="button" onclick="BookingUI.openApprovalDetail('${b.booking_id}')" class="h-10 rounded-lg border border-slate-200 px-2 text-slate-700 transition-colors hover:bg-slate-50">
+            <button type="button" onclick="BookingUI.openApprovalDetail('${b.booking_id}')" class="h-11 rounded-lg border border-slate-200 px-2 text-slate-700 transition-colors hover:bg-slate-50">
               Chi tiết
             </button>
           </div>
@@ -2255,7 +2248,7 @@ const BookingUI = {
       }
 
       return `
-        <div class="bg-white rounded-xl border border-slate-200/80 p-4 shadow-2xs space-y-3">
+        <div class="bg-white rounded-xl border border-slate-200/80 p-3 shadow-2xs space-y-2">
           <div class="flex items-center justify-between gap-2">
             <span class="font-bold font-condensed text-brand-600 text-xs">${b.booking_id}</span>
             ${badge}
@@ -2288,12 +2281,8 @@ const BookingUI = {
               </div>
             </div>
           </div>
-          <div class="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
-            <div class="font-condensed">
-              <span class="text-[10px] font-bold uppercase text-slate-400 block">Thời gian</span>
-              <p class="font-bold text-slate-800 flex items-center mt-0.5">${b.booking_date === (b.end_date || b.booking_date) ? b.booking_date : `<span>${b.booking_date}</span><span class="inline-flex items-center mx-1 text-slate-400">${Lucide.arrowRight}</span><span>${b.end_date}</span>`}</p>
-            </div>
-            <span class="text-[10px] font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded">${b.booking_date === (b.end_date || b.booking_date) ? 'Trong ngày' : 'Liên ngày'}</span>
+          <div class="pt-2 border-t border-slate-100 flex items-center justify-between gap-2 text-xs">
+            <p class="font-bold text-slate-800 font-condensed">${b.booking_date === (b.end_date || b.booking_date) ? this.formatDateDisplay(b.booking_date) : `${this.formatDateDisplay(b.booking_date)} ${Lucide.arrowRight} ${this.formatDateDisplay(b.end_date)}`}</p>
           </div>
           <div class="pt-3 border-t border-slate-100 flex items-center gap-2">
             <button onclick="BookingUI.openDetailModal('${b.booking_id}')" class="h-11 flex-1 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold text-xs transition-colors flex items-center justify-center active:scale-95 cursor-pointer">
@@ -3620,18 +3609,15 @@ const BookingUI = {
     const pagedList = filtered.slice((curPage - 1) * pageSize, curPage * pageSize);
 
     const cardsHtml = pagedList.map(t => {
-      const skillsList = Array.isArray(t.skills) ? t.skills : String(t.skills || '').split(',');
-      const assignedCount = BookingData.bookings.filter(b => b.tech_id === t.tech_id && b.status !== 'CANCELLED' && b.status !== 'REJECTED').length;
       const isActive = t.is_active;
 
       return `
-        <div class="bg-white rounded-xl border border-slate-200/80 p-4 shadow-2xs space-y-3">
+        <div class="bg-white rounded-xl border border-slate-200/80 p-3 shadow-2xs space-y-2">
           <div class="flex items-start justify-between gap-3">
             <div class="flex items-center gap-3 min-w-0">
               <img src="${t.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&h=120&q=80'}" alt="${t.name}" class="w-11 h-11 rounded-full object-cover border border-slate-200 shadow-2xs flex-shrink-0">
               <div class="min-w-0">
                 <h4 class="font-bold text-slate-900 text-sm leading-tight truncate">${t.name}</h4>
-                <span class="text-[10px] font-extrabold font-condensed text-brand-600 uppercase tracking-wider block mt-0.5">${t.tech_id}</span>
               </div>
             </div>
             ${canManageTechs ? `
@@ -3647,29 +3633,13 @@ const BookingUI = {
             `}
           </div>
 
-          <div class="flex flex-wrap gap-1">
-            ${skillsList.map(s => `
-              <span class="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-slate-100 text-slate-700 border border-slate-200/60">${s.trim()}</span>
-            `).join('')}
-          </div>
-
-          <div class="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
-            <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-bold font-condensed bg-brand-50 text-brand-700 border border-brand-100">
-              ${assignedCount} ca trực
-            </span>
-            <a href="tel:${t.phone}" class="h-9 px-3 rounded-lg bg-slate-50 border border-slate-200 hover:border-brand-500 text-slate-800 hover:text-brand-600 inline-flex items-center gap-1.5 font-bold font-condensed text-xs transition-colors">
-              <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
-              <span>${t.phone || 'Chưa có SĐT'}</span>
-            </a>
-          </div>
-
           ${canManageTechs ? `
-            <div class="pt-3 border-t border-slate-100 grid grid-cols-2 gap-2">
-              <button type="button" onclick="BookingUI.openTechModal('${t.tech_id}')" class="h-10 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer">
+            <div class="pt-2 border-t border-slate-100 grid grid-cols-2 gap-2">
+              <button type="button" onclick="BookingUI.openTechModal('${t.tech_id}')" class="h-11 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer">
                 <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
                 Sửa
               </button>
-              <button type="button" onclick="BookingUI.deleteTech('${t.tech_id}')" class="h-10 rounded-lg border border-rose-200 hover:bg-rose-50 text-rose-600 font-semibold text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer">
+              <button type="button" onclick="BookingUI.deleteTech('${t.tech_id}')" class="h-11 rounded-lg border border-rose-200 hover:bg-rose-50 text-rose-600 font-semibold text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                 Xóa
               </button>
