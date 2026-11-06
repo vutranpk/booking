@@ -2731,13 +2731,17 @@ const BookingUI = {
   },
 
   openDetailModal(bookingId) {
-    const b = BookingData.bookings.find(item => item.booking_id === bookingId);
-    if (!b) return;
+    const b = BookingData.bookings.find(item => String(item.booking_id) === String(bookingId));
+    if (!b) {
+      console.warn('Không tìm thấy booking để mở chi tiết:', bookingId);
+      return;
+    }
 
     const modal = document.getElementById('detail-modal');
     const content = document.getElementById('detail-modal-content');
     const footer = document.getElementById('detail-modal-footer');
-    const tech = BookingData.technicians.find(t => t.tech_id === b.tech_id);
+    if (!modal || !content || !footer) return;
+    const tech = BookingData.technicians.find(t => String(t.tech_id) === String(b.tech_id));
 
     let statusText = '';
     if (b.status === 'APPROVED') {

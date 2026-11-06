@@ -71,28 +71,34 @@
 
   async function openEventDetail(row) {
     const requestId = ++state.detailRequestId;
-    $('detail-title').textContent = 'Chi tiết công việc';
+    $('detail-title').textContent = row.work_title || 'Chi tiết công việc';
     $('detail-subtitle').textContent = `${row.engineer_name} · ${dateLabel(row.booking_date)}`;
-    $('detail-content').innerHTML = '<p class="text-sm text-slate-500">Đang tải chi tiết…</p>';
+    $('detail-content').innerHTML = '<p role="status" class="rounded-xl bg-slate-50 px-3 py-4 text-center text-sm text-slate-500">Đang tải chi tiết ca…</p>';
     openDialog();
     try {
       const client = window.SupabaseConfig?.getClient();
+      if (!client) throw new Error('Không kết nối được Supabase.');
       const { data, error } = await client.rpc('get_public_engineer_booking_detail', { p_booking_id: row.booking_id });
       if (requestId !== state.detailRequestId) return;
       if (error) throw error;
       const detail = Array.isArray(data) ? data[0] : data;
       if (!detail) throw new Error('Ca này không còn khả dụng.');
-      $('detail-title').textContent = detail.work_title || 'Chi tiết công việc';
+      $('detail-title').textContent = detail.work_title || row.work_title || 'Ca làm việc';
       $('detail-subtitle').textContent = `${detail.engineer_name} · ${dateLabel(detail.booking_date)}`;
-      $('detail-content').innerHTML = `<dl class="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
-        <div class="rounded-xl bg-slate-50 p-3"><dt class="text-[10px] font-bold uppercase text-slate-500">Kỹ sư</dt><dd class="mt-1 flex items-center gap-2 font-semibold">${avatar(detail.engineer_name, detail.engineer_avatar)}<span>${escapeHtml(detail.engineer_name)}</span></dd></div>
-        <div class="rounded-xl bg-slate-50 p-3"><dt class="text-[10px] font-bold uppercase text-slate-500">Trạng thái</dt><dd class="mt-1">${statusBadge(detail.status)}</dd></div>
-        <div class="rounded-xl bg-slate-50 p-3"><dt class="text-[10px] font-bold uppercase text-slate-500">Thời gian</dt><dd class="mt-1 font-semibold">${dateLabel(detail.booking_date)}${detail.end_date && detail.end_date !== detail.booking_date ? ` – ${dateLabel(detail.end_date)}` : ''}<br>${timeLabel(detail.start_time)}${detail.end_time ? `–${timeLabel(detail.end_time)}` : ''}</dd></div>
-        <div class="rounded-xl bg-slate-50 p-3"><dt class="text-[10px] font-bold uppercase text-slate-500">Địa điểm</dt><dd class="mt-1 font-semibold">${escapeHtml(detail.work_location || 'Chưa cập nhật')}</dd></div>
-        <div class="rounded-xl bg-slate-50 p-3 sm:col-span-2"><dt class="text-[10px] font-bold uppercase text-slate-500">Ghi chú công việc</dt><dd class="mt-1 whitespace-pre-wrap font-medium">${escapeHtml(detail.work_notes || 'Không có ghi chú')}</dd></div>
+      $('detail-content').innerHTML = `<dl class="grid grid-cols-1 gap-2.5 text-sm sm:grid-cols-2 sm:gap-3">
+        <div class="rounded-xl bg-slate-50 p-3"><dt class="text-[10px] font-bold uppercase tracking-wide text-slate-500">Kỹ sư</dt><dd class="mt-2 flex min-w-0 items-center gap-2 font-semibold">${avatar(detail.engineer_name, detail.engineer_avatar, 'h-9 w-9')}<span class="truncate">${escapeHtml(detail.engineer_name)}</span></dd></div>
+        <div class="rounded-xl bg-slate-50 p-3"><dt class="text-[10px] font-bold uppercase tracking-wide text-slate-500">Trạng thái</dt><dd class="mt-2">${statusBadge(detail.status)}</dd></div>
+        <div class="rounded-xl bg-slate-50 p-3"><dt class="text-[10px] font-bold uppercase tracking-wide text-slate-500">Thời gian</dt><dd class="mt-1.5 font-semibold leading-5">${dateLabel(detail.booking_date)}${detail.end_date && detail.end_date !== detail.booking_date ? ` – ${dateLabel(detail.end_date)}` : ''}<br>${timeLabel(detail.start_time) || 'Chưa cập nhật'}${detail.end_time ? `–${timeLabel(detail.end_time)}` : ''}</dd></div>
+        <div class="rounded-xl bg-slate-50 p-3"><dt class="text-[10px] font-bold uppercase tracking-wide text-slate-500">Địa điểm</dt><dd class="mt-1.5 break-words font-semibold">${escapeHtml(detail.work_location || 'Chưa cập nhật')}</dd></div>
+        <div class="rounded-xl bg-slate-50 p-3 sm:col-span-2"><dt class="text-[10px] font-bold uppercase tracking-wide text-slate-500">Ghi chú công việc</dt><dd class="mt-1.5 whitespace-pre-wrap break-words font-medium text-slate-700">${escapeHtml(detail.work_notes || 'Không có ghi chú')}</dd></div>
       </dl>`;
-    } catch {
-      if (requestId === state.detailRequestId) $('detail-content').innerHTML = '<p class="text-sm text-rose-700">Không tải được chi tiết ca. Hãy thử lại.</p>';
+    } catch (error) {
+      if (requestId === state.detailRequestId) {
+        const message = error?.code === 'PGRST202' || /schema cache|could not find the function/i.test(error?.message || '')
+          ? 'Cơ sở dữ liệu chưa có RPC chi tiết lịch. Hãy chạy migration public_engineer_schedule_monthly_details.'
+          : 'Không tải được chi tiết ca. Hãy kiểm tra kết nối rồi thử lại.';
+        $('detail-content').innerHTML = `<p role="alert" class="rounded-xl bg-rose-50 px-3 py-3 text-sm text-rose-700">${escapeHtml(message)}</p>`;
+      }
     }
   }
   function openDayDetails(day, dayRows) {
