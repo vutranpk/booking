@@ -1,14 +1,11 @@
--- Public monthly calendar: approved and pending shifts with details shown only on click.
--- Does not return requester identity or booking identifier.
+-- Public monthly calendar summary. Work details are fetched separately only when a shift is opened.
 DROP FUNCTION IF EXISTS public.get_public_engineer_schedule_report(DATE, DATE);
 CREATE FUNCTION public.get_public_engineer_schedule_report(p_from DATE, p_to DATE)
 RETURNS TABLE (
   tech_id TEXT,
   engineer_name TEXT,
   engineer_avatar TEXT,
-  work_title TEXT,
-  work_location TEXT,
-  work_notes TEXT,
+  booking_id TEXT,
   booking_date DATE,
   end_date DATE,
   start_time TIME,
@@ -24,9 +21,7 @@ AS $$
     t.tech_id,
     t.name,
     t.avatar,
-    b.title,
-    b.location,
-    b.notes,
+    b.booking_id,
     b.booking_date,
     b.end_date,
     b.start_time,
@@ -47,4 +42,42 @@ AS $$
 $$;
 REVOKE ALL ON FUNCTION public.get_public_engineer_schedule_report(DATE, DATE) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.get_public_engineer_schedule_report(DATE, DATE) TO anon, authenticated;
+
+CREATE OR REPLACE FUNCTION public.get_public_engineer_booking_detail(p_booking_id TEXT)
+RETURNS TABLE (
+  engineer_name TEXT,
+  engineer_avatar TEXT,
+  work_title TEXT,
+  work_location TEXT,
+  work_notes TEXT,
+  booking_date DATE,
+  end_date DATE,
+  start_time TIME,
+  end_time TIME,
+  status TEXT
+)
+LANGUAGE SQL
+STABLE
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+  SELECT
+    t.name,
+    t.avatar,
+    b.title,
+    b.location,
+    b.notes,
+    b.booking_date,
+    b.end_date,
+    b.start_time,
+    b.end_time,
+    b.status
+  FROM public.bookings AS b
+  JOIN public.technicians AS t ON t.tech_id = b.tech_id
+  WHERE b.booking_id = p_booking_id
+    AND b.status IN ('APPROVED', 'PENDING')
+    AND t.is_active IS TRUE;
+$$;
+REVOKE ALL ON FUNCTION public.get_public_engineer_booking_detail(TEXT) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.get_public_engineer_booking_detail(TEXT) TO anon, authenticated;
 NOTIFY pgrst, 'reload schema';

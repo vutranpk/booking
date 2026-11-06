@@ -1,7 +1,7 @@
 (() => {
   const $ = (id) => document.getElementById(id);
   const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]);
-  const state = { month: new Date(new Date().getFullYear(), new Date().getMonth(), 1), rows: [], selectedTech: 'all', requestId: 0 };
+  const state = { month: new Date(new Date().getFullYear(), new Date().getMonth(), 1), rows: [], selectedTech: 'all', requestId: 0, detailRequestId: 0 };
   const pad = (n) => String(n).padStart(2, '0');
   const monthStart = (date) => new Date(date.getFullYear(), date.getMonth(), 1);
   const monthEnd = (date) => new Date(date.getFullYear(), date.getMonth() + 1, 0);
@@ -68,19 +68,32 @@
     if (!dialog.open) dialog.showModal();
   }
 
-  function openEventDetail(row) {
-    $('detail-title').textContent = row.work_title || 'Chi tiết công việc';
+  async function openEventDetail(row) {
+    const requestId = ++state.detailRequestId;
+    $('detail-title').textContent = 'Chi tiết công việc';
     $('detail-subtitle').textContent = `${row.engineer_name} · ${dateLabel(row.booking_date)}`;
-    $('detail-content').innerHTML = `<dl class="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
-      <div class="rounded-xl bg-slate-50 p-3"><dt class="text-[10px] font-bold uppercase text-slate-500">Kỹ sư</dt><dd class="mt-1 flex items-center gap-2 font-semibold">${avatar(row.engineer_name, row.engineer_avatar)}<span>${escapeHtml(row.engineer_name)}</span></dd></div>
-      <div class="rounded-xl bg-slate-50 p-3"><dt class="text-[10px] font-bold uppercase text-slate-500">Trạng thái</dt><dd class="mt-1">${statusBadge(row.status)}</dd></div>
-      <div class="rounded-xl bg-slate-50 p-3"><dt class="text-[10px] font-bold uppercase text-slate-500">Thời gian</dt><dd class="mt-1 font-semibold">${dateLabel(row.booking_date)}${row.end_date && row.end_date !== row.booking_date ? ` – ${dateLabel(row.end_date)}` : ''}<br>${timeLabel(row.start_time)}${row.end_time ? `–${timeLabel(row.end_time)}` : ''}</dd></div>
-      <div class="rounded-xl bg-slate-50 p-3"><dt class="text-[10px] font-bold uppercase text-slate-500">Địa điểm</dt><dd class="mt-1 font-semibold">${escapeHtml(row.work_location || 'Chưa cập nhật')}</dd></div>
-      <div class="rounded-xl bg-slate-50 p-3 sm:col-span-2"><dt class="text-[10px] font-bold uppercase text-slate-500">Ghi chú công việc</dt><dd class="mt-1 whitespace-pre-wrap font-medium">${escapeHtml(row.work_notes || 'Không có ghi chú')}</dd></div>
-    </dl>`;
+    $('detail-content').innerHTML = '<p class="text-sm text-slate-500">Đang tải chi tiết…</p>';
     openDialog();
+    try {
+      const client = window.SupabaseConfig?.getClient();
+      const { data, error } = await client.rpc('get_public_engineer_booking_detail', { p_booking_id: row.booking_id });
+      if (requestId !== state.detailRequestId) return;
+      if (error) throw error;
+      const detail = Array.isArray(data) ? data[0] : data;
+      if (!detail) throw new Error('Ca này không còn khả dụng.');
+      $('detail-title').textContent = detail.work_title || 'Chi tiết công việc';
+      $('detail-subtitle').textContent = `${detail.engineer_name} · ${dateLabel(detail.booking_date)}`;
+      $('detail-content').innerHTML = `<dl class="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
+        <div class="rounded-xl bg-slate-50 p-3"><dt class="text-[10px] font-bold uppercase text-slate-500">Kỹ sư</dt><dd class="mt-1 flex items-center gap-2 font-semibold">${avatar(detail.engineer_name, detail.engineer_avatar)}<span>${escapeHtml(detail.engineer_name)}</span></dd></div>
+        <div class="rounded-xl bg-slate-50 p-3"><dt class="text-[10px] font-bold uppercase text-slate-500">Trạng thái</dt><dd class="mt-1">${statusBadge(detail.status)}</dd></div>
+        <div class="rounded-xl bg-slate-50 p-3"><dt class="text-[10px] font-bold uppercase text-slate-500">Thời gian</dt><dd class="mt-1 font-semibold">${dateLabel(detail.booking_date)}${detail.end_date && detail.end_date !== detail.booking_date ? ` – ${dateLabel(detail.end_date)}` : ''}<br>${timeLabel(detail.start_time)}${detail.end_time ? `–${timeLabel(detail.end_time)}` : ''}</dd></div>
+        <div class="rounded-xl bg-slate-50 p-3"><dt class="text-[10px] font-bold uppercase text-slate-500">Địa điểm</dt><dd class="mt-1 font-semibold">${escapeHtml(detail.work_location || 'Chưa cập nhật')}</dd></div>
+        <div class="rounded-xl bg-slate-50 p-3 sm:col-span-2"><dt class="text-[10px] font-bold uppercase text-slate-500">Ghi chú công việc</dt><dd class="mt-1 whitespace-pre-wrap font-medium">${escapeHtml(detail.work_notes || 'Không có ghi chú')}</dd></div>
+      </dl>`;
+    } catch {
+      if (requestId === state.detailRequestId) $('detail-content').innerHTML = '<p class="text-sm text-rose-700">Không tải được chi tiết ca. Hãy thử lại.</p>';
+    }
   }
-
   function openDayDetails(day, dayRows) {
     if (!dayRows.length) return;
     if (dayRows.length === 1) return openEventDetail(dayRows[0]);
@@ -113,7 +126,7 @@
       const eventDots = dayRows.slice(0, 4).map((row) => `<span title="${row.status === 'APPROVED' ? 'Đã duyệt' : 'Chờ duyệt'}" class="h-1.5 w-1.5 rounded-full ${row.status === 'APPROVED' ? 'bg-emerald-600' : 'bg-amber-500'}"></span>`).join('');
       const desktopEvents = dayRows.slice(0, 3).map((row) => {
         const tone = row.status === 'APPROVED' ? 'border-l-emerald-600 bg-emerald-50 text-emerald-900' : 'border-l-amber-500 bg-amber-50 text-amber-900';
-        return `<button type="button" data-event-date="${day}" data-event-id="${visibleRows.indexOf(row)}" class="hidden w-full min-w-0 items-center gap-1 overflow-hidden rounded border-l-2 px-1 py-0.5 text-left text-[9px] leading-tight sm:flex ${tone}" title="Mở chi tiết công việc"><span class="shrink-0 font-bold">${timeLabel(row.start_time)}</span><span class="truncate">${escapeHtml(state.selectedTech === 'all' ? row.engineer_name : (row.work_title || row.engineer_name))}</span></button>`;
+        return `<button type="button" data-event-date="${day}" data-event-id="${visibleRows.indexOf(row)}" class="hidden w-full min-w-0 items-center gap-1 overflow-hidden rounded border-l-2 px-1 py-0.5 text-left text-[9px] leading-tight sm:flex ${tone}" title="Mở chi tiết công việc"><span class="shrink-0 font-bold">${timeLabel(row.start_time)}</span><span class="truncate">${escapeHtml(state.selectedTech === 'all' ? row.engineer_name : (row.work_title || 'Ca trực'))}</span></button>`;
       }).join('');
       const extra = dayRows.length > 3 ? `<button type="button" data-day-details="${day}" class="hidden pl-1 text-left text-[9px] font-semibold text-slate-600 hover:underline sm:block">+${dayRows.length - 3} ca</button>` : '';
       const mobileCount = dayRows.length ? `<span class="mt-0.5 flex items-center justify-center gap-0.5 sm:hidden">${eventDots}<span class="ml-0.5 text-[8px] font-bold text-slate-500">${dayRows.length}</span></span>` : '';
@@ -162,7 +175,7 @@
         throw new Error('Không tải được dữ liệu lịch. Hãy thử lại sau.');
       }
       state.rows = Array.isArray(data) ? data : [];
-      if (state.rows.length && !Object.prototype.hasOwnProperty.call(state.rows[0], 'work_title')) throw new Error('Cần áp dụng migration chi tiết lịch tháng trên Supabase.');
+      if (state.rows.length && !Object.prototype.hasOwnProperty.call(state.rows[0], 'booking_id')) throw new Error('Cần áp dụng migration chi tiết lịch tháng trên Supabase.');
       if (state.selectedTech !== 'all' && !state.rows.some((row) => row.tech_id === state.selectedTech)) state.selectedTech = 'all';
       render();
       $('report-message').textContent = `Đã tải lịch tháng ${monthLabel(state.month)}.`;
