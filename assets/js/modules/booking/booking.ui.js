@@ -2787,11 +2787,6 @@ const BookingUI = {
           <div class="bg-slate-50/80 p-3.5 rounded-2xl border border-slate-200/80 flex flex-col justify-between relative">
             <div class="flex items-center justify-between mb-2.5">
               <span class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block">Thời gian thực hiện</span>
-              ${canEdit && (b.status === 'PENDING' || b.status === 'APPROVED') ? `
-                <span class="inline-flex items-center gap-1 text-[10px] text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full font-bold border border-amber-200 shadow-2xs">
-                  ${Lucide.pencil} Có thể đổi ngày
-                </span>
-              ` : ''}
             </div>
 
             ${canEdit && (b.status === 'PENDING' || b.status === 'APPROVED') ? `
@@ -2948,52 +2943,7 @@ const BookingUI = {
           ` : ''}
         </div>
 
-        ${b.status === 'APPROVED' ? `
-          <!-- Google Calendar & ICS Sync Section (Chỉ hiển thị cho ca ĐÃ DUYỆT) -->
-          <div class="mt-4 p-3.5 bg-gradient-to-br from-brand-50/70 via-white to-slate-50/50 rounded-2xl border border-brand-100 shadow-2xs">
-            <div class="flex items-center justify-between gap-2 mb-2 pb-2 border-b border-brand-100/70">
-              <div class="flex items-center gap-2">
-                <span class="w-6 h-6 rounded-lg bg-brand-600 text-white flex items-center justify-center flex-shrink-0 shadow-2xs">
-                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                </span>
-                <div>
-                  <h4 class="text-xs font-bold text-slate-900 leading-tight">Đồng bộ lịch cho kỹ sư</h4>
-                  <span class="text-[10px] text-slate-500">Google Calendar & Tải File .ICS Offline</span>
-                </div>
-              </div>
-              <span class="inline-flex items-center gap-1 text-[10px] font-bold text-brand-700 bg-brand-50 px-2 py-0.5 rounded-full border border-brand-200/80">
-                <span class="w-1.5 h-1.5 rounded-full bg-brand-500 animate-pulse"></span> Sẵn sàng đồng bộ
-              </span>
-            </div>
 
-            <p class="text-[11px] text-slate-600 leading-relaxed mb-3">
-              Gửi sự kiện ca trực đến email kỹ sư <strong class="text-slate-800">${tech?.email || tech?.name || 'Kỹ sư'}</strong> hoặc mở trực tiếp trên Google Calendar cá nhân.
-            </p>
-
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
-              <!-- 1-Click Google Calendar Intent -->
-              <a href="${BookingData.getGoogleCalendarUrl(b)}" target="_blank" rel="noopener noreferrer"
-                 class="px-2.5 py-2 rounded-xl text-[11px] font-bold bg-white hover:bg-slate-50 text-brand-700 border border-brand-200 shadow-2xs flex items-center justify-center gap-1.5 transition-all text-center">
-                <svg class="w-3.5 h-3.5 flex-shrink-0 text-brand-600" viewBox="0 0 24 24" fill="currentColor"><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20a2 2 0 0 0 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11z"/></svg>
-                <span>Google Calendar</span>
-              </a>
-
-              <!-- Download ICS File -->
-              <button type="button" onclick="BookingUI.downloadIcs('${b.booking_id}')"
-                      class="px-2.5 py-2 rounded-xl text-[11px] font-bold bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 shadow-2xs flex items-center justify-center gap-1.5 transition-all cursor-pointer">
-                <svg class="w-3.5 h-3.5 flex-shrink-0 text-slate-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-                <span>Tải file .ics</span>
-              </button>
-
-              <!-- Resend / Send Email Invite -->
-              <button type="button" onclick="BookingUI.resendInvite('${b.booking_id}')"
-                      class="px-2.5 py-2 rounded-xl text-[11px] font-bold bg-brand-600 hover:bg-brand-700 text-white shadow-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer">
-                <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
-                <span>Gửi lại lời mời</span>
-              </button>
-            </div>
-          </div>
-        ` : ''}
       </div>
     `;
 
