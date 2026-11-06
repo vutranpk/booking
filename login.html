@@ -243,20 +243,48 @@
       const email = document.getElementById('login-email-input')?.value.trim().toLowerCase();
       const message = document.getElementById('password-reset-message');
       if (!email) {
-        if (message) { message.textContent = 'Nhập email tài khoản trước khi yêu cầu đặt lại mật khẩu.'; message.className = 'text-[11px] text-amber-700'; }
+        if (message) {
+          message.textContent = 'Nhập email tài khoản trước khi yêu cầu đặt lại mật khẩu.';
+          message.className = 'text-[11px] text-amber-700 font-medium block mt-1';
+        }
         document.getElementById('login-email-input')?.focus();
         return;
       }
       const client = window.SupabaseConfig?.getClient();
       if (!client?.auth) {
-        if (message) { message.textContent = 'Dịch vụ xác thực hiện không khả dụng.'; message.className = 'text-[11px] text-rose-700'; }
+        if (message) {
+          message.textContent = 'Dịch vụ xác thực hiện không khả dụng.';
+          message.className = 'text-[11px] text-rose-700 font-medium block mt-1';
+        }
         return;
       }
-      const redirectTo = new URL('reset-password.html', window.location.href).href;
+
+      const isLocalOrFile =
+        window.location.protocol === 'file:' ||
+        window.location.hostname === 'localhost' ||
+        window.location.hostname === '127.0.0.1';
+
+      const redirectTo = isLocalOrFile
+        ? 'https://vutranpk.github.io/booking/reset-password.html'
+        : new URL('reset-password.html', window.location.href).href;
+
+      if (message) {
+        message.textContent = 'Đang gửi yêu cầu khôi phục mật khẩu...';
+        message.className = 'text-[11px] text-slate-600 font-medium block mt-1';
+      }
+
       const { error } = await client.auth.resetPasswordForEmail(email, { redirectTo });
       if (message) {
-        message.textContent = error ? 'Chưa gửi được email. Kiểm tra cấu hình Auth hoặc thử lại sau.' : 'Nếu email thuộc tài khoản hợp lệ, link đặt lại mật khẩu sẽ được gửi đến hộp thư.';
-        message.className = error ? 'text-[11px] text-rose-700' : 'text-[11px] text-emerald-700';
+        if (error) {
+          const isRateLimit = /rate limit|429/i.test(error.message || '');
+          message.textContent = isRateLimit
+            ? 'Đã vượt hạn mức gửi email của Supabase (tối đa ~3 mail/giờ). Nhờ Admin đặt lại mật khẩu trực tiếp trong Quản lý Người dùng/Kỹ sư hoặc thử lại sau.'
+            : `Chưa gửi được email (${error.message || 'Lỗi cấu hình Auth'}).`;
+          message.className = 'text-[11px] text-rose-700 font-medium block mt-1';
+        } else {
+          message.textContent = `Đã gửi link đặt lại mật khẩu đến ${email} (chuyển hướng về ${redirectTo}). Vui lòng kiểm tra hộp thư!`;
+          message.className = 'text-[11px] text-emerald-700 font-medium block mt-1';
+        }
       }
     }
 
