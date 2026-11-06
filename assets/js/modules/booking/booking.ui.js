@@ -4458,7 +4458,7 @@ const BookingUI = {
     if (user) {
       const cleanName = BookingData.cleanUserName(user.full_name);
       if (breadcrumbName) breadcrumbName.textContent = cleanName;
-      if (pageTitle) pageTitle.textContent = `Hồ Sơ & Phân Quyền: ${cleanName}`;
+      if (pageTitle) pageTitle.textContent = `Phân quyền: ${cleanName}`;
       if (isEditInput) isEditInput.value = 'true';
 
       if (emailInput) {
