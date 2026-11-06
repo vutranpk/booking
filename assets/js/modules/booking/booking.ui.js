@@ -3798,6 +3798,7 @@ const BookingUI = {
     const nameInput = document.getElementById('tech-modal-name');
     const phoneInput = document.getElementById('tech-modal-phone');
     const emailInput = document.getElementById('tech-modal-email');
+    const passwordInput = document.getElementById('tech-modal-password');
     const skillsInput = document.getElementById('tech-modal-skills');
     const avatarInput = document.getElementById('tech-modal-avatar');
     const avatarFileInput = document.getElementById('tech-modal-avatar-file');
@@ -3805,6 +3806,7 @@ const BookingUI = {
     const activeCheckbox = document.getElementById('tech-modal-active');
 
     if (avatarFileInput) avatarFileInput.value = '';
+    if (passwordInput) passwordInput.value = '';
 
     if (!modal) return;
 
@@ -3942,14 +3944,18 @@ const BookingUI = {
     const nameInput = document.getElementById('tech-modal-name');
     const phoneInput = document.getElementById('tech-modal-phone');
     const emailInput = document.getElementById('tech-modal-email');
+    const passwordInput = document.getElementById('tech-modal-password');
     const skillsInput = document.getElementById('tech-modal-skills');
     const avatarInput = document.getElementById('tech-modal-avatar');
     const activeCheckbox = document.getElementById('tech-modal-active');
+    const submitBtn = document.getElementById('btn-tech-modal-submit');
+    const submitTextEl = document.getElementById('tech-modal-submit-text');
 
     const techId = idInput ? idInput.value : '';
     const name = nameInput ? nameInput.value.trim() : '';
     const phone = phoneInput ? phoneInput.value.trim() : '';
     const email = emailInput ? emailInput.value.trim() : '';
+    const password = passwordInput ? passwordInput.value.trim() : '';
     const skills = skillsInput ? skillsInput.value.trim() : '';
     const avatar = avatarInput ? avatarInput.value.trim() : '';
     const isActive = activeCheckbox ? activeCheckbox.checked : true;
@@ -3959,37 +3965,90 @@ const BookingUI = {
       return;
     }
 
-    if (techId) {
-      // Update existing
-      const result = await BookingData.updateTechnician(techId, {
-        name,
-        phone,
-        email,
-        skills,
-        avatar,
-        is_active: isActive
-      });
-      if (!result || !result.success) {
-        Toast.show(result?.error || 'Không thể cập nhật thông tin kỹ sư.', 'error');
-        return;
-      }
-      Toast.show(`Đã cập nhật thông tin kỹ sư ${name}`, 'success');
-    } else {
-      // Create new
-      const result = await BookingData.addTechnician({
-        name, phone, email, skills, avatar, is_active: isActive
-      });
-      if (!result.success) {
-        Toast.show(result.error, 'error');
-        return;
-      }
-      Toast.show(`Đã tạo kỹ sư ${name} (${result.technician.tech_id}) và gửi email mời đặt mật khẩu.`, 'success');
+    if (!techId && !email) {
+      Toast.show('Vui lòng nhập Email đăng nhập cho kỹ sư!', 'error');
+      return;
     }
 
-    this.closeTechModal();
-    this.renderTechnicians();
-    this.renderHorizontalTechList();
-    this.initCustomTechDropdown();
+    if (password && password.length < 6) {
+      Toast.show('Mật khẩu phải có ít nhất 6 ký tự!', 'error');
+      return;
+    }
+
+    const origText = submitTextEl ? submitTextEl.textContent : 'Lưu Kỹ Sư';
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.classList.add('opacity-70', 'cursor-wait');
+    }
+    if (submitTextEl) {
+      submitTextEl.textContent = techId ? 'Đang cập nhật...' : 'Đang tạo kỹ sư...';
+    }
+
+    try {
+      if (techId) {
+        // Update existing
+        const result = await BookingData.updateTechnician(techId, {
+          name,
+          phone,
+          email,
+          password,
+          skills,
+          avatar,
+          is_active: isActive
+        });
+        if (!result || !result.success) {
+          Toast.show(result?.error || 'Không thể cập nhật thông tin kỹ sư.', 'error');
+          return;
+        }
+        Toast.show(
+          password
+            ? `Đã cập nhật kỹ sư ${name} và đổi mật khẩu đăng nhập thành công!`
+            : `Đã cập nhật thông tin kỹ sư ${name} thành công!`,
+          'success'
+        );
+      } else {
+        // Create new
+        const result = await BookingData.addTechnician({
+          name, phone, email, password, skills, avatar, is_active: isActive
+        });
+        if (!result.success) {
+          Toast.show(result.error, 'error');
+          return;
+        }
+        if (result.rateLimitedFallback) {
+          Toast.show(
+            `Đã tạo kỹ sư ${name} (${result.technician.tech_id}) trên Supabase Auth! Do hạn mức gửi mail, mật khẩu tạm là: ${result.tempPassword}`,
+            'warning',
+            'Tạo kỹ sư thành công'
+          );
+        } else if (result.passwordSet || password) {
+          Toast.show(
+            `Đã tạo kỹ sư ${name} (${result.technician.tech_id}) và kích hoạt tài khoản đăng nhập trên Authentication!`,
+            'success',
+            'Tạo kỹ sư thành công'
+          );
+        } else {
+          Toast.show(
+            `Đã tạo kỹ sư ${name} (${result.technician.tech_id}) trên Authentication và gửi email mời đặt mật khẩu!`,
+            'success',
+            'Tạo kỹ sư thành công'
+          );
+        }
+      }
+
+      this.closeTechModal();
+      this.renderTechnicians();
+      this.renderHorizontalTechList();
+      this.initCustomTechDropdown();
+    } finally {
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.classList.remove('opacity-70', 'cursor-wait');
+      }
+      if (submitTextEl) {
+        submitTextEl.textContent = origText;
+      }
+    }
   },
 
   async toggleTechStatus(techId) {
@@ -4458,10 +4517,9 @@ const BookingUI = {
 
       if (passwordInput) {
         passwordInput.value = '';
-        passwordInput.value = '';
-        passwordInput.placeholder = 'Đổi tại Supabase Auth';
-        passwordInput.disabled = true;
-        passwordInput.readOnly = true;
+        passwordInput.placeholder = callerIsAdmin ? 'Nhập mật khẩu mới nếu muốn đặt lại...' : 'Chỉ Admin được phép đặt mật khẩu';
+        passwordInput.disabled = !callerIsAdmin;
+        passwordInput.readOnly = !callerIsAdmin;
         passwordInput.className = callerIsAdmin
           ? 'w-full text-xs bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-800 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-brand-500/20 font-medium'
           : 'w-full text-xs bg-slate-100 border border-slate-200 rounded-xl p-2.5 text-slate-500 font-medium cursor-not-allowed';
@@ -4582,7 +4640,7 @@ const BookingUI = {
     const phoneEl = document.getElementById('user-add-phone');
     const deptEl = document.getElementById('user-add-dept');
     const passEl = document.getElementById('user-add-password');
-    const avatarEl = document.getElementById('user-add-avatar-url');
+    const avatarEl = document.getElementById('user-add-avatar-url') || document.getElementById('user-add-avatar');
 
     if (nameEl) nameEl.value = '';
     if (emailEl) emailEl.value = '';
@@ -4698,8 +4756,9 @@ const BookingUI = {
     const name = document.getElementById('user-add-name')?.value.trim();
     const dept = document.getElementById('user-add-dept')?.value.trim();
     const phone = document.getElementById('user-add-phone')?.value.trim();
+    const password = document.getElementById('user-add-password')?.value.trim() || '';
     const referrerEmail = document.getElementById('user-add-referrer')?.value.trim().toLowerCase();
-    const avatarUrl = document.getElementById('user-add-avatar-url')?.value.trim();
+    const avatarUrl = (document.getElementById('user-add-avatar-url') || document.getElementById('user-add-avatar'))?.value.trim();
     const roleRadio = document.querySelector('input[name="user-add-role-radio"]:checked');
     const role = roleRadio ? roleRadio.value : '';
 
@@ -4713,30 +4772,71 @@ const BookingUI = {
       return;
     }
 
+    if (password && password.length < 6) {
+      Toast.show('Mật khẩu khởi tạo phải có ít nhất 6 ký tự!', 'error');
+      return;
+    }
+
     // Collect checked permissions
     const checkedPerms = [];
     document.querySelectorAll('input[name="user-add-perm-checkbox"]:checked').forEach(cb => {
       checkedPerms.push(cb.value);
     });
 
-    const res = await BookingData.addUser({
-      email,
-      full_name: name,
-      department: dept,
-      phone,
-      referrer_email: referrerEmail || '',
-      role,
-      permissions: checkedPerms,
-      avatar: avatarUrl || ''
-    });
+    const btnTop = document.getElementById('btn-user-add-top');
+    const btnBottom = document.getElementById('btn-user-add-bottom');
+    const btnTopText = document.getElementById('btn-user-add-top-text');
+    const btnBottomText = document.getElementById('btn-user-add-bottom-text');
 
-    if (res.success) {
-      Toast.show(`Đã tạo tài khoản và gửi email mời đến ${email}.`, 'success');
-      this.showUsersList();
-      if (window.App) App.updateUserBadge();
-      this.applyRolePermissions();
-    } else {
-      Toast.show(res.error, 'error');
+    if (btnTop) { btnTop.disabled = true; btnTop.classList.add('opacity-70', 'cursor-wait'); }
+    if (btnBottom) { btnBottom.disabled = true; btnBottom.classList.add('opacity-70', 'cursor-wait'); }
+    if (btnTopText) btnTopText.textContent = 'Đang tạo tài khoản...';
+    if (btnBottomText) btnBottomText.textContent = 'Đang tạo tài khoản...';
+
+    try {
+      const res = await BookingData.addUser({
+        email,
+        full_name: name,
+        department: dept,
+        phone,
+        password,
+        referrer_email: referrerEmail || '',
+        role,
+        permissions: checkedPerms,
+        avatar: avatarUrl || ''
+      });
+
+      if (res.success) {
+        if (res.rateLimitedFallback) {
+          Toast.show(
+            `Đã tạo tài khoản ${email} trên Supabase Auth! Do hạn mức gửi mail, mật khẩu tạm là: ${res.tempPassword}`,
+            'warning',
+            'Tạo người dùng thành công'
+          );
+        } else if (res.passwordSet || password) {
+          Toast.show(
+            `Đã tạo tài khoản ${email} và kích hoạt đăng nhập trên Supabase Authentication!`,
+            'success',
+            'Tạo người dùng thành công'
+          );
+        } else {
+          Toast.show(
+            `Đã tạo tài khoản ${email} trên Authentication và gửi email mời đặt mật khẩu!`,
+            'success',
+            'Tạo người dùng thành công'
+          );
+        }
+        this.showUsersList();
+        if (window.App) App.updateUserBadge();
+        this.applyRolePermissions();
+      } else {
+        Toast.show(res.error || 'Không thể tạo người dùng.', 'error');
+      }
+    } finally {
+      if (btnTop) { btnTop.disabled = false; btnTop.classList.remove('opacity-70', 'cursor-wait'); }
+      if (btnBottom) { btnBottom.disabled = false; btnBottom.classList.remove('opacity-70', 'cursor-wait'); }
+      if (btnTopText) btnTopText.textContent = 'Tạo Tài Khoản Ngay';
+      if (btnBottomText) btnBottomText.textContent = 'Xác Nhận Tạo Người Dùng';
     }
   },
 
@@ -4925,8 +5025,9 @@ const BookingUI = {
     const name = document.getElementById('user-detail-name')?.value.trim();
     const dept = document.getElementById('user-detail-dept')?.value.trim();
     const phone = document.getElementById('user-detail-phone')?.value.trim();
+    const password = document.getElementById('user-detail-password')?.value.trim() || '';
     const referrerEmail = document.getElementById('user-detail-referrer')?.value.trim().toLowerCase();
-    const avatarUrl = document.getElementById('user-detail-avatar-url')?.value.trim();
+    const avatarUrl = (document.getElementById('user-detail-avatar-url') || document.getElementById('user-detail-avatar'))?.value.trim();
     const roleRadio = document.querySelector('input[name="user-detail-role-radio"]:checked');
     const role = roleRadio ? roleRadio.value : '';
 
@@ -4937,6 +5038,11 @@ const BookingUI = {
 
     if (!role) {
       Toast.show('Vui lòng chọn 1 cấp bậc phân quyền cho tài khoản!', 'error');
+      return;
+    }
+
+    if (password && password.length < 6) {
+      Toast.show('Mật khẩu phải có ít nhất 6 ký tự!', 'error');
       return;
     }
 
@@ -4951,6 +5057,7 @@ const BookingUI = {
         full_name: name,
         department: dept,
         phone,
+        password,
         role,
         permissions: checkedPerms,
         referrer_email: referrerEmail || ''
@@ -4958,7 +5065,12 @@ const BookingUI = {
       if (avatarUrl) payload.avatar = avatarUrl;
       const res = await BookingData.updateUser(email, payload);
       if (res.success) {
-        Toast.show(`Đã cập nhật hồ sơ & phân quyền người dùng ${email}`, 'success');
+        Toast.show(
+          password
+            ? `Đã cập nhật hồ sơ & đổi mật khẩu người dùng ${email} thành công!`
+            : `Đã cập nhật hồ sơ & phân quyền người dùng ${email} thành công!`,
+          'success'
+        );
       } else {
         Toast.show(res.error, 'error');
         return;
@@ -4969,6 +5081,7 @@ const BookingUI = {
         full_name: name,
         department: dept,
         phone,
+        password,
         referrer_email: referrerEmail || '',
         role,
         permissions: checkedPerms,
