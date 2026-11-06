@@ -2060,59 +2060,35 @@ const BookingUI = {
 
     const cardsHtml = pagedList.map(b => {
       const tech = BookingData.technicians.find(t => t.tech_id === b.tech_id);
-      const reqUser = (BookingData.users || []).find(u => (u.email || '').toLowerCase() === (b.requester_email || '').toLowerCase());
-      const reqName = reqUser ? BookingData.cleanUserName(reqUser.full_name) : (b.requester_name || b.requester_email || 'Hệ thống');
       const bStart = b.booking_date;
       const bEnd = b.end_date || b.booking_date;
 
       return `
-        <div class="bg-white rounded-xl border border-slate-200/80 p-4 shadow-2xs space-y-3">
+        <article class="rounded-xl border border-slate-200 bg-white p-3 shadow-2xs">
           <div class="flex items-center justify-between gap-2">
-            <span class="font-bold font-condensed text-brand-600 text-xs">${b.booking_id}</span>
-            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-50 text-amber-900 border border-amber-300">
-              ${Lucide.clock} Chờ duyệt
+            <span class="text-[11px] font-bold font-condensed text-brand-600">${b.booking_id}</span>
+            <span class="inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-900">${Lucide.clock} Chờ duyệt</span>
+          </div>
+          <h4 class="mt-1.5 truncate text-sm font-bold leading-snug text-slate-900">${b.title}</h4>
+          <div class="mt-2 flex items-center justify-between gap-2 text-[11px] text-slate-600">
+            <span class="truncate">${bStart === bEnd ? bStart : `${bStart} – ${bEnd}`}</span>
+            <span class="flex min-w-0 items-center gap-1.5">
+              ${tech ? `<img src="${tech.avatar}" alt="" class="h-5 w-5 shrink-0 rounded-full object-cover">` : ''}
+              <span class="max-w-28 truncate">${tech ? tech.name : b.tech_id}</span>
             </span>
           </div>
-          <div>
-            <h4 class="font-bold text-slate-900 text-sm leading-snug">${b.title}</h4>
-            <p class="text-slate-500 text-xs mt-1 flex items-center gap-1">${Lucide.mapPin} ${b.location}</p>
-            ${b.notes ? `<p class="mt-1 text-[11px] text-slate-500 flex items-start gap-1 bg-slate-50 rounded-lg p-2 border border-slate-100">${Lucide.fileText} <span class="break-words">${b.notes}</span></p>` : ''}
-          </div>
-          <div class="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100 text-xs">
-            <div>
-              <span class="text-[10px] font-bold uppercase text-slate-400 block mb-1">Người yêu cầu</span>
-              <div class="flex items-center gap-1.5 min-w-0">
-                ${this.getUserAvatarHtml(b.requester_email, reqName, 'w-6 h-6', 'text-[9px]')}
-                <span class="font-medium text-slate-800 text-xs truncate">${reqName}</span>
-              </div>
-            </div>
-            <div>
-              <span class="text-[10px] font-bold uppercase text-slate-400 block mb-1">Kỹ sư đề xuất</span>
-              <div class="flex items-center gap-1.5 min-w-0">
-                <img src="${tech ? tech.avatar : ''}" class="w-6 h-6 rounded-full object-cover border border-slate-200">
-                <span class="font-medium text-slate-800 text-xs truncate">${tech ? tech.name : b.tech_id}</span>
-              </div>
-            </div>
-          </div>
-          <div class="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
-            <div class="font-condensed">
-              <span class="text-[10px] font-bold uppercase text-slate-400 block">Thời gian trực</span>
-              <p class="font-bold text-slate-800 flex items-center mt-0.5">${bStart === bEnd ? bStart : `<span>${bStart}</span><span class="inline-flex items-center mx-1 text-slate-400">${Lucide.arrowRight}</span><span>${bEnd}</span>`}</p>
-            </div>
-            <span class="text-[10px] font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded">${bStart === bEnd ? 'Trong ngày' : 'Liên ngày'}</span>
-          </div>
-          <div class="pt-3 border-t border-slate-100 grid grid-cols-3 gap-2">
-            <button onclick="BookingUI.handleApprove('${b.booking_id}')" class="h-11 rounded-xl bg-accent-600 hover:bg-accent-700 active:bg-accent-800 text-white font-bold text-xs transition-colors flex items-center justify-center gap-1 shadow-2xs active:scale-95 cursor-pointer">
+          <div class="mt-3 grid grid-cols-[1fr_1fr_auto] gap-2 border-t border-slate-100 pt-3">
+            <button type="button" onclick="BookingUI.handleApprove('${b.booking_id}')" class="h-10 rounded-lg bg-accent-600 text-white font-bold text-xs transition-colors hover:bg-accent-700 active:bg-accent-800">
               ${Lucide.check} Duyệt
             </button>
-            <button onclick="BookingUI.openRejectModal('${b.booking_id}', 'list')" class="h-11 rounded-xl border border-rose-200 text-rose-700 hover:bg-rose-50 font-bold text-xs transition-colors flex items-center justify-center gap-1 active:scale-95 cursor-pointer">
+            <button type="button" onclick="BookingUI.openRejectModal('${b.booking_id}', 'list')" class="h-10 rounded-lg border border-rose-200 text-rose-700 font-bold text-xs transition-colors hover:bg-rose-50">
               ${Lucide.x} Từ chối
             </button>
-            <button onclick="BookingUI.openDetailModal('${b.booking_id}')" class="h-11 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 font-semibold text-xs transition-colors flex items-center justify-center active:scale-95 cursor-pointer">
+            <button type="button" onclick="BookingUI.openApprovalDetail('${b.booking_id}')" class="h-10 rounded-lg border border-slate-200 px-2 text-slate-700 transition-colors hover:bg-slate-50">
               Chi tiết
             </button>
           </div>
-        </div>
+        </article>
       `;
     }).join('');
 
@@ -2163,7 +2139,7 @@ const BookingUI = {
               <button onclick="BookingUI.openRejectModal('${b.booking_id}', 'list')" class="px-2.5 py-1.5 rounded-lg border border-rose-200 text-rose-700 hover:bg-rose-50 font-semibold text-xs transition-colors flex items-center gap-1 cursor-pointer">
                 ${Lucide.x} Từ chối
               </button>
-              <button onclick="BookingUI.openDetailModal('${b.booking_id}')" class="px-2.5 py-1.5 rounded-lg text-slate-600 hover:bg-slate-100 font-medium text-xs transition-colors cursor-pointer">
+              <button type="button" onclick="BookingUI.openApprovalDetail('${b.booking_id}')" class="px-2.5 py-1.5 rounded-lg text-slate-600 hover:bg-slate-100 font-medium text-xs transition-colors cursor-pointer">
                 Chi tiết
               </button>
             </div>
@@ -2200,6 +2176,19 @@ const BookingUI = {
       ${this.renderPaginationHtml('approval', pendingList.length, curPage, pageSize)}
     `;
     container.innerHTML = html;
+  },
+
+  openApprovalDetail(bookingId) {
+    try {
+      this.openDetailModal(String(bookingId));
+      const modal = document.getElementById('detail-modal');
+      if (!modal || modal.classList.contains('hidden')) {
+        Toast.show('Không tìm thấy yêu cầu này. Hãy tải lại danh sách.', 'error');
+      }
+    } catch (error) {
+      console.error('Không mở được chi tiết yêu cầu:', error);
+      Toast.show('Không mở được chi tiết yêu cầu. Hãy tải lại trang và thử lại.', 'error');
+    }
   },
 
   // MY BOOKINGS (CONTEXT-AWARE: PM SEES OWN, MANAGER/ADMIN SEES ALL)
