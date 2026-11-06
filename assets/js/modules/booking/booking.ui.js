@@ -2772,7 +2772,7 @@ const BookingUI = {
           <!-- Card 1: Technician -->
           <div class="bg-slate-50/80 p-3.5 rounded-2xl border border-slate-200/80 flex flex-col justify-between">
             <span class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block mb-2.5">Kỹ sư phụ trách</span>
-            <div class="bg-white rounded-xl p-3 border border-slate-200/90 shadow-2xs flex items-center gap-3">
+            <div class="flex items-center gap-3">
               <img src="${tech ? tech.avatar : ''}" class="w-10 h-10 rounded-full object-cover flex-shrink-0 border-2 border-white shadow-2xs ring-1 ring-slate-100">
               <div class="min-w-0 flex-1">
                 <strong class="text-xs font-bold text-slate-900 block truncate leading-tight">${tech ? tech.name : b.tech_id}</strong>
@@ -2792,7 +2792,7 @@ const BookingUI = {
             ${canEdit && (b.status === 'PENDING' || b.status === 'APPROVED') ? `
               <!-- Unified Single-Calendar Trigger for Detail Modal -->
               <div class="relative" id="detail-daterange-picker-wrapper">
-                <button id="btn-detail-daterange" type="button" onclick="BookingUI.openDetailDatePicker('${b.booking_id}')" class="w-full bg-white hover:bg-slate-50/90 hover:border-brand-400 border border-slate-200/90 rounded-xl p-3 text-left shadow-2xs cursor-pointer transition-all focus:outline-hidden focus:ring-2 focus:ring-brand-500/20 group">
+                <button id="btn-detail-daterange" type="button" onclick="BookingUI.openDetailDatePicker('${b.booking_id}')" class="w-full rounded-lg p-1 text-left cursor-pointer transition-colors hover:bg-white/70 focus:outline-hidden focus:ring-2 focus:ring-brand-500/20 group">
                   <div class="flex items-center justify-between gap-2 mb-1.5">
                     <div class="flex items-center gap-1.5 min-w-0">
                       <span class="text-brand-600 flex-shrink-0">${Lucide.calendar}</span>
@@ -2865,7 +2865,7 @@ const BookingUI = {
                 </div>
               </div>
             ` : `
-              <div class="bg-white rounded-xl p-3 border border-slate-200/90 shadow-2xs">
+              <div class="p-1">
                 <div class="flex items-center justify-between gap-2 mb-1.5">
                   <div class="flex items-center gap-1.5 min-w-0">
                     <span class="text-slate-500 flex-shrink-0">${Lucide.calendar}</span>

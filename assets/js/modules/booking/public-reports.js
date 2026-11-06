@@ -89,14 +89,14 @@
         <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <section class="rounded-2xl border border-slate-200 bg-slate-50/80 p-3.5">
             <h3 class="mb-2.5 text-[11px] font-semibold uppercase tracking-wide text-slate-500">Kỹ sư phụ trách</h3>
-            <div class="flex min-w-0 items-center gap-3 rounded-xl border border-slate-200 bg-white p-3">
+            <div class="flex min-w-0 items-center gap-3">
               ${avatar(detail.engineer_name, detail.engineer_avatar, 'h-10 w-10')}
               <strong class="min-w-0 truncate text-xs text-slate-900">${escapeHtml(detail.engineer_name)}</strong>
             </div>
           </section>
           <section class="rounded-2xl border border-slate-200 bg-slate-50/80 p-3.5">
             <div class="mb-2.5 flex items-center justify-between gap-2"><h3 class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Thời gian thực hiện</h3>${statusBadge(detail.status)}</div>
-            <div class="rounded-xl border border-slate-200 bg-white p-3">
+            <div class="px-0.5">
               <p class="font-bold text-slate-900">${dateLabel(detail.booking_date)}${detail.end_date && detail.end_date !== detail.booking_date ? ` → ${dateLabel(detail.end_date)}` : ''}</p>
               <p class="mt-2 border-t border-slate-100 pt-2 text-xs text-slate-600">${timeLabel(detail.start_time) || 'Chưa cập nhật'}${detail.end_time ? `–${timeLabel(detail.end_time)}` : ''}</p>
             </div>
