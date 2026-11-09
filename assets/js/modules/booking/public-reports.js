@@ -565,16 +565,53 @@
     );
   }
 
+  function renderSkeletonLoading() {
+    ['summary-engineers', 'summary-shifts', 'summary-approved', 'summary-pending'].forEach((id) => {
+      const el = $(id);
+      if (el) el.innerHTML = '<span class="inline-block w-5 h-4 rounded k-skeleton-shimmer"></span>';
+    });
+    const filters = $('engineer-filters');
+    if (filters) {
+      filters.innerHTML = `
+        <div class="flex items-center gap-2">
+          <div class="w-10 h-10 lg:w-20 lg:h-9 rounded-full k-skeleton-shimmer shrink-0"></div>
+          <div class="w-10 h-10 lg:w-24 lg:h-9 rounded-full k-skeleton-shimmer shrink-0"></div>
+          <div class="w-10 h-10 lg:w-28 lg:h-9 rounded-full k-skeleton-shimmer shrink-0"></div>
+          <div class="hidden sm:block w-10 h-10 lg:w-24 lg:h-9 rounded-full k-skeleton-shimmer shrink-0"></div>
+        </div>
+      `;
+    }
+    const grid = $('calendar-grid');
+    if (grid) {
+      let cells = '';
+      for (let i = 0; i < 28; i++) {
+        cells += `
+          <div class="min-h-[72px] sm:min-h-[88px] p-1.5 sm:p-2 bg-white flex flex-col justify-between select-none">
+            <div class="w-6 h-4 rounded k-skeleton-shimmer"></div>
+            <div class="space-y-1.5 mt-2">
+              <div class="w-5/6 h-3.5 rounded-full k-skeleton-shimmer"></div>
+              ${i % 3 === 0 ? '<div class="hidden sm:block w-1/2 h-3 rounded-full k-skeleton-shimmer"></div>' : ''}
+            </div>
+          </div>
+        `;
+      }
+      grid.innerHTML = cells;
+    }
+  }
+
   async function loadMonth() {
     const requestId = ++state.requestId;
     const from = dateISO(monthStart(state.month));
     const to = dateISO(monthEnd(state.month));
     $('month-label').textContent = monthLabel(state.month);
-    $('report-message').textContent = 'Đang tải lịch…';
+    $('report-message').textContent = 'Đang đồng bộ lịch…';
     $('report-message').className = 'text-xs text-slate-500';
+
     if (window.SystemLoader) {
-      window.SystemLoader.show('Đang tải dữ liệu lịch trực…', `Đang đồng bộ lịch và báo cáo ${monthLabel(state.month)} từ máy chủ…`);
+      window.SystemLoader.show();
     }
+    renderSkeletonLoading();
+
     try {
       const client = window.SupabaseConfig?.getClient();
       if (!client) throw new Error('Không kết nối được Supabase.');

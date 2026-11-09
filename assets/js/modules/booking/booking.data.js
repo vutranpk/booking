@@ -394,7 +394,7 @@ const BookingData = {
 
     const shouldShowLoader = (!this._initialSyncCompleted && !options.silent && !window.location.pathname.endsWith('login.html')) || options.showLoader;
     if (shouldShowLoader && window.SystemLoader) {
-      window.SystemLoader.show('Đang tải dữ liệu từ máy chủ…', 'Đang đồng bộ lịch trực, kỹ sư và phân quyền mới nhất…');
+      window.SystemLoader.show();
     }
 
     try {

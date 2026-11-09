@@ -116,7 +116,12 @@
       <!-- Toolbar 2: Horizontal Engineer Filter Chips -->
       <div class="flex items-center gap-2 overflow-x-auto border-b border-slate-100 bg-slate-50/50 px-3.5 py-2 sm:px-5">
         <span class="hidden sm:inline shrink-0 font-condensed text-[11px] font-bold uppercase tracking-wider text-slate-400">Lọc kỹ sư:</span>
-        <div id="engineer-filters" class="flex min-w-0 items-center gap-2.5 lg:gap-2 py-1 px-0.5"><span class="text-xs text-slate-500">Đang tải…</span></div>
+        <div id="engineer-filters" class="flex min-w-0 items-center gap-2.5 lg:gap-2 py-1 px-0.5">
+          <div class="w-10 h-10 lg:w-20 lg:h-9 rounded-full k-skeleton-shimmer shrink-0"></div>
+          <div class="w-10 h-10 lg:w-24 lg:h-9 rounded-full k-skeleton-shimmer shrink-0"></div>
+          <div class="w-10 h-10 lg:w-28 lg:h-9 rounded-full k-skeleton-shimmer shrink-0"></div>
+          <div class="hidden sm:block w-10 h-10 lg:w-24 lg:h-9 rounded-full k-skeleton-shimmer shrink-0"></div>
+        </div>
       </div>
 
       <!-- Month Matrix Container -->
@@ -131,7 +136,20 @@
           <div class="text-burgundy-800 font-bold"><span class="sm:hidden">CN</span><span class="hidden sm:inline">CHỦ NHẬT</span></div>
         </div>
         <div id="calendar-grid" class="grid grid-cols-7 border-l border-t border-slate-100 divide-x divide-y divide-slate-100 bg-white">
-          <div class="col-span-7 p-6 text-center text-xs text-slate-500">Đang tải lịch…</div>
+          <div class="min-h-[72px] sm:min-h-[88px] p-1.5 sm:p-2 bg-white flex flex-col justify-between select-none"><div class="w-6 h-4 rounded k-skeleton-shimmer"></div><div class="w-5/6 h-3.5 rounded-full k-skeleton-shimmer mt-2"></div></div>
+          <div class="min-h-[72px] sm:min-h-[88px] p-1.5 sm:p-2 bg-white flex flex-col justify-between select-none"><div class="w-6 h-4 rounded k-skeleton-shimmer"></div><div class="w-3/4 h-3.5 rounded-full k-skeleton-shimmer mt-2"></div></div>
+          <div class="min-h-[72px] sm:min-h-[88px] p-1.5 sm:p-2 bg-white flex flex-col justify-between select-none"><div class="w-6 h-4 rounded k-skeleton-shimmer"></div><div class="w-5/6 h-3.5 rounded-full k-skeleton-shimmer mt-2"></div></div>
+          <div class="min-h-[72px] sm:min-h-[88px] p-1.5 sm:p-2 bg-white flex flex-col justify-between select-none"><div class="w-6 h-4 rounded k-skeleton-shimmer"></div><div class="w-2/3 h-3.5 rounded-full k-skeleton-shimmer mt-2"></div></div>
+          <div class="min-h-[72px] sm:min-h-[88px] p-1.5 sm:p-2 bg-white flex flex-col justify-between select-none"><div class="w-6 h-4 rounded k-skeleton-shimmer"></div><div class="w-5/6 h-3.5 rounded-full k-skeleton-shimmer mt-2"></div></div>
+          <div class="min-h-[72px] sm:min-h-[88px] p-1.5 sm:p-2 bg-white flex flex-col justify-between select-none"><div class="w-6 h-4 rounded k-skeleton-shimmer"></div><div class="w-3/4 h-3.5 rounded-full k-skeleton-shimmer mt-2"></div></div>
+          <div class="min-h-[72px] sm:min-h-[88px] p-1.5 sm:p-2 bg-white flex flex-col justify-between select-none"><div class="w-6 h-4 rounded k-skeleton-shimmer"></div><div class="w-1/2 h-3.5 rounded-full k-skeleton-shimmer mt-2"></div></div>
+          <div class="min-h-[72px] sm:min-h-[88px] p-1.5 sm:p-2 bg-white flex flex-col justify-between select-none"><div class="w-6 h-4 rounded k-skeleton-shimmer"></div><div class="w-5/6 h-3.5 rounded-full k-skeleton-shimmer mt-2"></div></div>
+          <div class="min-h-[72px] sm:min-h-[88px] p-1.5 sm:p-2 bg-white flex flex-col justify-between select-none"><div class="w-6 h-4 rounded k-skeleton-shimmer"></div><div class="w-3/4 h-3.5 rounded-full k-skeleton-shimmer mt-2"></div></div>
+          <div class="min-h-[72px] sm:min-h-[88px] p-1.5 sm:p-2 bg-white flex flex-col justify-between select-none"><div class="w-6 h-4 rounded k-skeleton-shimmer"></div><div class="w-5/6 h-3.5 rounded-full k-skeleton-shimmer mt-2"></div></div>
+          <div class="min-h-[72px] sm:min-h-[88px] p-1.5 sm:p-2 bg-white flex flex-col justify-between select-none"><div class="w-6 h-4 rounded k-skeleton-shimmer"></div><div class="w-2/3 h-3.5 rounded-full k-skeleton-shimmer mt-2"></div></div>
+          <div class="min-h-[72px] sm:min-h-[88px] p-1.5 sm:p-2 bg-white flex flex-col justify-between select-none"><div class="w-6 h-4 rounded k-skeleton-shimmer"></div><div class="w-5/6 h-3.5 rounded-full k-skeleton-shimmer mt-2"></div></div>
+          <div class="min-h-[72px] sm:min-h-[88px] p-1.5 sm:p-2 bg-white flex flex-col justify-between select-none"><div class="w-6 h-4 rounded k-skeleton-shimmer"></div><div class="w-3/4 h-3.5 rounded-full k-skeleton-shimmer mt-2"></div></div>
+          <div class="min-h-[72px] sm:min-h-[88px] p-1.5 sm:p-2 bg-white flex flex-col justify-between select-none"><div class="w-6 h-4 rounded k-skeleton-shimmer"></div><div class="w-1/2 h-3.5 rounded-full k-skeleton-shimmer mt-2"></div></div>
         </div>
       </div>
 

@@ -352,6 +352,28 @@ const DesignSystem = {
       .rounded-modal { border-radius: var(--radius-modal) !important; }
       .rounded-slot  { border-radius: var(--radius-slot) !important; }
 
+      /* ⚡ TOP PROGRESS BAR & SKELETON SHIMMER (PROPOSAL 2 - STRIPE / GITHUB / LINEAR STYLE) */
+      @keyframes k-progress-indeterminate {
+        0% { transform: translateX(-100%); }
+        50% { transform: translateX(10%); }
+        100% { transform: translateX(105%); }
+      }
+
+      @keyframes k-skeleton-shimmer {
+        0% { background-position: -200% 0; }
+        100% { background-position: 200% 0; }
+      }
+
+      .k-progress-bar-active {
+        animation: k-progress-indeterminate 1.4s cubic-bezier(0.4, 0, 0.2, 1) infinite !important;
+      }
+
+      .k-skeleton-shimmer {
+        background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%) !important;
+        background-size: 200% 100% !important;
+        animation: k-skeleton-shimmer 1.5s infinite ease-in-out !important;
+      }
+
       /* 🔤 DUAL-FONT TYPOGRAPHY SYSTEM (INTER + ROBOTO CONDENSED) */
       .font-sans {
         font-family: 'Inter', system-ui, -apple-system, sans-serif !important;
@@ -502,66 +524,75 @@ window.DesignSystem = DesignSystem;
 window.THEME_PRESETS = THEME_PRESETS;
 
 /**
- * ⏳ GLOBAL SYSTEM BUSY & SERVER ACTION GUARD (SystemLoader)
- * ==============================================================
- * Chặn thao tác chồng chéo (double-click / spam submit) và hiển thị
- * trạng thái đang ghi / lấy / xuất dữ liệu từ máy chủ trên mọi trang.
+ * ⚡ GLOBAL SYSTEM PROGRESS & ACTION GUARD (Proposal 2: Top Progress Line + Micro-HUD)
+ * ====================================================================================
+ * - Loại bỏ hoàn toàn màn xám phủ kín màn hình và card popup thô kệch.
+ * - Thanh tiến trình mỏng 2.5px chạy ở đỉnh viewport (Stripe / GitHub / Linear style).
+ * - Tấm khiên chống click đúp hoàn toàn trong suốt (chỉ kích hoạt khi ghi/lưu dữ liệu).
+ * - Micro-HUD hạt đậu nổi siêu nhỏ (24px) trượt từ trên xuống khi lưu/xóa/phê duyệt.
  */
 const SystemLoader = {
   activeCount: 0,
   shownAt: 0,
   hideTimer: null,
-  overlayEl: null,
+  progressBarEl: null,
+  progressInnerEl: null,
+  clickShieldEl: null,
+  floatingHudEl: null,
 
   ensureDOM() {
-    if (this.overlayEl && document.body && document.body.contains(this.overlayEl)) {
-      return this.overlayEl;
+    if (this.progressBarEl && document.body && document.body.contains(this.progressBarEl)) {
+      return;
     }
-    if (!document.body) return null;
+    if (!document.body) return;
 
-    const overlay = document.createElement('div');
-    overlay.id = 'k-system-loader-overlay';
-    overlay.setAttribute('role', 'alertdialog');
-    overlay.setAttribute('aria-live', 'assertive');
-    overlay.setAttribute('aria-busy', 'true');
-    overlay.className = 'fixed inset-0 z-[9998] hidden items-center justify-center bg-slate-900/25 backdrop-blur-[2px] p-4 select-none cursor-wait transition-opacity duration-150 opacity-0';
-
-    overlay.innerHTML = `
-      <div class="fixed top-0 left-0 right-0 h-1 bg-brand-100/80 overflow-hidden">
-        <div class="h-full w-1/2 bg-accent-500 rounded-full animate-pulse"></div>
-      </div>
-      <div class="bg-white border border-slate-200/90 rounded-2xl shadow-xl px-5 py-4 flex items-center gap-3.5 max-w-sm w-full sm:w-auto pointer-events-auto">
-        <div class="relative w-8 h-8 shrink-0 flex items-center justify-center">
-          <span class="w-8 h-8 rounded-full border-[3px] border-slate-100 border-t-accent-500 border-r-brand-600 animate-spin block"></span>
-          <span class="w-2 h-2 rounded-full bg-accent-500 absolute"></span>
-        </div>
-        <div class="min-w-0 flex-1">
-          <p id="k-system-loader-title" class="font-condensed text-xs sm:text-sm font-black uppercase tracking-wider text-slate-900 leading-tight">
-            Đang đồng bộ máy chủ…
-          </p>
-          <p id="k-system-loader-subtitle" class="text-[11px] font-medium text-slate-500 mt-0.5 leading-snug">
-            Vui lòng chờ trong giây lát, hệ thống đang xử lý dữ liệu…
-          </p>
-        </div>
-      </div>
+    // 1. Top Indeterminate Progress Bar (Ultra-slim 2.5px pinned to top)
+    const progressBar = document.createElement('div');
+    progressBar.id = 'k-system-progress-bar';
+    progressBar.setAttribute('role', 'progressbar');
+    progressBar.setAttribute('aria-valuemin', '0');
+    progressBar.setAttribute('aria-valuemax', '100');
+    progressBar.className = 'fixed top-0 left-0 right-0 h-[2.5px] z-[99999] pointer-events-none opacity-0 transition-opacity duration-200 overflow-hidden bg-brand-100/40 select-none';
+    progressBar.innerHTML = `
+      <div id="k-system-progress-inner" class="h-full w-full bg-gradient-to-r from-brand-600 via-accent-500 to-emerald-400 rounded-full transition-transform duration-200 origin-left"></div>
     `;
 
-    // Chặn toàn bộ click/keydown xuyên qua lớp phủ khi đang xử lý
-    overlay.addEventListener('click', (e) => {
+    // 2. Invisible Click Shield (Only active during mutations to prevent double-click / spam, ZERO grey veil!)
+    const clickShield = document.createElement('div');
+    clickShield.id = 'k-system-click-shield';
+    clickShield.className = 'fixed inset-0 z-[99990] bg-transparent cursor-wait hidden pointer-events-auto select-none';
+    clickShield.addEventListener('click', (e) => {
       e.preventDefault();
       e.stopPropagation();
     }, true);
 
-    document.body.appendChild(overlay);
-    this.overlayEl = overlay;
-    return overlay;
+    // 3. Compact Floating Dynamic Island / HUD (Only for saving/mutating actions, slides smoothly from top)
+    const floatingHud = document.createElement('div');
+    floatingHud.id = 'k-system-floating-hud';
+    floatingHud.className = 'fixed top-3 left-1/2 -translate-x-1/2 z-[99999] hidden items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-900/90 text-white shadow-lg backdrop-blur-md border border-white/10 pointer-events-none transition-all duration-200 opacity-0 -translate-y-2 select-none';
+    floatingHud.innerHTML = `
+      <span class="relative flex h-2 w-2 shrink-0">
+        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent-400 opacity-75"></span>
+        <span class="relative inline-flex rounded-full h-2 w-2 bg-accent-500"></span>
+      </span>
+      <span id="k-system-hud-title" class="font-condensed text-[11px] font-bold uppercase tracking-wider text-slate-100 whitespace-nowrap">Đang xử lý…</span>
+    `;
+
+    document.body.appendChild(progressBar);
+    document.body.appendChild(clickShield);
+    document.body.appendChild(floatingHud);
+
+    this.progressBarEl = progressBar;
+    this.progressInnerEl = progressBar.querySelector('#k-system-progress-inner');
+    this.clickShieldEl = clickShield;
+    this.floatingHudEl = floatingHud;
   },
 
   isBusy() {
     return this.activeCount > 0;
   },
 
-  show(title = 'Đang xử lý dữ liệu máy chủ…', subtitle = 'Vui lòng chờ trong giây lát, hệ thống đang đồng bộ…') {
+  show(title = '', subtitle = '', isMutation = false) {
     if (this.hideTimer) {
       clearTimeout(this.hideTimer);
       this.hideTimer = null;
@@ -571,23 +602,38 @@ const SystemLoader = {
       this.shownAt = Date.now();
     }
 
-    const overlay = this.ensureDOM();
-    if (!overlay) return;
+    this.ensureDOM();
+    if (!this.progressBarEl) return;
 
-    const titleEl = document.getElementById('k-system-loader-title');
-    const subEl = document.getElementById('k-system-loader-subtitle');
-    if (titleEl && title) titleEl.textContent = title;
-    if (subEl && subtitle) subEl.textContent = subtitle;
+    // Detect if this is a mutating action (e.g. Save, Delete, Approve, Reject, Logout, Reset Password)
+    const isMutatingAction = isMutation || /lưu|xóa|duyệt|từ chối|hủy|tạo|đổi|khôi phục|đăng xuất/i.test(title || subtitle || '');
 
-    overlay.classList.remove('hidden');
-    overlay.classList.add('flex');
-    requestAnimationFrame(() => {
-      overlay.classList.remove('opacity-0');
-      overlay.classList.add('opacity-100');
-    });
+    // 1. Activate Top Progress Bar
+    this.progressBarEl.classList.remove('opacity-0');
+    this.progressBarEl.classList.add('opacity-100');
+    if (this.progressInnerEl) {
+      this.progressInnerEl.classList.add('k-progress-bar-active');
+    }
+
+    // 2. If mutating action, activate transparent click barrier to prevent spam double-clicking
+    if (isMutatingAction && this.clickShieldEl) {
+      this.clickShieldEl.classList.remove('hidden');
+    }
+
+    // 3. If mutating action with title, show the sleek micro-HUD pill at top
+    if (isMutatingAction && title && this.floatingHudEl) {
+      const hudTitle = this.floatingHudEl.querySelector('#k-system-hud-title');
+      if (hudTitle) hudTitle.textContent = title.replace(/…|\.\.\./g, '');
+      this.floatingHudEl.classList.remove('hidden');
+      this.floatingHudEl.classList.add('flex');
+      requestAnimationFrame(() => {
+        this.floatingHudEl.classList.remove('opacity-0', '-translate-y-2');
+        this.floatingHudEl.classList.add('opacity-100', 'translate-y-0');
+      });
+    }
   },
 
-  hide(minDurationMs = 320) {
+  hide(minDurationMs = 240) {
     this.activeCount = Math.max(0, this.activeCount - 1);
     if (this.activeCount > 0) return;
 
@@ -597,21 +643,40 @@ const SystemLoader = {
     if (this.hideTimer) clearTimeout(this.hideTimer);
     this.hideTimer = setTimeout(() => {
       if (this.activeCount > 0) return;
-      const overlay = this.overlayEl || document.getElementById('k-system-loader-overlay');
-      if (!overlay) return;
-      overlay.classList.remove('opacity-100');
-      overlay.classList.add('opacity-0');
+
+      // Deactivate click shield
+      if (this.clickShieldEl) {
+        this.clickShieldEl.classList.add('hidden');
+      }
+
+      // Hide micro floating HUD
+      if (this.floatingHudEl) {
+        this.floatingHudEl.classList.remove('opacity-100', 'translate-y-0');
+        this.floatingHudEl.classList.add('opacity-0', '-translate-y-2');
+        setTimeout(() => {
+          if (this.activeCount === 0 && this.floatingHudEl) {
+            this.floatingHudEl.classList.add('hidden');
+            this.floatingHudEl.classList.remove('flex');
+          }
+        }, 150);
+      }
+
+      // Complete progress bar to 100% then fade out smoothly
+      if (this.progressInnerEl) {
+        this.progressInnerEl.classList.remove('k-progress-bar-active');
+        this.progressInnerEl.style.transform = 'translateX(0)';
+      }
       setTimeout(() => {
-        if (this.activeCount === 0 && overlay) {
-          overlay.classList.add('hidden');
-          overlay.classList.remove('flex');
+        if (this.progressBarEl) {
+          this.progressBarEl.classList.remove('opacity-100');
+          this.progressBarEl.classList.add('opacity-0');
         }
-      }, 150);
+      }, 100);
     }, remaining);
   },
 
-  async track(promiseOrFn, title = 'Đang xử lý dữ liệu máy chủ…', subtitle = 'Vui lòng chờ trong giây lát, hệ thống đang đồng bộ…', minDurationMs = 320) {
-    this.show(title, subtitle);
+  async track(promiseOrFn, title = '', subtitle = '', minDurationMs = 240) {
+    this.show(title, subtitle, true);
     try {
       const target = typeof promiseOrFn === 'function' ? promiseOrFn() : promiseOrFn;
       return await Promise.resolve(target);
