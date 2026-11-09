@@ -3159,203 +3159,196 @@ const BookingUI = {
                     ((b.created_by || '').toLowerCase().trim() === curEmailLower);
 
     content.innerHTML = `
-      <div class="space-y-4">
-        <!-- Header: ID, Title & Non-Wrapping Badge -->
-        <div class="flex items-start justify-between gap-3 pb-3.5 border-b border-slate-100">
+      <div class="space-y-3.5">
+        <!-- Header: ID, Time, Title & Non-Wrapping Badge -->
+        <div class="flex items-start justify-between gap-3 pb-3 border-b border-slate-100 pr-8">
           <div class="min-w-0 flex-1">
             <div class="flex items-center gap-2 flex-wrap">
-              <span class="text-xs font-extrabold font-condensed text-brand-600 tracking-wider">${b.booking_id}</span>
-              <span class="inline-flex items-center gap-1 text-[11px] font-mono font-bold text-brand-700 bg-brand-50 border border-brand-200/80 px-2 py-0.5 rounded-md">
+              <span class="text-xs font-black font-mono text-brand-700 bg-brand-50 border border-brand-200/80 px-2.5 py-0.5 rounded-md tracking-wider">${b.booking_id}</span>
+              <span class="inline-flex items-center gap-1 text-[11px] font-mono font-bold text-slate-700 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-md">
                 ${Lucide.clock} ${timeStr}
               </span>
             </div>
-            <h3 class="text-base sm:text-lg font-bold text-slate-900 mt-1.5 leading-snug break-words">${b.title}</h3>
+            <h3 class="text-base sm:text-lg font-extrabold text-slate-900 mt-1.5 leading-snug break-words">${b.title}</h3>
           </div>
           <div class="flex-shrink-0 pt-0.5">${statusText}</div>
         </div>
 
-        <!-- 2 Information Cards Grid -->
+        <!-- 2 Balanced Information Cards Grid -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
           <!-- Card 1: Technician -->
-          <div class="flex flex-col justify-between px-1 py-1">
-            <span class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block mb-2.5">Kỹ sư phụ trách</span>
+          <div class="bg-slate-50/80 rounded-2xl p-3 border border-slate-200/80 flex flex-col justify-between">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-[10px] font-bold tracking-wider text-slate-400 uppercase">Kỹ sư phụ trách</span>
+              <span class="text-[10px] font-bold text-brand-700 bg-brand-50 px-2 py-0.5 rounded-full border border-brand-200/70">Kỹ thuật</span>
+            </div>
             <div class="flex items-center gap-3">
-              <img src="${tech ? tech.avatar : ''}" class="w-10 h-10 rounded-full object-cover flex-shrink-0 border-2 border-white shadow-2xs ring-1 ring-slate-100">
+              <img src="${tech ? tech.avatar : ''}" class="w-11 h-11 rounded-full object-cover flex-shrink-0 border-2 border-white shadow-2xs ring-1 ring-slate-200/80">
               <div class="min-w-0 flex-1">
-                <strong class="text-xs font-bold text-slate-900 block truncate leading-tight">${tech ? tech.name : b.tech_id}</strong>
-                <span class="text-[11px] text-slate-500 font-medium block mt-1 flex items-center gap-1">
-                  ${Lucide.phone} ${tech ? tech.phone : 'Chưa có SĐT'}
-                </span>
+                <strong class="text-xs sm:text-sm font-bold text-slate-900 block truncate leading-tight">${tech ? tech.name : b.tech_id}</strong>
+                <a href="tel:${tech ? tech.phone : ''}" class="text-xs text-slate-600 hover:text-brand-600 font-medium inline-flex items-center gap-1.5 mt-1 transition-colors">
+                  <span class="text-slate-400">${Lucide.phone}</span>
+                  <span>${tech ? tech.phone : 'Chưa có SĐT'}</span>
+                </a>
               </div>
             </div>
           </div>
 
-          <!-- Card 2: Date & Shift Duration (Editable on PENDING and APPROVED shifts) -->
-          <div class="flex flex-col justify-between px-1 py-1 relative">
-            <div class="flex items-center justify-between mb-2.5">
-              <span class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block">Thời gian thực hiện</span>
+          <!-- Card 2: Date & Shift Time (Seamlessly Integrated) -->
+          <div class="bg-slate-50/80 rounded-2xl p-3 border border-slate-200/80 flex flex-col justify-between relative" id="detail-daterange-picker-wrapper">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-[10px] font-bold tracking-wider text-slate-400 uppercase">Thời gian thực hiện</span>
+              <span id="label-detail-duration-tag" class="text-[10px] font-extrabold text-brand-700 bg-brand-50 px-2 py-0.5 rounded-full border border-brand-200/70">
+                ${diffDays} ngày
+              </span>
             </div>
 
-            ${canEdit && (b.status === 'PENDING' || b.status === 'APPROVED') ? `
-              <!-- Unified Single-Calendar Trigger for Detail Modal -->
-              <div class="relative" id="detail-daterange-picker-wrapper">
-                <button id="btn-detail-daterange" type="button" onclick="BookingUI.openDetailDatePicker('${b.booking_id}')" class="w-full rounded-lg p-1 text-left cursor-pointer transition-colors hover:bg-white/70 focus:outline-hidden focus:ring-2 focus:ring-brand-500/20 group">
-                  <div class="flex items-center justify-between gap-2 mb-1.5">
-                    <div class="flex items-center gap-1.5 min-w-0">
-                      <span class="text-brand-600 flex-shrink-0">${Lucide.calendar}</span>
-                      <span id="label-detail-daterange" class="text-xs font-bold text-slate-900 font-condensed tracking-tight truncate group-hover:text-brand-700 transition-colors">
-                        ${diffDays === 1 ? BookingUI.formatDateDisplay(bStart) : `${BookingUI.formatDateDisplay(bStart)} → ${BookingUI.formatDateDisplay(bEnd)}`}
-                      </span>
-                    </div>
-                    <span id="label-detail-duration-tag" class="text-[10px] font-extrabold text-brand-700 font-condensed bg-brand-50 px-2 py-0.5 rounded-full border border-brand-200/70 flex-shrink-0">
-                      ${diffDays} ngày
-                    </span>
-                  </div>
-                  <div class="flex items-center justify-between text-[11px] text-slate-500 pt-1.5 border-t border-slate-100/90">
-                    <span id="sublabel-detail-daterange" class="text-[10px] text-slate-500 font-medium truncate">
-                      ${diffDays === 1 ? 'Ca trong ngày' : `Ca liên ngày (${diffDays} ngày)`}
-                    </span>
-                    <span class="inline-flex items-center gap-1 text-[10px] font-bold text-brand-600 group-hover:text-brand-700 flex-shrink-0 ml-1">
-                      ${Lucide.pencil} Đổi lịch
-                    </span>
-                  </div>
-                </button>
-
-                <!-- Hidden inputs maintaining compatibility with handleApproveFromDetail -->
-                <input type="hidden" id="detail-edit-start-date" value="${bStart}">
-                <input type="hidden" id="detail-edit-end-date" value="${bEnd}">
-
-                <!-- Floating Custom Date Picker Dropdown Popover for Detail Modal -->
-                <div id="detail-datepicker-dropdown" onclick="event.stopPropagation()" class="hidden absolute left-0 sm:left-auto sm:right-0 top-full mt-2 w-[min(310px,calc(100vw-3rem))] sm:w-[330px] bg-white rounded-2xl border border-slate-200 shadow-2xl z-50 p-3.5 transform transition-all duration-200 origin-top-left sm:origin-top-right">
-                  <!-- Header -->
-                  <div class="flex items-center justify-between pb-2.5 border-b border-slate-100">
-                    <div class="flex items-center gap-2">
-                      <span id="detail-dp-target-badge" class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-brand-50 text-brand-700 font-condensed border border-brand-100">1 Lịch chọn dải ngày</span>
-                      <span id="detail-dp-month-year" class="text-xs font-bold text-slate-900">Tháng 11, 2026</span>
-                    </div>
-                    <div class="flex items-center gap-1">
-                      <button type="button" onclick="BookingUI.changeDetailDpMonth(-1)" class="w-7 h-7 sm:w-6 sm:h-6 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 flex items-center justify-center transition-colors cursor-pointer" title="Tháng trước">
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
-                      </button>
-                      <button type="button" onclick="BookingUI.changeDetailDpMonth(1)" class="w-7 h-7 sm:w-6 sm:h-6 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 flex items-center justify-center transition-colors cursor-pointer" title="Tháng sau">
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-                      </button>
-                    </div>
-                  </div>
-
-                  <!-- Dynamic Instruction Banner -->
-                  <div id="detail-dp-instruction-banner" class="mt-2 px-2.5 py-1.5 rounded-xl bg-slate-50 border border-slate-200/80 text-[10px] text-slate-600 flex items-center gap-1.5">
-                    <span id="detail-dp-instruction-dot" class="w-1.5 h-1.5 rounded-full bg-brand-500 flex-shrink-0 animate-pulse"></span>
-                    <span id="detail-dp-instruction-text" class="truncate font-medium">Nhấp 1 ngày để chọn ca 1 ngày. Nhấp ngày thứ 2 để đặt ca liên ngày.</span>
-                  </div>
-
-                  <!-- Weekdays -->
-                  <div class="grid grid-cols-7 text-center text-[9px] font-bold text-slate-400 uppercase py-1.5">
-                    <div>T2</div><div>T3</div><div>T4</div><div>T5</div><div>T6</div><div>T7</div><div>CN</div>
-                  </div>
-
-                  <!-- Calendar Days Grid -->
-                  <div id="detail-dp-days-grid" class="grid grid-cols-7 gap-1 text-xs" onmouseleave="BookingUI.handleDetailDpMouseLeave()">
-                    <!-- Injected via JS -->
-                  </div>
-
-                  <!-- Footer -->
-                  <div class="pt-2 mt-2 border-t border-slate-100 flex items-center justify-between gap-1 flex-wrap">
-                    <div class="flex items-center gap-1 flex-wrap">
-                      <button type="button" onclick="BookingUI.setDetailDpQuick('today')" class="px-2 py-1 sm:py-0.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-bold transition-colors cursor-pointer">Hôm nay</button>
-                      <button type="button" onclick="BookingUI.setDetailDpQuick('tomorrow')" class="px-2 py-1 sm:py-0.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-bold transition-colors cursor-pointer">Ngày mai</button>
-                      <button type="button" onclick="BookingUI.setDetailDpQuick('plus3')" class="px-2 py-1 sm:py-0.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-bold transition-colors cursor-pointer">3 ngày</button>
-                      <button type="button" onclick="BookingUI.setDetailDpQuick('plus7')" class="px-2 py-1 sm:py-0.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-bold transition-colors cursor-pointer">1 tuần</button>
-                    </div>
-                    <button type="button" onclick="BookingUI.closeDetailDatePicker()" class="px-2.5 py-1 sm:py-0.5 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-[10px] font-bold shadow-xs transition-colors cursor-pointer ml-auto">Xong</button>
-                  </div>
-                </div>
-              </div>
-            ` : `
-              <div class="p-1">
-                <div class="flex items-center justify-between gap-2 mb-1.5">
-                  <div class="flex items-center gap-1.5 min-w-0">
-                    <span class="text-slate-500 flex-shrink-0">${Lucide.calendar}</span>
-                    <span class="text-xs font-bold text-slate-900 font-condensed tracking-tight truncate">
-                      ${diffDays === 1 ? BookingUI.formatDateDisplay(bStart) : `${BookingUI.formatDateDisplay(bStart)} → ${BookingUI.formatDateDisplay(bEnd)}`}
-                    </span>
-                  </div>
-                  <span class="text-[10px] font-extrabold text-slate-700 font-condensed bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200 flex-shrink-0">
-                    ${diffDays} ngày
+            <div class="space-y-1.5">
+              <!-- Date row -->
+              <div class="flex items-center justify-between gap-2">
+                <div class="flex items-center gap-1.5 min-w-0">
+                  <span class="text-brand-600 flex-shrink-0">${Lucide.calendar}</span>
+                  <span id="label-detail-daterange" class="text-xs font-bold text-slate-900 font-condensed tracking-tight truncate">
+                    ${diffDays === 1 ? BookingUI.formatDateDisplay(bStart) : `${BookingUI.formatDateDisplay(bStart)} → ${BookingUI.formatDateDisplay(bEnd)}`}
                   </span>
                 </div>
-                <div class="flex items-center justify-between text-[10px] text-slate-500 pt-1.5 border-t border-slate-100/90">
-                  <span>${diffDays === 1 ? 'Ca trong ngày' : `Ca liên ngày (${diffDays} ngày)`}</span>
-                  <span class="font-medium text-slate-400">Đã chốt ngày</span>
+                ${canEdit && (b.status === 'PENDING' || b.status === 'APPROVED') ? `
+                  <button id="btn-detail-daterange" type="button" onclick="BookingUI.openDetailDatePicker('${b.booking_id}')" class="text-[11px] font-bold text-brand-600 hover:text-brand-700 inline-flex items-center gap-1 flex-shrink-0 cursor-pointer transition-colors">
+                    ${Lucide.pencil} Đổi lịch
+                  </button>
+                ` : ''}
+              </div>
+
+              <!-- Time slot row -->
+              <div class="flex items-center justify-between pt-1.5 border-t border-slate-200/70 text-xs">
+                <div class="flex items-center gap-1.5 min-w-0">
+                  <span class="text-brand-600 flex-shrink-0">${Lucide.clock}</span>
+                  <span class="font-mono text-xs font-extrabold text-slate-900 tracking-tight">${timeStr}</span>
+                </div>
+                <span id="sublabel-detail-daterange" class="text-[10px] text-slate-500 font-medium truncate">
+                  ${diffDays === 1 ? 'Ca trong ngày' : `Ca liên ngày (${diffDays}n)`}
+                </span>
+              </div>
+            </div>
+
+            <!-- Hidden inputs maintaining compatibility with handleApproveFromDetail -->
+            <input type="hidden" id="detail-edit-start-date" value="${bStart}">
+            <input type="hidden" id="detail-edit-end-date" value="${bEnd}">
+
+            <!-- Floating Custom Date Picker Dropdown Popover for Detail Modal -->
+            <div id="detail-datepicker-dropdown" onclick="event.stopPropagation()" class="hidden absolute left-0 sm:left-auto sm:right-0 top-full mt-2 w-[min(310px,calc(100vw-3rem))] sm:w-[330px] bg-white rounded-2xl border border-slate-200 shadow-2xl z-50 p-3.5 transform transition-all duration-200 origin-top-left sm:origin-top-right">
+              <!-- Header -->
+              <div class="flex items-center justify-between pb-2.5 border-b border-slate-100">
+                <div class="flex items-center gap-2">
+                  <span id="detail-dp-target-badge" class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-brand-50 text-brand-700 font-condensed border border-brand-100">1 Lịch chọn dải ngày</span>
+                  <span id="detail-dp-month-year" class="text-xs font-bold text-slate-900">Tháng 11, 2026</span>
+                </div>
+                <div class="flex items-center gap-1">
+                  <button type="button" onclick="BookingUI.changeDetailDpMonth(-1)" class="w-7 h-7 sm:w-6 sm:h-6 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 flex items-center justify-center transition-colors cursor-pointer" title="Tháng trước">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                  </button>
+                  <button type="button" onclick="BookingUI.changeDetailDpMonth(1)" class="w-7 h-7 sm:w-6 sm:h-6 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 flex items-center justify-center transition-colors cursor-pointer" title="Tháng sau">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                  </button>
                 </div>
               </div>
-            `}
 
-            <!-- Working Hours Slot Highlight Card -->
-            <div class="flex items-center gap-2 p-2 bg-brand-50/70 border border-brand-200/80 rounded-xl mt-2 text-xs">
-              <div class="w-6 h-6 rounded-lg bg-brand-600 text-white flex items-center justify-center shrink-0 shadow-2xs">
-                ${Lucide.clock}
+              <!-- Dynamic Instruction Banner -->
+              <div id="detail-dp-instruction-banner" class="mt-2 px-2.5 py-1.5 rounded-xl bg-slate-50 border border-slate-200/80 text-[10px] text-slate-600 flex items-center gap-1.5">
+                <span id="detail-dp-instruction-dot" class="w-1.5 h-1.5 rounded-full bg-brand-500 flex-shrink-0 animate-pulse"></span>
+                <span id="detail-dp-instruction-text" class="truncate font-medium">Nhấp 1 ngày để chọn ca 1 ngày. Nhấp ngày thứ 2 để đặt ca liên ngày.</span>
               </div>
-              <div class="min-w-0 flex-1">
-                <span class="text-[10px] font-bold uppercase tracking-wider text-brand-700 block leading-tight">Khung giờ ca trực</span>
-                <span class="text-xs font-black text-slate-900 font-mono tracking-tight">${timeStr}</span>
+
+              <!-- Weekdays -->
+              <div class="grid grid-cols-7 text-center text-[9px] font-bold text-slate-400 uppercase py-1.5">
+                <div>T2</div><div>T3</div><div>T4</div><div>T5</div><div>T6</div><div>T7</div><div>CN</div>
+              </div>
+
+              <!-- Calendar Days Grid -->
+              <div id="detail-dp-days-grid" class="grid grid-cols-7 gap-1 text-xs" onmouseleave="BookingUI.handleDetailDpMouseLeave()">
+                <!-- Injected via JS -->
+              </div>
+
+              <!-- Footer -->
+              <div class="pt-2 mt-2 border-t border-slate-100 flex items-center justify-between gap-1 flex-wrap">
+                <div class="flex items-center gap-1 flex-wrap">
+                  <button type="button" onclick="BookingUI.setDetailDpQuick('today')" class="px-2 py-1 sm:py-0.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-bold transition-colors cursor-pointer">Hôm nay</button>
+                  <button type="button" onclick="BookingUI.setDetailDpQuick('tomorrow')" class="px-2 py-1 sm:py-0.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-bold transition-colors cursor-pointer">Ngày mai</button>
+                  <button type="button" onclick="BookingUI.setDetailDpQuick('plus3')" class="px-2 py-1 sm:py-0.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-bold transition-colors cursor-pointer">3 ngày</button>
+                  <button type="button" onclick="BookingUI.setDetailDpQuick('plus7')" class="px-2 py-1 sm:py-0.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-bold transition-colors cursor-pointer">1 tuần</button>
+                </div>
+                <button type="button" onclick="BookingUI.closeDetailDatePicker()" class="px-2.5 py-1 sm:py-0.5 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-[10px] font-bold shadow-xs transition-colors cursor-pointer ml-auto">Xong</button>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Detailed Properties -->
-        <div class="text-xs space-y-2.5 pt-1">
-          <p class="flex items-center gap-2 text-slate-600">
-            <span class="text-slate-400 flex-shrink-0">${Lucide.mapPin}</span>
-            <strong class="text-slate-700 min-w-[70px]">Địa điểm:</strong>
-            <span class="text-slate-900 font-medium">${b.location}</span>
-          </p>
-          <div class="flex items-center gap-2 text-slate-600">
-            <span class="text-slate-400 flex-shrink-0">${Lucide.user}</span>
-            <strong class="text-slate-700 min-w-[70px]">Người book:</strong>
-            <div class="inline-flex items-center gap-1.5 min-w-0">
-              ${(() => {
-                const reqUser = (BookingData.users || []).find(u => (u.email || '').toLowerCase() === (b.requester_email || '').toLowerCase());
-                const reqName = reqUser ? BookingData.cleanUserName(reqUser.full_name) : (b.requester_name || b.requester_email || 'Hệ thống');
-                return `
-                  ${this.getUserAvatarHtml(b.requester_email, reqName, 'w-5 h-5', 'text-[9px]')}
-                  <span class="text-slate-900 font-semibold truncate">${reqName} <span class="text-slate-400 text-xs font-normal">(${b.requester_email})</span></span>
-                `;
-              })()}
+        <!-- Detailed Properties Card -->
+        <div class="bg-slate-50/60 rounded-2xl border border-slate-200/80 p-3 space-y-2.5 text-xs">
+          <!-- Row: Location & Requester -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pb-2.5 border-b border-slate-200/60">
+            <div class="flex items-start gap-2.5 min-w-0">
+              <span class="text-slate-400 mt-0.5 flex-shrink-0">${Lucide.mapPin}</span>
+              <div class="min-w-0 flex-1">
+                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block leading-tight">Địa điểm</span>
+                <span class="text-xs font-semibold text-slate-900 break-words mt-0.5 block">${b.location}</span>
+              </div>
+            </div>
+            <div class="flex items-start gap-2.5 min-w-0">
+              <span class="text-slate-400 mt-0.5 flex-shrink-0">${Lucide.user}</span>
+              <div class="min-w-0 flex-1">
+                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block leading-tight">Người đặt lịch</span>
+                <div class="flex items-center gap-1.5 mt-0.5 min-w-0">
+                  ${(() => {
+                    const reqUser = (BookingData.users || []).find(u => (u.email || '').toLowerCase() === (b.requester_email || '').toLowerCase());
+                    const reqName = reqUser ? BookingData.cleanUserName(reqUser.full_name) : (b.requester_name || b.requester_email || 'Hệ thống');
+                    return `
+                      ${this.getUserAvatarHtml(b.requester_email, reqName, 'w-4 h-4', 'text-[8px]')}
+                      <span class="text-xs font-semibold text-slate-900 truncate">${reqName}</span>
+                      <span class="text-[10px] text-slate-400 truncate">(${b.requester_email})</span>
+                    `;
+                  })()}
+                </div>
+              </div>
             </div>
           </div>
+
           ${b.approver_email ? `
-            <div class="flex items-center gap-2 text-slate-600">
-              <span class="text-accent-600 flex-shrink-0">${Lucide.check}</span>
-              <strong class="text-slate-700 min-w-[70px]">Người duyệt:</strong>
-              <div class="inline-flex items-center gap-1.5 min-w-0">
-                ${(() => {
-                  const appUser = (BookingData.users || []).find(u => (u.email || '').toLowerCase() === (b.approver_email || '').toLowerCase());
-                  const appName = appUser ? BookingData.cleanUserName(appUser.full_name) : b.approver_email;
-                  return `
-                    ${this.getUserAvatarHtml(b.approver_email, appName, 'w-5 h-5', 'text-[9px]')}
-                    <span class="text-slate-900 font-semibold truncate">${appName} <span class="text-slate-400 text-xs font-normal">(${b.approver_email})</span></span>
-                  `;
-                })()}
+            <div class="flex items-start gap-2.5 min-w-0 pb-2.5 border-b border-slate-200/60">
+              <span class="text-emerald-600 mt-0.5 flex-shrink-0">${Lucide.check}</span>
+              <div class="min-w-0 flex-1">
+                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block leading-tight">Người phê duyệt</span>
+                <div class="flex items-center gap-1.5 mt-0.5 min-w-0">
+                  ${(() => {
+                    const appUser = (BookingData.users || []).find(u => (u.email || '').toLowerCase() === (b.approver_email || '').toLowerCase());
+                    const appName = appUser ? BookingData.cleanUserName(appUser.full_name) : b.approver_email;
+                    return `
+                      ${this.getUserAvatarHtml(b.approver_email, appName, 'w-4 h-4', 'text-[8px]')}
+                      <span class="text-xs font-semibold text-slate-900 truncate">${appName}</span>
+                      <span class="text-[10px] text-slate-400 truncate">(${b.approver_email})</span>
+                    `;
+                  })()}
+                </div>
               </div>
             </div>
           ` : ''}
+
           ${b.reject_reason ? `
-            <div class="border-t border-burgundy-100 pt-3 text-burgundy-800 flex items-start gap-2">
-              <span class="mt-0.5 text-burgundy-800 flex-shrink-0">${Lucide.x}</span>
-              <div>
-                <strong class="block text-burgundy-900 font-semibold mb-0.5">Lý do từ chối:</strong>
-                <span class="text-burgundy-800 leading-relaxed">${b.reject_reason}</span>
+            <div class="bg-rose-50/80 border border-rose-200/80 rounded-xl p-2.5 text-rose-800 flex items-start gap-2.5">
+              <span class="mt-0.5 text-rose-600 flex-shrink-0">${Lucide.x}</span>
+              <div class="min-w-0">
+                <strong class="block text-xs font-bold text-rose-900 mb-0.5">Lý do từ chối:</strong>
+                <span class="text-xs text-rose-700 leading-relaxed">${b.reject_reason}</span>
               </div>
             </div>
           ` : ''}
+
           ${b.notes ? `
-            <div class="border-t border-slate-100 pt-3 text-slate-600 flex items-start gap-2">
-              <span class="mt-0.5 text-slate-400 flex-shrink-0">${Lucide.fileText}</span>
-              <div>
-                <strong class="block text-slate-800 font-semibold mb-0.5">Ghi chú công việc:</strong>
-                <span class="text-slate-600 leading-relaxed">${b.notes}</span>
+            <div class="flex items-start gap-2.5 min-w-0">
+              <span class="text-slate-400 mt-0.5 flex-shrink-0">${Lucide.fileText}</span>
+              <div class="min-w-0 flex-1">
+                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block leading-tight">Ghi chú công việc</span>
+                <p class="text-xs text-slate-700 leading-relaxed mt-0.5 whitespace-pre-wrap">${b.notes}</p>
               </div>
             </div>
           ` : ''}
@@ -3363,18 +3356,18 @@ const BookingUI = {
       </div>
     `;
 
-    // Render Context-Aware Action Footer
+    // Render Context-Aware Action Footer (Balanced Dual-Zone Layout)
     if (footer) {
       const editBtnHtml = canEditContent ? `
-        <button onclick="BookingUI.openEditBookingModal('${b.booking_id}')" type="button" class="min-h-[40px] sm:min-h-0 px-3.5 py-2 rounded-xl text-xs font-semibold bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 shadow-2xs flex items-center justify-center gap-1.5 transition-all cursor-pointer">
+        <button onclick="BookingUI.openEditBookingModal('${b.booking_id}')" type="button" class="px-3 py-2 rounded-xl text-xs font-semibold bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 shadow-2xs flex items-center justify-center gap-1.5 transition-all cursor-pointer">
           ${Lucide.pencil} Sửa nội dung
         </button>
       ` : '';
 
       const completeBtnHtml = canComplete ? `
-        <button onclick="BookingUI.handleCompleteBooking('${b.booking_id}')" type="button" class="min-h-[40px] sm:min-h-0 px-4 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white shadow-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer">
+        <button onclick="BookingUI.handleCompleteBooking('${b.booking_id}')" type="button" class="px-4 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white shadow-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer">
           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-          Hoàn thành công việc
+          Hoàn thành
         </button>
       ` : '';
 
@@ -3382,53 +3375,61 @@ const BookingUI = {
         const actionButtons = [];
         if (canCancel && isOwner) {
           actionButtons.push(`
-            <button onclick="BookingUI.handleCancelFromDetail('${b.booking_id}')" type="button" class="min-h-[40px] sm:min-h-0 px-3.5 py-2 rounded-xl text-xs font-semibold bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 shadow-2xs flex items-center justify-center gap-1 transition-all cursor-pointer">
-              ${Lucide.x} Hủy Yêu Cầu
+            <button onclick="BookingUI.handleCancelFromDetail('${b.booking_id}')" type="button" class="px-3 py-2 rounded-xl text-xs font-semibold bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 shadow-2xs flex items-center justify-center gap-1 transition-all cursor-pointer">
+              ${Lucide.x} Hủy Đơn
             </button>
           `);
         }
         if (canReject) {
           actionButtons.push(`
-            <button onclick="BookingUI.openRejectModal('${b.booking_id}', 'detail')" type="button" class="min-h-[40px] sm:min-h-0 px-3.5 py-2 rounded-xl text-xs font-semibold bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 shadow-2xs flex items-center justify-center gap-1 transition-all cursor-pointer">
+            <button onclick="BookingUI.openRejectModal('${b.booking_id}', 'detail')" type="button" class="px-3 py-2 rounded-xl text-xs font-semibold bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 shadow-2xs flex items-center justify-center gap-1 transition-all cursor-pointer">
               ${Lucide.x} Từ Chối
             </button>
           `);
         }
         if (canApprove) {
           actionButtons.push(`
-            <button onclick="BookingUI.handleApproveFromDetail('${b.booking_id}')" type="button" class="min-h-[40px] sm:min-h-0 px-4 py-2 rounded-xl text-xs font-bold bg-accent-600 hover:bg-accent-700 active:bg-accent-800 text-white shadow-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer">
+            <button onclick="BookingUI.handleApproveFromDetail('${b.booking_id}')" type="button" class="px-4 py-2 rounded-xl text-xs font-bold bg-accent-600 hover:bg-accent-700 active:bg-accent-800 text-white shadow-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer">
               ${Lucide.check} Duyệt
             </button>
           `);
         }
         footer.innerHTML = `
-          <div class="flex items-center justify-end w-full gap-2 flex-wrap">
-            <button onclick="BookingUI.closeDetailModal()" type="button" class="min-h-[40px] sm:min-h-0 px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors cursor-pointer">
-              Đóng
-            </button>
-            ${editBtnHtml}
-            ${actionButtons.join('')}
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 w-full">
+            <div class="flex items-center gap-2 order-2 sm:order-1">
+              <button onclick="BookingUI.closeDetailModal()" type="button" class="px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors cursor-pointer">
+                Đóng
+              </button>
+              ${editBtnHtml}
+            </div>
+            <div class="flex items-center gap-2 justify-end flex-wrap order-1 sm:order-2">
+              ${actionButtons.join('')}
+            </div>
           </div>
         `;
       } else if (b.status === 'APPROVED') {
         footer.innerHTML = `
-          <div class="flex items-center justify-end w-full gap-2 flex-wrap">
-            <button onclick="BookingUI.closeDetailModal()" type="button" class="min-h-[40px] sm:min-h-0 px-4 py-2 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors cursor-pointer">
-              Đóng
-            </button>
-            ${editBtnHtml}
-            ${canEdit ? `
-              <button onclick="BookingUI.handleSaveApprovedDates('${b.booking_id}')" type="button" class="min-h-[40px] sm:min-h-0 px-4 py-2 rounded-xl text-xs font-bold bg-brand-600 hover:bg-brand-700 text-white shadow-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer">
-                ${Lucide.check} Lưu Đổi Lịch
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 w-full">
+            <div class="flex items-center gap-2 order-2 sm:order-1">
+              <button onclick="BookingUI.closeDetailModal()" type="button" class="px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors cursor-pointer">
+                Đóng
               </button>
-            ` : ''}
-            ${completeBtnHtml}
+              ${editBtnHtml}
+            </div>
+            <div class="flex items-center gap-2 justify-end flex-wrap order-1 sm:order-2">
+              ${canEdit ? `
+                <button onclick="BookingUI.handleSaveApprovedDates('${b.booking_id}')" type="button" class="px-3.5 py-2 rounded-xl text-xs font-bold bg-brand-600 hover:bg-brand-700 text-white shadow-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer">
+                  ${Lucide.check} Lưu Đổi Lịch
+                </button>
+              ` : ''}
+              ${completeBtnHtml}
+            </div>
           </div>
         `;
       } else {
         footer.innerHTML = `
-          <div class="flex items-center justify-end w-full gap-2 flex-wrap">
-            <button onclick="BookingUI.closeDetailModal()" type="button" class="min-h-[40px] sm:min-h-0 px-4 py-2 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors cursor-pointer">
+          <div class="flex items-center justify-between gap-2.5 w-full">
+            <button onclick="BookingUI.closeDetailModal()" type="button" class="px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors cursor-pointer">
               Đóng
             </button>
             ${editBtnHtml}

@@ -174,21 +174,21 @@
       $('detail-title').textContent = detail.work_title || row.work_title || 'Ca làm việc';
       $('detail-subtitle').textContent = `${detail.engineer_name} · ${dateLabel(dStart)}${dEnd !== dStart ? ` → ${dateLabel(dEnd)}` : ''}`;
       $('detail-content').innerHTML = `<div class="divide-y divide-slate-100 text-xs">
-        <div class="grid grid-cols-1 gap-4 pb-3.5 sm:grid-cols-2">
-          <section>
-            <h3 class="font-condensed mb-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-400">Kỹ sư phụ trách</h3>
-            <p class="text-sm font-bold text-slate-900">${escapeHtml(detail.engineer_name)}</p>
+        <div class="grid grid-cols-1 gap-3 pb-3.5 sm:grid-cols-2">
+          <section class="bg-slate-50/70 rounded-2xl p-3 border border-slate-200/80 flex flex-col justify-between">
+            <h3 class="font-condensed text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Kỹ sư phụ trách</h3>
+            <p class="text-xs sm:text-sm font-bold text-slate-900">${escapeHtml(detail.engineer_name)}</p>
           </section>
-          <section>
-            <div class="mb-1.5 flex items-center justify-between gap-2"><h3 class="font-condensed text-[11px] font-bold uppercase tracking-wider text-slate-400">Thời gian thực hiện</h3>${statusBadge(detail.status)}</div>
-            <p class="font-condensed text-sm font-bold text-slate-900">${dateLabel(dStart)}${dEnd !== dStart ? ` → ${dateLabel(dEnd)}` : ''}</p>
-            <div class="mt-2 flex items-center gap-2 p-2 bg-brand-50/70 border border-brand-200/80 rounded-xl text-xs">
-              <div class="w-6 h-6 rounded-lg bg-brand-600 text-white flex items-center justify-center shrink-0">
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 1118 0z"/></svg>
-              </div>
-              <div class="min-w-0 flex-1">
-                <span class="text-[10px] font-bold uppercase tracking-wider text-brand-700 block leading-tight">Khung giờ ca trực</span>
-                <span class="text-xs font-black text-slate-900 font-mono tracking-tight">${timeLabel(detail.start_time) || '08:00'} - ${timeLabel(detail.end_time) || '17:00'}</span>
+          <section class="bg-slate-50/70 rounded-2xl p-3 border border-slate-200/80 flex flex-col justify-between">
+            <div class="mb-1.5 flex items-center justify-between gap-2">
+              <h3 class="font-condensed text-[10px] font-bold uppercase tracking-wider text-slate-400">Thời gian ca trực</h3>
+              ${statusBadge(detail.status)}
+            </div>
+            <div class="space-y-1">
+              <p class="font-condensed text-xs font-bold text-slate-900">${dateLabel(dStart)}${dEnd !== dStart ? ` → ${dateLabel(dEnd)}` : ''}</p>
+              <div class="flex items-center gap-1.5 pt-1 border-t border-slate-200/70 text-xs">
+                <svg class="w-3.5 h-3.5 text-brand-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 1118 0z"/></svg>
+                <span class="font-mono text-xs font-bold text-slate-900 tracking-tight">${timeLabel(detail.start_time) || '08:00'} - ${timeLabel(detail.end_time) || '17:00'}</span>
               </div>
             </div>
           </section>
