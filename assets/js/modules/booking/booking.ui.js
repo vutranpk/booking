@@ -2082,6 +2082,8 @@ const BookingUI = {
                 const isEnd = bEnd === dateStr;
                 const isSingleDay = isStart && isEnd;
                 const techShortName = tech ? tech.name.split(' ').slice(-2).join(' ') : b.tech_id;
+                const bTime = (b.start_time && b.end_time) ? `${b.start_time.slice(0, 5)}-${b.end_time.slice(0, 5)}` : '';
+                const bTimeBadge = bTime ? `<span class="text-[9px] font-mono font-bold bg-black/20 px-1 py-0.5 rounded text-white/95 leading-none shrink-0">${bTime}</span>` : '';
 
                 const canDrag = BookingData.hasPermission('drag_reschedule');
                 const dragAttrs = canDrag ? `draggable="true" ondragstart="BookingUI.handleDragStart(event, '${b.booking_id}')" ondragend="BookingUI.handleDragEnd(event)"` : '';
@@ -2102,8 +2104,9 @@ const BookingUI = {
                     <div onclick="event.stopPropagation(); if (!BookingUI.justDropped) BookingUI.openDetailModal('${b.booking_id}')"
                          ${dragAttrs}
                          class="h-6 sm:h-8 w-full px-1.5 sm:px-2 rounded-lg ${baseBg} border ${borderColor} text-white transition-all flex items-center justify-between gap-1 shadow-2xs ${dragCursorClass}"
-                         title="${tech ? tech.name : ''}: ${b.title} (${b.location}) • ${isApproved ? 'Đã duyệt' : 'Chờ duyệt'}${dragHint}">
+                         title="${tech ? tech.name : ''}: ${b.title} (${b.location || 'Văn phòng'}) [${bTime || '08:00 - 17:00'}] • ${isApproved ? 'Đã duyệt' : 'Chờ duyệt'}${dragHint}">
                       <div class="flex items-center gap-1 min-w-0">
+                        ${bTimeBadge}
                         <span class="text-[10px] sm:text-xs font-bold font-condensed tracking-tight text-white truncate leading-none select-none">${techShortName}</span>
                         <span class="hidden sm:inline text-[10px] text-white/90 truncate font-sans">• ${b.title}</span>
                       </div>
@@ -2116,7 +2119,8 @@ const BookingUI = {
                     <div onclick="event.stopPropagation(); if (!BookingUI.justDropped) BookingUI.openDetailModal('${b.booking_id}')"
                          ${dragAttrs}
                          class="h-6 sm:h-8 ${rightMargin} px-1.5 sm:px-2 rounded-l-lg ${baseBg} border-y border-l ${borderColor} text-white flex items-center gap-1 z-20 shadow-2xs transition-all ${dragCursorClass}"
-                         title="${tech ? tech.name : ''}: ${b.title} (${bStart} đến ${bEnd}) • ${isApproved ? 'Đã duyệt' : 'Chờ duyệt'}${dragHint}">
+                         title="${tech ? tech.name : ''}: ${b.title} (${bStart} đến ${bEnd}) [${bTime || '08:00 - 17:00'}] • ${isApproved ? 'Đã duyệt' : 'Chờ duyệt'}${dragHint}">
+                      ${bTimeBadge}
                       <span class="text-[10px] sm:text-xs font-bold font-condensed tracking-tight text-white truncate leading-none select-none">
                         ${isWeekContinuation ? `↳ ${techShortName}` : techShortName}
                       </span>
@@ -2129,7 +2133,7 @@ const BookingUI = {
                     <div onclick="event.stopPropagation(); if (!BookingUI.justDropped) BookingUI.openDetailModal('${b.booking_id}')"
                          ${dragAttrs}
                          class="h-6 sm:h-8 ${leftMargin} px-1.5 rounded-r-lg ${baseBg} border-y border-r ${borderColor} text-white flex items-center justify-end z-20 shadow-2xs transition-all ${dragCursorClass}"
-                         title="${tech ? tech.name : ''}: ${b.title} (${isEnd ? `Hết ca ${bEnd}` : 'Tiếp tục tuần sau'}) • ${isApproved ? 'Đã duyệt' : 'Chờ duyệt'}${dragHint}">
+                         title="${tech ? tech.name : ''}: ${b.title} (${isEnd ? `Hết ca ${bEnd}` : 'Tiếp tục tuần sau'}) [${bTime || '08:00 - 17:00'}] • ${isApproved ? 'Đã duyệt' : 'Chờ duyệt'}${dragHint}">
                     </div>
                   `;
                 } else {
@@ -2240,8 +2244,12 @@ const BookingUI = {
                   <span class="text-sm font-black leading-tight">${dayNum}</span>
                 </div>
                 <div class="min-w-0">
-                  <div class="flex items-center gap-2">
+                  <div class="flex items-center gap-2 flex-wrap">
                     <span class="text-xs sm:text-sm font-bold text-slate-900 group-hover:text-brand-700 truncate">${b.title}</span>
+                    <span class="inline-flex items-center gap-1 font-mono font-bold text-brand-700 bg-brand-50 border border-brand-200/80 px-1.5 py-0.5 rounded text-[10px]">
+                      <svg class="w-3 h-3 text-brand-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 1118 0z"/></svg>
+                      ${(b.start_time || '08:00').slice(0, 5)} - ${(b.end_time || '17:00').slice(0, 5)}
+                    </span>
                   </div>
                   <div class="flex items-center gap-1.5 text-[11px] text-slate-500 mt-0.5 flex-wrap">
                     <span class="font-bold text-slate-800">${tech ? tech.name : b.tech_id}</span>
@@ -2310,11 +2318,16 @@ const BookingUI = {
       const bEnd = b.end_date || b.booking_date;
       const dateStr = bStart === bEnd ? this.formatDateDisplay(bStart) : `${this.formatDateDisplay(bStart)} → ${this.formatDateDisplay(bEnd)}`;
 
+      const timeStr = (b.start_time && b.end_time) ? `${b.start_time.slice(0, 5)} - ${b.end_time.slice(0, 5)}` : '08:00 - 17:00';
+
       return `
         <article class="p-4 hover:bg-slate-50/70 transition-colors space-y-2.5">
-          <div class="flex items-center justify-between gap-2">
+          <div class="flex items-center justify-between gap-2 flex-wrap">
             <span class="text-xs font-black font-condensed text-brand-600 tracking-wide">${b.booking_id}</span>
-            <span class="text-xs font-bold font-condensed text-slate-700 bg-slate-100 px-2 py-0.5 rounded-md">${dateStr}</span>
+            <div class="flex items-center gap-1.5 flex-wrap">
+              <span class="text-xs font-bold font-condensed text-slate-700 bg-slate-100 px-2 py-0.5 rounded-md">${dateStr}</span>
+              <span class="text-[11px] font-mono font-bold text-brand-700 bg-brand-50 border border-brand-200/70 px-1.5 py-0.5 rounded-md">(${timeStr})</span>
+            </div>
           </div>
           <div>
             <h4 class="text-sm font-bold leading-snug text-slate-900">${b.title}</h4>
@@ -2347,6 +2360,7 @@ const BookingUI = {
       const reqName = reqUser ? BookingData.cleanUserName(reqUser.full_name) : (b.requester_name || b.requester_email || 'Hệ thống');
       const bStart = b.booking_date;
       const bEnd = b.end_date || b.booking_date;
+      const timeStr = (b.start_time && b.end_time) ? `${b.start_time.slice(0, 5)} - ${b.end_time.slice(0, 5)}` : '08:00 - 17:00';
 
       return `
         <tr class="hover:bg-slate-50/70 transition-colors">
@@ -2373,7 +2387,7 @@ const BookingUI = {
           </td>
           <td class="py-3 px-3.5 font-condensed whitespace-nowrap">
             <p class="font-bold text-slate-800 flex items-center">${bStart === bEnd ? bStart : `<span>${bStart}</span><span class="inline-flex items-center mx-1 text-slate-400">${Lucide.arrowRight}</span><span>${bEnd}</span>`}</p>
-            <p class="text-slate-400 text-[10px] font-sans">${bStart === bEnd ? 'Trong ngày' : 'Liên ngày'}</p>
+            <p class="text-slate-500 text-[11px] font-mono">${timeStr}</p>
           </td>
           <td class="py-3 px-3.5 whitespace-nowrap">
             <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold font-condensed uppercase bg-amber-50 text-amber-800 border border-amber-200">
@@ -3124,6 +3138,9 @@ const BookingUI = {
 
     const bStart = b.booking_date;
     const bEnd = b.end_date || b.booking_date;
+    const sTime = (b.start_time || '08:00').slice(0, 5);
+    const eTime = (b.end_time || '17:00').slice(0, 5);
+    const timeStr = `${sTime} - ${eTime}`;
     const d1 = new Date(bStart);
     const d2 = new Date(bEnd);
     const diffDays = Math.max(1, Math.round((d2 - d1) / (1000 * 60 * 60 * 24)) + 1);
@@ -3146,8 +3163,13 @@ const BookingUI = {
         <!-- Header: ID, Title & Non-Wrapping Badge -->
         <div class="flex items-start justify-between gap-3 pb-3.5 border-b border-slate-100">
           <div class="min-w-0 flex-1">
-            <span class="text-xs font-extrabold font-condensed text-brand-600 tracking-wider block">${b.booking_id}</span>
-            <h3 class="text-base sm:text-lg font-bold text-slate-900 mt-1 leading-snug break-words">${b.title}</h3>
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="text-xs font-extrabold font-condensed text-brand-600 tracking-wider">${b.booking_id}</span>
+              <span class="inline-flex items-center gap-1 text-[11px] font-mono font-bold text-brand-700 bg-brand-50 border border-brand-200/80 px-2 py-0.5 rounded-md">
+                ${Lucide.clock} ${timeStr}
+              </span>
+            </div>
+            <h3 class="text-base sm:text-lg font-bold text-slate-900 mt-1.5 leading-snug break-words">${b.title}</h3>
           </div>
           <div class="flex-shrink-0 pt-0.5">${statusText}</div>
         </div>
@@ -3269,10 +3291,15 @@ const BookingUI = {
               </div>
             `}
 
-            <!-- Working Hours Slot -->
-            <div class="flex items-center gap-1.5 text-xs font-semibold text-slate-700 mt-2 pt-2 border-t border-slate-100">
-              <span class="text-brand-600 flex-shrink-0">${Lucide.clock}</span>
-              <span>Khung giờ: <strong class="text-slate-900 font-mono">${(b.start_time || '08:00').slice(0, 5)} - ${(b.end_time || '17:00').slice(0, 5)}</strong></span>
+            <!-- Working Hours Slot Highlight Card -->
+            <div class="flex items-center gap-2 p-2 bg-brand-50/70 border border-brand-200/80 rounded-xl mt-2 text-xs">
+              <div class="w-6 h-6 rounded-lg bg-brand-600 text-white flex items-center justify-center shrink-0 shadow-2xs">
+                ${Lucide.clock}
+              </div>
+              <div class="min-w-0 flex-1">
+                <span class="text-[10px] font-bold uppercase tracking-wider text-brand-700 block leading-tight">Khung giờ ca trực</span>
+                <span class="text-xs font-black text-slate-900 font-mono tracking-tight">${timeStr}</span>
+              </div>
             </div>
           </div>
         </div>
@@ -5443,8 +5470,10 @@ const BookingUI = {
               ${techAvatarHtml}
               <span class="font-medium text-slate-700 text-xs truncate">${tech ? tech.name : 'Chưa phân công'}</span>
             </div>
+          <td class="py-2.5 px-3 font-mono text-[11px] text-slate-600 font-medium">
+            <div>${dateText}</div>
+            <div class="text-[10px] text-slate-400 font-mono">${(b.start_time || '08:00').slice(0, 5)} - ${(b.end_time || '17:00').slice(0, 5)}</div>
           </td>
-          <td class="py-2.5 px-3 font-mono text-[11px] text-slate-600 font-medium">${dateText}</td>
           <td class="py-2.5 px-3">
             <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ${statusClass}">
               ${statusLabel}

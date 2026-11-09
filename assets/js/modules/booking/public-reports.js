@@ -182,7 +182,15 @@
           <section>
             <div class="mb-1.5 flex items-center justify-between gap-2"><h3 class="font-condensed text-[11px] font-bold uppercase tracking-wider text-slate-400">Thời gian thực hiện</h3>${statusBadge(detail.status)}</div>
             <p class="font-condensed text-sm font-bold text-slate-900">${dateLabel(dStart)}${dEnd !== dStart ? ` → ${dateLabel(dEnd)}` : ''}</p>
-            ${timeLabel(detail.start_time) ? `<p class="mt-1 text-xs text-slate-500">${timeLabel(detail.start_time)}${detail.end_time ? ` – ${timeLabel(detail.end_time)}` : ''}</p>` : ''}
+            <div class="mt-2 flex items-center gap-2 p-2 bg-brand-50/70 border border-brand-200/80 rounded-xl text-xs">
+              <div class="w-6 h-6 rounded-lg bg-brand-600 text-white flex items-center justify-center shrink-0">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 1118 0z"/></svg>
+              </div>
+              <div class="min-w-0 flex-1">
+                <span class="text-[10px] font-bold uppercase tracking-wider text-brand-700 block leading-tight">Khung giờ ca trực</span>
+                <span class="text-xs font-black text-slate-900 font-mono tracking-tight">${timeLabel(detail.start_time) || '08:00'} - ${timeLabel(detail.end_time) || '17:00'}</span>
+              </div>
+            </div>
           </section>
         </div>
         <div class="py-3">
@@ -381,14 +389,19 @@
 
                 const extendRight = !isLastCol && !isEnd;
                 const extendLeft = !isFirstCol && !isStart;
-                const tooltip = `${b.engineer_name || ''}${titleText ? `: ${titleText}` : ''} (${bStart}${!isSingleDay ? ` đến ${bEnd}` : ''}) • ${isApproved ? 'Đã duyệt' : 'Chờ duyệt'}`;
+                const sTime = b.start_time || state.detailsByBookingId.get(b.booking_id)?.start_time;
+                const eTime = b.end_time || state.detailsByBookingId.get(b.booking_id)?.end_time;
+                const timeStr = (sTime && eTime) ? `${timeLabel(sTime)} - ${timeLabel(eTime)}` : '';
+                const timeBadge = (sTime && eTime) ? `<span class="text-[9px] font-mono font-bold bg-black/20 px-1 py-0.5 rounded text-white/95 leading-none shrink-0">${timeLabel(sTime)}-${timeLabel(eTime)}</span>` : '';
+                const tooltip = `${b.engineer_name || ''}${titleText ? `: ${titleText}` : ''} (${bStart}${!isSingleDay ? ` đến ${bEnd}` : ''}) [${timeStr || 'Cả ngày'}] • ${isApproved ? 'Đã duyệt' : 'Chờ duyệt'}`;
 
                 if (isSingleDay) {
                   return `
                     <div data-booking-id="${escapeHtml(b.booking_id)}"
-                         class="h-6 sm:h-8 w-full px-1.5 sm:px-2 rounded-lg ${baseBg} border ${borderColor} text-white transition-all flex items-center justify-between gap-1 shadow-2xs cursor-pointer"
-                         title="${escapeHtml(tooltip)}">
+                          class="h-6 sm:h-8 w-full px-1.5 sm:px-2 rounded-lg ${baseBg} border ${borderColor} text-white transition-all flex items-center justify-between gap-1 shadow-2xs cursor-pointer"
+                          title="${escapeHtml(tooltip)}">
                       <div class="flex items-center gap-1 min-w-0">
+                        ${timeBadge}
                         <span class="text-[10px] sm:text-xs font-bold font-condensed tracking-tight text-white truncate leading-none select-none">${escapeHtml(techShortName)}</span>
                         ${titleText ? `<span class="hidden sm:inline text-[10px] text-white/90 truncate font-sans">• ${escapeHtml(titleText)}</span>` : ''}
                       </div>
@@ -399,8 +412,9 @@
                   const rightMargin = extendRight ? 'w-[calc(100%+0.25rem+2px)] sm:w-[calc(100%+0.375rem+2px)] -mr-[calc(0.25rem+2px)] sm:-mr-[calc(0.375rem+2px)] rounded-r-none border-r-0' : 'w-full mr-0 rounded-r-lg border-r';
                   return `
                     <div data-booking-id="${escapeHtml(b.booking_id)}"
-                         class="h-6 sm:h-8 ${rightMargin} px-1.5 sm:px-2 rounded-l-lg ${baseBg} border-y border-l ${borderColor} text-white flex items-center gap-1 z-20 shadow-2xs transition-all cursor-pointer"
-                         title="${escapeHtml(tooltip)}">
+                          class="h-6 sm:h-8 ${rightMargin} px-1.5 sm:px-2 rounded-l-lg ${baseBg} border-y border-l ${borderColor} text-white flex items-center gap-1 z-20 shadow-2xs transition-all cursor-pointer"
+                          title="${escapeHtml(tooltip)}">
+                      ${timeBadge}
                       <span class="text-[10px] sm:text-xs font-bold font-condensed tracking-tight text-white truncate leading-none select-none">
                         ${isWeekContinuation ? `↳ ${escapeHtml(techShortName)}` : escapeHtml(techShortName)}
                       </span>
@@ -497,16 +511,23 @@
               <div class="flex-1 min-w-0 space-y-2">
                 ${items.map((row) => {
                   const isMulti = row.end_date && row.end_date !== row.booking_date;
+                  const detail = state.detailsByBookingId.get(row.booking_id);
+                  const title = row.work_title || detail?.work_title || 'Ca làm việc';
+                  const loc = row.work_location || detail?.work_location || '';
+                  const sTime = row.start_time || detail?.start_time;
+                  const eTime = row.end_time || detail?.end_time;
+                  const timeText = (sTime && eTime) ? `${timeLabel(sTime)} - ${timeLabel(eTime)}` : '';
                   return `
                     <div data-agenda-booking="${escapeHtml(row.booking_id)}" class="p-2.5 rounded-xl bg-slate-50/80 hover:bg-slate-100/80 border border-slate-200/60 transition-colors cursor-pointer flex items-center justify-between gap-3">
                       <div class="min-w-0 flex-1">
                         <div class="flex items-center gap-2 flex-wrap">
-                          <p class="text-xs font-bold text-slate-900 truncate">${escapeHtml(row.work_title || 'Ca làm việc')}</p>
+                          <p class="text-xs font-bold text-slate-900 truncate">${escapeHtml(title)}</p>
+                          ${timeText ? `<span class="inline-flex items-center gap-1 font-mono font-bold text-brand-700 bg-brand-50 border border-brand-200/80 px-1.5 py-0.5 rounded text-[10px]"><svg class="w-2.5 h-2.5 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 1118 0z"/></svg>${timeText}</span>` : ''}
                           ${isMulti ? `<span class="text-[10px] font-condensed font-bold text-brand-700 bg-brand-50 px-1.5 py-0.5 rounded">→ ${dateLabel(row.end_date)}</span>` : ''}
                         </div>
                         <div class="flex items-center gap-2 mt-1 text-[11px] text-slate-500">
                           <span class="font-semibold text-slate-700">${escapeHtml(row.engineer_name)}</span>
-                          ${row.work_location ? `<span>•</span><span class="truncate">${escapeHtml(row.work_location)}</span>` : ''}
+                          ${loc ? `<span>•</span><span class="truncate">${escapeHtml(loc)}</span>` : ''}
                         </div>
                       </div>
                       ${statusBadge(row.status)}
@@ -548,7 +569,7 @@
   async function enrichMissingWorkTitles(client) {
     const uniqueIds = [...new Set(
       state.rows
-        .filter((r) => r && r.booking_id && !r.work_title && !state.detailsByBookingId.has(r.booking_id))
+        .filter((r) => r && r.booking_id && (!r.work_title || !r.start_time) && !state.detailsByBookingId.has(r.booking_id))
         .map((r) => r.booking_id)
     )];
     if (!uniqueIds.length) return;
@@ -557,7 +578,17 @@
         try {
           const { data } = await client.rpc('get_public_engineer_booking_detail', { p_booking_id: bId });
           const detail = Array.isArray(data) ? data[0] : data;
-          if (detail) state.detailsByBookingId.set(bId, detail);
+          if (detail) {
+            state.detailsByBookingId.set(bId, detail);
+            state.rows.forEach(r => {
+              if (r && r.booking_id === bId) {
+                if (detail.work_title) r.work_title = detail.work_title;
+                if (detail.work_location) r.work_location = detail.work_location;
+                if (detail.start_time) r.start_time = detail.start_time;
+                if (detail.end_time) r.end_time = detail.end_time;
+              }
+            });
+          }
         } catch (_) {
           // Ignore individual detail fetch errors
         }
