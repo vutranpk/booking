@@ -41,3 +41,5 @@ AS $$
 $$;
 REVOKE ALL ON FUNCTION public.get_public_engineer_schedule_report(DATE, DATE) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.get_public_engineer_schedule_report(DATE, DATE) TO anon, authenticated;
+
+

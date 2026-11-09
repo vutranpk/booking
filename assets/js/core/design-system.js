@@ -259,7 +259,7 @@ const DesignSystem = {
       /* Bulletproof Corporate Navy Gradient */
       .bg-phucsinh-navy-gradient {
         background-color: #213664 !important;
-        background: linear-gradient(135deg, #0d172e 0%, #192b52 50%, #213664 100%) !important;
+        background: linear-gradient(125deg, #0b1428 0%, #17274b 52%, #213664 100%) !important;
       }
 
       /* Solid Brand Backgrounds (#213664) */
@@ -355,9 +355,29 @@ const DesignSystem = {
       /* 🔤 DUAL-FONT TYPOGRAPHY SYSTEM (INTER + ROBOTO CONDENSED) */
       .font-sans {
         font-family: 'Inter', system-ui, -apple-system, sans-serif !important;
+        font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
       }
       .font-condensed {
         font-family: 'Roboto Condensed', 'Inter', system-ui, sans-serif !important;
+        font-variant-numeric: tabular-nums;
+      }
+
+      /* 🌿 SYSTEM BOTANICAL GREEN INPUT FOCUS (#569c43) */
+      input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):focus,
+      input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):focus-visible,
+      select:focus,
+      select:focus-visible,
+      textarea:focus,
+      textarea:focus-visible {
+        border-color: var(--color-accent-500, #569c43) !important;
+        outline: none !important;
+        box-shadow: 0 0 0 3px rgba(86, 156, 67, 0.2) !important;
+        background-color: #ffffff !important;
+      }
+      input[type="checkbox"]:focus-visible,
+      input[type="radio"]:focus-visible {
+        outline: 2px solid var(--color-accent-500, #569c43) !important;
+        outline-offset: 2px !important;
       }
 
       /* 🔒 STANDARDIZED COMPONENT TOKENS (ĐẢM BẢO TƯƠNG PHẢN TUYỆT ĐỐI) */
@@ -480,3 +500,126 @@ const DesignSystem = {
 DesignSystem.init();
 window.DesignSystem = DesignSystem;
 window.THEME_PRESETS = THEME_PRESETS;
+
+/**
+ * ⏳ GLOBAL SYSTEM BUSY & SERVER ACTION GUARD (SystemLoader)
+ * ==============================================================
+ * Chặn thao tác chồng chéo (double-click / spam submit) và hiển thị
+ * trạng thái đang ghi / lấy / xuất dữ liệu từ máy chủ trên mọi trang.
+ */
+const SystemLoader = {
+  activeCount: 0,
+  shownAt: 0,
+  hideTimer: null,
+  overlayEl: null,
+
+  ensureDOM() {
+    if (this.overlayEl && document.body && document.body.contains(this.overlayEl)) {
+      return this.overlayEl;
+    }
+    if (!document.body) return null;
+
+    const overlay = document.createElement('div');
+    overlay.id = 'k-system-loader-overlay';
+    overlay.setAttribute('role', 'alertdialog');
+    overlay.setAttribute('aria-live', 'assertive');
+    overlay.setAttribute('aria-busy', 'true');
+    overlay.className = 'fixed inset-0 z-[9998] hidden items-center justify-center bg-slate-900/25 backdrop-blur-[2px] p-4 select-none cursor-wait transition-opacity duration-150 opacity-0';
+
+    overlay.innerHTML = `
+      <div class="fixed top-0 left-0 right-0 h-1 bg-brand-100/80 overflow-hidden">
+        <div class="h-full w-1/2 bg-accent-500 rounded-full animate-pulse"></div>
+      </div>
+      <div class="bg-white border border-slate-200/90 rounded-2xl shadow-xl px-5 py-4 flex items-center gap-3.5 max-w-sm w-full sm:w-auto pointer-events-auto">
+        <div class="relative w-8 h-8 shrink-0 flex items-center justify-center">
+          <span class="w-8 h-8 rounded-full border-[3px] border-slate-100 border-t-accent-500 border-r-brand-600 animate-spin block"></span>
+          <span class="w-2 h-2 rounded-full bg-accent-500 absolute"></span>
+        </div>
+        <div class="min-w-0 flex-1">
+          <p id="k-system-loader-title" class="font-condensed text-xs sm:text-sm font-black uppercase tracking-wider text-slate-900 leading-tight">
+            Đang đồng bộ máy chủ…
+          </p>
+          <p id="k-system-loader-subtitle" class="text-[11px] font-medium text-slate-500 mt-0.5 leading-snug">
+            Vui lòng chờ trong giây lát, hệ thống đang xử lý dữ liệu…
+          </p>
+        </div>
+      </div>
+    `;
+
+    // Chặn toàn bộ click/keydown xuyên qua lớp phủ khi đang xử lý
+    overlay.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+    }, true);
+
+    document.body.appendChild(overlay);
+    this.overlayEl = overlay;
+    return overlay;
+  },
+
+  isBusy() {
+    return this.activeCount > 0;
+  },
+
+  show(title = 'Đang xử lý dữ liệu máy chủ…', subtitle = 'Vui lòng chờ trong giây lát, hệ thống đang đồng bộ…') {
+    if (this.hideTimer) {
+      clearTimeout(this.hideTimer);
+      this.hideTimer = null;
+    }
+    this.activeCount++;
+    if (this.activeCount === 1) {
+      this.shownAt = Date.now();
+    }
+
+    const overlay = this.ensureDOM();
+    if (!overlay) return;
+
+    const titleEl = document.getElementById('k-system-loader-title');
+    const subEl = document.getElementById('k-system-loader-subtitle');
+    if (titleEl && title) titleEl.textContent = title;
+    if (subEl && subtitle) subEl.textContent = subtitle;
+
+    overlay.classList.remove('hidden');
+    overlay.classList.add('flex');
+    requestAnimationFrame(() => {
+      overlay.classList.remove('opacity-0');
+      overlay.classList.add('opacity-100');
+    });
+  },
+
+  hide(minDurationMs = 320) {
+    this.activeCount = Math.max(0, this.activeCount - 1);
+    if (this.activeCount > 0) return;
+
+    const elapsed = Date.now() - this.shownAt;
+    const remaining = Math.max(0, minDurationMs - elapsed);
+
+    if (this.hideTimer) clearTimeout(this.hideTimer);
+    this.hideTimer = setTimeout(() => {
+      if (this.activeCount > 0) return;
+      const overlay = this.overlayEl || document.getElementById('k-system-loader-overlay');
+      if (!overlay) return;
+      overlay.classList.remove('opacity-100');
+      overlay.classList.add('opacity-0');
+      setTimeout(() => {
+        if (this.activeCount === 0 && overlay) {
+          overlay.classList.add('hidden');
+          overlay.classList.remove('flex');
+        }
+      }, 150);
+    }, remaining);
+  },
+
+  async track(promiseOrFn, title = 'Đang xử lý dữ liệu máy chủ…', subtitle = 'Vui lòng chờ trong giây lát, hệ thống đang đồng bộ…', minDurationMs = 320) {
+    this.show(title, subtitle);
+    try {
+      const target = typeof promiseOrFn === 'function' ? promiseOrFn() : promiseOrFn;
+      return await Promise.resolve(target);
+    } finally {
+      this.hide(minDurationMs);
+    }
+  }
+};
+
+window.SystemLoader = SystemLoader;
+

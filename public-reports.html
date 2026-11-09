@@ -3,72 +3,155 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="robots" content="noindex, nofollow">
+  <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <title>Lịch & báo cáo kỹ sư | K-Workspace</title>
   <link rel="icon" type="image/png" href="images/favicon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Roboto+Condensed:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,700&display=swap" rel="stylesheet">
+  <script src="assets/js/core/design-system.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    body { font-family: Inter, system-ui, sans-serif; }
+    body { font-family: 'Inter', system-ui, sans-serif; }
     .safe-bottom { padding-bottom: max(1rem, env(safe-area-inset-bottom)); }
     dialog::backdrop { background: rgb(15 23 42 / .52); backdrop-filter: blur(3px); }
   </style>
 </head>
-<body class="min-h-screen bg-slate-50 text-slate-900">
-  <header class="sticky top-0 z-20 bg-slate-50/95 backdrop-blur">
-    <div class="mx-auto max-w-6xl px-3 pt-3 sm:px-6 sm:pt-4">
-      <div class="flex min-h-[68px] items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-3.5 py-3 shadow-sm sm:min-h-[76px] sm:px-5">
-        <div class="flex min-w-0 items-center gap-3">
-          <img src="images/symbol.png" alt="Phúc Sinh" class="h-9 w-auto shrink-0 object-contain sm:h-10">
-          <div class="min-w-0">
-            <h1 class="truncate text-sm font-extrabold text-slate-900 sm:text-base">Lịch trực & báo cáo kỹ sư</h1>
-            <p class="mt-0.5 truncate text-[10px] text-slate-500 sm:text-[11px]">Workspace <span class="mx-1 text-slate-300">›</span> Lịch kỹ sư</p>
-          </div>
+<body class="min-h-screen bg-[#f6f8fb] text-slate-900 overflow-x-hidden font-sans antialiased">
+  <header class="sticky top-0 z-20 bg-[#f6f8fb]/95 backdrop-blur-md border-b border-slate-200/80">
+    <div class="mx-auto max-w-6xl px-3.5 py-3 sm:px-6 flex items-center justify-between gap-3">
+      <div class="flex min-w-0 items-center gap-3">
+        <a href="index.html" class="flex items-center gap-2.5">
+          <img src="images/logo-full.png" alt="Phúc Sinh" class="h-8 w-auto shrink-0 object-contain sm:h-9">
+        </a>
+        <span class="hidden sm:inline-block h-4 w-px bg-slate-200"></span>
+        <div class="hidden sm:flex items-center gap-1.5 text-xs font-medium text-slate-600">
+          <span class="w-2 h-2 rounded-full bg-accent-500"></span>
+          <span class="font-condensed font-bold uppercase tracking-wider text-brand-700">K-Workspace</span>
+          <span class="text-slate-300">•</span>
+          <span>Cổng tra cứu lịch trực</span>
         </div>
-        <a href="login.html" class="shrink-0 rounded-xl border border-slate-200 px-3 py-2 text-[11px] font-bold text-slate-700 transition hover:bg-slate-50 sm:px-4 sm:text-xs">← Đăng nhập</a>
+      </div>
+      <div id="public-header-auth-area" class="shrink-0 flex items-center gap-2.5">
+        <a id="public-header-auth-btn" href="login.html" class="shrink-0 h-9 inline-flex items-center gap-1.5 rounded-xl bg-brand-600 hover:bg-brand-700 px-3.5 text-xs font-bold font-condensed uppercase tracking-wider text-white transition shadow-xs">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14"/></svg>
+          <span>Đăng nhập</span>
+        </a>
       </div>
     </div>
   </header>
 
-  <main class="safe-bottom mx-auto max-w-6xl space-y-4 px-3 pb-5 pt-4 sm:px-6 sm:pb-7 sm:pt-5">
-    <section aria-label="Báo cáo tổng quan tháng" class="grid grid-cols-2 gap-2.5 sm:grid-cols-4 sm:gap-3">
-      <article class="rounded-xl border border-slate-200 bg-white p-3 sm:rounded-2xl sm:p-4"><p class="text-[11px] font-semibold text-slate-500">Kỹ sư</p><p id="summary-engineers" class="mt-1 text-xl font-extrabold sm:text-2xl">—</p></article>
-      <article class="rounded-xl border border-slate-200 bg-white p-3 sm:rounded-2xl sm:p-4"><p class="text-[11px] font-semibold text-slate-500">Tổng số ca</p><p id="summary-shifts" class="mt-1 text-xl font-extrabold sm:text-2xl">—</p></article>
-      <article class="rounded-xl border border-slate-200 bg-white p-3 sm:rounded-2xl sm:p-4"><p class="text-[11px] font-semibold text-emerald-700">Đã duyệt</p><p id="summary-approved" class="mt-1 text-xl font-extrabold text-emerald-700 sm:text-2xl">—</p></article>
-      <article class="rounded-xl border border-slate-200 bg-white p-3 sm:rounded-2xl sm:p-4"><p class="text-[11px] font-semibold text-amber-700">Chờ duyệt</p><p id="summary-pending" class="mt-1 text-xl font-extrabold text-amber-700 sm:text-2xl">—</p></article>
+  <main class="safe-bottom mx-auto max-w-6xl space-y-4 sm:space-y-5 px-3.5 pb-8 pt-4 sm:px-6 sm:pt-6">
+    <!-- Hero Title Strip -->
+    <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-2">
+      <div>
+        <div class="flex items-center gap-1.5 mb-0.5">
+          <span class="w-2 h-2 rounded-full bg-accent-500"></span>
+          <span class="font-condensed text-[11px] font-bold uppercase tracking-widest text-accent-700">Chế Độ Tra Cứu Công Khai</span>
+        </div>
+        <h1 class="font-condensed text-2xl sm:text-3xl font-black uppercase text-slate-900 tracking-tight">Lịch Trực & Báo Cáo Kỹ Sư</h1>
+      </div>
+      <p id="report-message" role="status" aria-live="polite" class="text-xs text-slate-500">Đang đồng bộ dữ liệu thời gian thực…</p>
+    </div>
+
+    <!-- Unified 4-Metric Architectural Strip -->
+    <section aria-label="Báo cáo tổng quan tháng" class="grid grid-cols-2 lg:grid-cols-4 bg-white rounded-2xl border border-slate-200/80 shadow-2xs divide-y lg:divide-y-0 divide-x divide-slate-200/70 overflow-hidden">
+      <article class="p-3.5 sm:p-4">
+        <p class="font-condensed text-[11px] font-bold uppercase tracking-wider text-slate-500">Kỹ sư trực chiến</p>
+        <p id="summary-engineers" class="font-condensed mt-1 text-2xl font-black text-slate-900 sm:text-3xl leading-none">—</p>
+      </article>
+      <article class="p-3.5 sm:p-4">
+        <p class="font-condensed text-[11px] font-bold uppercase tracking-wider text-slate-500">Tổng số ca trong tháng</p>
+        <p id="summary-shifts" class="font-condensed mt-1 text-2xl font-black text-brand-700 sm:text-3xl leading-none">—</p>
+      </article>
+      <article class="p-3.5 sm:p-4">
+        <p class="font-condensed text-[11px] font-bold uppercase tracking-wider text-accent-700">Ca đã duyệt</p>
+        <p id="summary-approved" class="font-condensed mt-1 text-2xl font-black text-accent-600 sm:text-3xl leading-none">—</p>
+      </article>
+      <article class="p-3.5 sm:p-4">
+        <p class="font-condensed text-[11px] font-bold uppercase tracking-wider text-amber-700">Đang chờ duyệt</p>
+        <p id="summary-pending" class="font-condensed mt-1 text-2xl font-black text-amber-600 sm:text-3xl leading-none">—</p>
+      </article>
     </section>
 
-    <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white">
-      <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-slate-100 px-3 py-3 sm:px-4">
-        <div class="flex items-center gap-1.5 sm:gap-2">
-          <button id="month-today" type="button" class="rounded-lg border border-slate-200 px-3 py-2 text-[11px] font-bold text-slate-700 hover:bg-slate-50">Hôm nay</button>
-          <button id="month-previous" type="button" aria-label="Tháng trước" class="grid h-9 w-9 place-items-center rounded-lg text-lg text-slate-600 hover:bg-slate-100">‹</button>
-          <button id="month-next" type="button" aria-label="Tháng sau" class="grid h-9 w-9 place-items-center rounded-lg text-lg text-slate-600 hover:bg-slate-100">›</button>
-          <span id="month-label" class="ml-1 min-w-[9.5rem] rounded-lg bg-slate-50 px-3 py-2 text-center text-xs font-extrabold text-slate-800 sm:ml-2 sm:min-w-[10.5rem] sm:text-sm">—</span>
+    <!-- Main Calendar & Agenda Workspace -->
+    <section class="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-2xs">
+      <!-- Toolbar 1: [ Hôm nay ] [ < | THÁNG 11, 2026 | > ] & View Switcher -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 border-b border-slate-100 px-3.5 py-3 sm:px-5">
+        <div class="flex items-center justify-between sm:justify-start gap-2">
+          <button id="month-today" type="button" class="h-9 rounded-xl border border-slate-200/90 bg-white px-3.5 text-xs font-bold font-condensed uppercase tracking-wider text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer">Hôm nay</button>
+
+          <!-- Centered Month/Year between Left & Right Arrows -->
+          <div class="inline-flex items-center bg-slate-50/90 border border-slate-200/90 rounded-xl p-0.5">
+            <button id="month-previous" type="button" aria-label="Tháng trước" class="w-8 h-8 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-white hover:shadow-2xs flex items-center justify-center transition-all cursor-pointer" title="Tháng trước">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+            </button>
+            <span id="month-label" class="font-condensed h-8 min-w-[8.75rem] sm:min-w-[9.75rem] px-3 flex items-center justify-center text-center text-sm sm:text-base font-black uppercase tracking-wide text-slate-900 select-none">—</span>
+            <button id="month-next" type="button" aria-label="Tháng sau" class="w-8 h-8 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-white hover:shadow-2xs flex items-center justify-center transition-all cursor-pointer" title="Tháng sau">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+            </button>
+          </div>
         </div>
-        <div class="flex items-center gap-2 text-[10px] font-semibold text-slate-500"><span class="h-2 w-2 rounded-full bg-emerald-600"></span>Đã duyệt<span class="ml-1 h-2 w-2 rounded-full bg-amber-500"></span>Chờ duyệt</div>
+
+        <div class="flex items-center justify-between sm:justify-end gap-3">
+          <div class="flex items-center gap-3 text-[11px] font-semibold text-slate-600">
+            <span class="flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-full bg-accent-600"></span>Đã duyệt</span>
+            <span class="flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-full bg-orange-500"></span>Chờ duyệt</span>
+          </div>
+
+          <div class="inline-flex items-center p-0.5 bg-slate-100 rounded-xl border border-slate-200/70">
+            <button id="btn-pub-view-grid" type="button" class="px-2.5 py-1 rounded-lg text-[11px] font-bold font-condensed uppercase tracking-wider bg-white text-slate-900 shadow-2xs transition-all cursor-pointer flex items-center gap-1">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
+              <span>Lưới tháng</span>
+            </button>
+            <button id="btn-pub-view-list" type="button" class="px-2.5 py-1 rounded-lg text-[11px] font-bold font-condensed uppercase tracking-wider text-slate-500 hover:text-slate-900 transition-all cursor-pointer flex items-center gap-1">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+              <span>Danh sách</span>
+            </button>
+          </div>
+        </div>
       </div>
-      <div class="flex min-h-12 items-center gap-2 overflow-x-auto border-b border-slate-100 px-3 py-2 sm:px-4">
-        <span class="sticky left-0 z-10 shrink-0 bg-white pr-1 text-[9px] font-extrabold uppercase tracking-wide text-slate-400">Kỹ sư</span>
-        <div id="engineer-filters" class="flex min-w-0 items-center gap-1.5"><span class="text-xs text-slate-500">Đang tải…</span></div>
+
+      <!-- Toolbar 2: Horizontal Engineer Filter Chips -->
+      <div class="flex items-center gap-2 overflow-x-auto border-b border-slate-100 bg-slate-50/50 px-3.5 py-2 sm:px-5">
+        <span class="hidden sm:inline shrink-0 font-condensed text-[11px] font-bold uppercase tracking-wider text-slate-400">Lọc kỹ sư:</span>
+        <div id="engineer-filters" class="flex min-w-0 items-center gap-2.5 lg:gap-2 py-1 px-0.5"><span class="text-xs text-slate-500">Đang tải…</span></div>
       </div>
-      <div class="grid grid-cols-7 border-b border-slate-200 bg-slate-50 text-center text-[9px] font-extrabold uppercase tracking-wide text-slate-500 sm:text-[10px]">
-        <div class="py-2">Thứ 2</div><div class="py-2">Thứ 3</div><div class="py-2">Thứ 4</div><div class="py-2">Thứ 5</div><div class="py-2">Thứ 6</div><div class="py-2">Thứ 7</div><div class="py-2">Chủ nhật</div>
+
+      <!-- Month Matrix Container -->
+      <div id="public-calendar-matrix-wrap">
+        <div class="grid grid-cols-7 border-b border-slate-200/80 bg-slate-50/40 text-center font-condensed text-[11px] font-bold uppercase tracking-wider text-slate-500 py-2 select-none">
+          <div><span class="sm:hidden">T2</span><span class="hidden sm:inline">THỨ 2</span></div>
+          <div><span class="sm:hidden">T3</span><span class="hidden sm:inline">THỨ 3</span></div>
+          <div><span class="sm:hidden">T4</span><span class="hidden sm:inline">THỨ 4</span></div>
+          <div><span class="sm:hidden">T5</span><span class="hidden sm:inline">THỨ 5</span></div>
+          <div><span class="sm:hidden">T6</span><span class="hidden sm:inline">THỨ 6</span></div>
+          <div><span class="sm:hidden">T7</span><span class="hidden sm:inline">THỨ 7</span></div>
+          <div class="text-burgundy-800 font-bold"><span class="sm:hidden">CN</span><span class="hidden sm:inline">CHỦ NHẬT</span></div>
+        </div>
+        <div id="calendar-grid" class="grid grid-cols-7 border-l border-t border-slate-100 divide-x divide-y divide-slate-100 bg-white">
+          <div class="col-span-7 p-6 text-center text-xs text-slate-500">Đang tải lịch…</div>
+        </div>
       </div>
-      <div id="calendar-grid" class="grid grid-cols-7"><div class="col-span-7 p-5 text-center text-sm text-slate-500">Đang tải lịch…</div></div>
+
+      <!-- Live Agenda List Container (Below Calendar on Mobile or in List Mode on Desktop) -->
+      <div id="public-agenda-container" class="border-t border-slate-200/80 bg-white"></div>
     </section>
-    <p id="report-message" role="status" aria-live="polite" class="min-h-4 text-center text-[11px] text-slate-500"></p>
-    <p class="text-center text-[10px] text-slate-400">Trang chỉ xem lịch và thống kê. Không thể đặt lịch hoặc sửa dữ liệu.</p>
+
+    <p class="text-center text-[11px] text-slate-400">Trang tra cứu lịch trực và báo cáo. Để đặt lịch hoặc phê duyệt, vui lòng <a href="login.html" class="font-semibold text-brand-600 hover:underline">đăng nhập hệ thống</a>.</p>
   </main>
 
-  <dialog id="schedule-detail-dialog" class="m-auto w-[calc(100%-1.5rem)] max-w-xl rounded-2xl p-0 shadow-2xl">
-    <div class="flex items-start justify-between gap-3 border-b border-slate-100 px-4 py-3.5 sm:px-5">
-      <div class="min-w-0"><h2 id="detail-title" class="break-words text-base font-extrabold text-slate-900">Chi tiết ca</h2><p id="detail-subtitle" class="mt-0.5 text-xs text-slate-500"></p></div>
-      <button id="detail-close" type="button" aria-label="Đóng" class="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-slate-500 hover:bg-slate-100">×</button>
+  <dialog id="schedule-detail-dialog" class="m-auto w-[calc(100%-1.5rem)] max-w-xl rounded-2xl border border-slate-200/80 bg-white p-0 shadow-2xl">
+    <div class="flex items-start justify-between gap-3 border-b border-slate-100 px-4 py-3.5 sm:px-5 bg-slate-50/60">
+      <div class="min-w-0">
+        <span class="font-condensed text-[10px] font-bold uppercase tracking-widest text-brand-600">Thông tin ca trực</span>
+        <h2 id="detail-title" class="font-condensed break-words text-lg font-bold uppercase text-slate-900 leading-snug">Chi tiết ca</h2>
+        <p id="detail-subtitle" class="mt-0.5 text-xs text-slate-500"></p>
+      </div>
+      <button id="detail-close" type="button" aria-label="Đóng" class="grid h-8 w-8 shrink-0 place-items-center rounded-xl text-lg text-slate-400 hover:bg-slate-200/60 hover:text-slate-700 cursor-pointer">×</button>
     </div>
-    <div id="detail-content" class="max-h-[min(70vh,38rem)] overflow-y-auto p-4 sm:p-5"></div>
+    <div id="detail-content" class="max-h-[min(72vh,38rem)] overflow-y-auto p-4 sm:p-5"></div>
   </dialog>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>

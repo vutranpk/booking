@@ -43,149 +43,245 @@
 <body class="min-h-screen font-sans text-slate-800 antialiased bg-white selection:bg-brand-600 selection:text-white flex flex-col lg:flex-row overflow-x-hidden">
 
   <!-- ======================================================== -->
-  <!-- 🌟 LEFT SIDE: BRAND IDENTITY & ATMOSPHERE -->
+  <!-- 🌟 LEFT SIDE: BRAND IDENTITY & ARCHITECTURAL ATMOSPHERE -->
   <!-- ======================================================== -->
-  <aside class=" bg-brand-600 w-full lg:w-[45%] xl:w-[42%] p-8 sm:p-12 lg:p-16 flex flex-col justify-between relative overflow-hidden flex-shrink-0">
-    <div class="absolute inset-0 bg-cover bg-center opacity-50"
-    style="background-image: url('images/bg-login.webp')"
-  ></div>
+  <aside class="bg-brand-600 w-full lg:w-[46%] xl:w-[44%] p-6 sm:p-10 lg:p-14 xl:p-16 flex flex-col justify-between relative overflow-hidden flex-shrink-0">
+    <div class="absolute inset-0 bg-cover bg-center opacity-45" style="background-image: url('images/bg-login.webp')"></div>
+    <div class="absolute inset-0 bg-gradient-to-br from-[#0b1428]/85 via-[#192b52]/75 to-[#213664]/80"></div>
 
-  <!-- Optional color overlay -->
-  <div class="absolute inset-0 bg-brand-600  opacity-30"></div>
-
-    <!-- Top: Logo Presentation -->
-    <div class="relative z-10 flex items-center justify-between">
-      <div class="px-4 py-4 rounded-2xl inline-flex items-center bg-white">
-        <img src="images/logo-full.png" alt="Phúc Sinh Consumer Corp." class="h-10 sm:h-12 w-auto object-contain">
+    <!-- Top: Logo & Live Badge -->
+    <div class="relative z-10 flex items-center justify-between gap-3">
+      <div class="px-3.5 py-2.5 sm:px-4 sm:py-3 rounded-2xl inline-flex items-center bg-white shadow-sm">
+        <img src="images/logo-full.png" alt="Phúc Sinh Consumer Corp." class="h-8 sm:h-10 w-auto object-contain">
+      </div>
+      <div class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-xs border border-white/15 text-white text-[11px] font-condensed font-bold uppercase tracking-wider">
+        <span class="w-2 h-2 rounded-full bg-accent-500"></span>
+        <span>K-Workspace Live</span>
       </div>
     </div>
 
     <!-- Center: Punchy Brand Editorial -->
-    <div class="relative z-10 my-10 lg:my-auto max-w-lg space-y-4">
-      <h2 class="text-4xl sm:text-4xl xl:text-7xl font-bold text-white tracking-tight leading-[1.12]">
-        Quản Trị & <br>Vận Hành
+    <div class="relative z-10 my-6 sm:my-10 lg:my-auto max-w-lg space-y-3 sm:space-y-4">
+      <div class="inline-flex items-center gap-2 text-accent-400 font-condensed text-xs sm:text-sm font-bold uppercase tracking-widest">
+        <span class="w-6 h-0.5 bg-accent-500"></span>
+        <span>Hệ Thống Điều Phối Kỹ Thuật</span>
+      </div>
+      <h2 class="font-condensed text-3xl sm:text-5xl xl:text-6xl font-black text-white tracking-tight leading-[1.08] uppercase">
+        Quản Trị &amp; <br class="hidden sm:inline">Vận Hành Ca Trực
       </h2>
-
-      <p class="text-xs sm:text-sm text-white/70 leading-relaxed font-normal pt-1">
-        Nền tảng quản lý & vận hành<br/> đồng bộ thời gian thực toàn hệ thống Phúc Sinh.
+      <p class="text-xs sm:text-sm text-white/80 leading-relaxed font-normal max-w-md">
+        Nền tảng điều phối kỹ sư hiện trường, phê duyệt lịch trực và đồng bộ thời gian thực toàn hệ thống Phúc Sinh.
       </p>
     </div>
 
+    <!-- Bottom: Architectural Capability Strip (Desktop & Tablet) -->
+    <div class="relative z-10 hidden sm:grid grid-cols-3 divide-x divide-white/15 border-t border-white/15 pt-5 text-white">
+      <div class="pr-4">
+        <p class="font-condensed text-xs font-bold uppercase tracking-wider text-accent-400">Thời gian thực</p>
+        <p class="text-[11px] text-white/75 mt-0.5">Đồng bộ lịch trực &amp; kiểm tra trùng ca tức thì</p>
+      </div>
+      <div class="px-4">
+        <p class="font-condensed text-xs font-bold uppercase tracking-wider text-accent-400">Phân quyền 3 cấp</p>
+        <p class="text-[11px] text-white/75 mt-0.5">Admin, Vận hành, Kỹ sư &amp; Người đặt lịch</p>
+      </div>
+      <div class="pl-4">
+        <p class="font-condensed text-xs font-bold uppercase tracking-wider text-accent-400">Lịch mời (.ics)</p>
+        <p class="text-[11px] text-white/75 mt-0.5">Tự động gửi thông báo &amp; Google Calendar</p>
+      </div>
+    </div>
   </aside>
 
   <!-- ======================================================== -->
-  <!-- 🎯 RIGHT SIDE: LOGIN ACTION WORKSPACE -->
+  <!-- 🎯 RIGHT SIDE: LOGIN & PASSWORD RECOVERY WORKSPACE -->
   <!-- ======================================================== -->
-  <main class="lg:w-[55%] xl:w-[58%] flex flex-col justify-between p-6 sm:p-12 lg:p-16 xl:p-20 bg-white">
+  <main class="flex-1 lg:w-[54%] xl:w-[56%] flex flex-col justify-between p-5 sm:p-12 lg:p-16 xl:p-20 bg-white">
 
-    <!-- Top Spacer for Balance -->
-    <div class="hidden lg:block"></div>
+    <!-- Top Right Quick Link -->
+    <div class="flex items-center justify-between">
+      <span class="font-condensed text-xs font-bold uppercase tracking-wider text-slate-400">Cổng xác thực nội bộ</span>
+      <a href="public-reports.html" class="inline-flex items-center gap-1.5 text-xs font-bold font-condensed uppercase tracking-wider text-brand-600 hover:text-accent-600 transition-colors">
+        <span>Xem lịch trực công khai</span>
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+      </a>
+    </div>
 
-    <!-- Centered Form Container (Open Layout, No Card Box) -->
-    <div class="w-full max-w-md mx-auto my-auto py-4">
+    <!-- Centered Workspace Container (Switches between Login View & Forgot Password View) -->
+    <div class="w-full max-w-md mx-auto my-auto py-4 sm:py-6">
 
-      <!-- Headline & Subtitle -->
-      <div class="mb-8">
-        <h1 class="text-2xl sm:text-3xl font-bold text-brand-600 tracking-tight">
-          Đăng Nhập
-        </h1>
-        <p class="text-xs text-slate-500 mt-1.5">
-          Nhập tài khoản được phân quyền để truy cập hệ thống.
-        </p>
+      <!-- ==================================================== -->
+      <!-- VIEW 1: ĐĂNG NHẬP HỆ THỐNG (#login-workspace-view)    -->
+      <!-- ==================================================== -->
+      <div id="login-workspace-view">
+        <!-- Headline & Subtitle -->
+        <div class="mb-6 sm:mb-7">
+          <span class="font-condensed text-[11px] font-bold uppercase tracking-widest text-accent-600 block mb-1">Chào mừng trở lại</span>
+          <h1 class="font-condensed text-2xl sm:text-3xl font-black text-brand-600 tracking-tight uppercase">
+            Đăng Nhập Hệ Thống
+          </h1>
+          <p class="text-xs text-slate-500 mt-1.5">
+            Nhập thông tin tài khoản được phân quyền để truy cập không gian làm việc.
+          </p>
+        </div>
+
+        <!-- Dynamic Error Box -->
+        <div id="login-error-box" class="hidden mb-5 p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-left space-y-1 transition-all">
+          <div class="flex items-center gap-2 text-rose-800">
+            <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+            <p class="text-xs font-bold">Đăng nhập không thành công</p>
+          </div>
+          <p id="login-error-msg" class="text-[11px] text-rose-700 leading-normal pl-6">
+            Email hoặc mật khẩu không chính xác.
+          </p>
+        </div>
+
+        <!-- Login Form -->
+        <form id="standalone-login-form" onsubmit="handleStandaloneLogin(event)" class="space-y-4" autocomplete="on">
+
+          <!-- Email Input -->
+          <div class="group">
+            <label for="login-email-input" class="block text-xs font-bold text-slate-700 mb-1.5">
+              Email làm việc
+            </label>
+            <div class="relative">
+              <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 group-focus-within:text-accent-600 transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207"/></svg>
+              </div>
+              <input id="login-email-input"
+                     type="email"
+                     name="email"
+                     required
+                     autofocus
+                     autocomplete="username"
+                     spellcheck="false"
+                     autocapitalize="none"
+                     value=""
+                     placeholder="name@phucsinh.com"
+                     class="w-full text-xs bg-slate-50/70 hover:bg-slate-50 focus:bg-white border border-slate-200/90 focus:border-accent-500 rounded-xl pl-10 pr-3.5 py-3.5 text-slate-900 placeholder:text-slate-400 font-medium transition-all">
+            </div>
+          </div>
+
+          <!-- Password Input -->
+          <div class="group">
+            <div class="flex items-center justify-between mb-1.5">
+              <label for="login-password-input" class="block text-xs font-bold text-slate-700">Mật khẩu</label>
+              <button type="button" onclick="openForgotPasswordView()" class="text-[11px] font-bold text-accent-600 hover:text-accent-700 hover:underline cursor-pointer transition-colors">
+                Quên mật khẩu?
+              </button>
+            </div>
+            <div class="relative">
+              <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 group-focus-within:text-accent-600 transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+              </div>
+              <input id="login-password-input"
+                     type="password"
+                     name="password"
+                     required
+                     autocomplete="current-password"
+                     value=""
+                     placeholder="••••••••"
+                     class="w-full text-xs bg-slate-50/70 hover:bg-slate-50 focus:bg-white border border-slate-200/90 focus:border-accent-500 rounded-xl pl-10 pr-10 py-3.5 text-slate-900 placeholder:text-slate-400 font-medium transition-all">
+              <button type="button"
+                      onclick="togglePassword()"
+                      class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-700 cursor-pointer transition-colors"
+                      title="Ẩn/Hiện mật khẩu"
+                      aria-label="Ẩn hoặc hiện mật khẩu">
+                <svg id="login-eye-icon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Submit Button (Phúc Sinh Corporate Navy) -->
+          <button id="login-submit-btn"
+                  type="submit"
+                  class="w-full mt-2 py-3.5 px-5 rounded-xl bg-brand-600 hover:bg-brand-700 active:bg-brand-800 active:scale-[0.99] text-white font-condensed font-bold uppercase tracking-wider text-sm shadow-xs hover:shadow-sm flex items-center justify-center gap-2 transition-all cursor-pointer">
+            <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/></svg>
+            <span>Đăng Nhập Hệ Thống</span>
+          </button>
+
+        </form>
+
+        <!-- Public Schedule Quick Access Bar -->
+        <div class="mt-6 pt-5 border-t border-slate-100">
+          <a href="public-reports.html" class="group flex w-full items-center justify-between rounded-xl border border-slate-200/90 bg-slate-50/60 hover:bg-accent-50/50 hover:border-accent-200 px-4 py-3 transition-all">
+            <div class="flex items-center gap-3 min-w-0">
+              <div class="w-8 h-8 rounded-lg bg-white border border-slate-200/80 text-brand-600 group-hover:bg-accent-600 group-hover:text-white group-hover:border-accent-600 flex items-center justify-center flex-shrink-0 transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+              </div>
+              <div class="min-w-0 text-left">
+                <p class="text-xs font-bold text-slate-800 group-hover:text-accent-700 transition-colors">Xem lịch &amp; báo cáo kỹ sư</p>
+                <p class="text-[11px] text-slate-500 truncate">Chế độ tra cứu nhanh không cần đăng nhập</p>
+              </div>
+            </div>
+            <svg class="w-4 h-4 text-slate-400 group-hover:text-accent-600 group-hover:translate-x-0.5 transition-all flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+          </a>
+        </div>
+
+        <!-- Minimalist Support Notice -->
+        <div class="mt-5 text-center">
+          <p class="text-[11px] text-slate-400">
+            Chưa có quyền truy cập? Liên hệ <strong class="text-slate-600 font-semibold">Quản trị viên</strong> để được cấp tài khoản.
+          </p>
+        </div>
       </div>
 
-      <!-- Dynamic Error Box -->
-      <div id="login-error-box" class="hidden mb-6 p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-left space-y-1 transition-all">
-        <div class="flex items-center gap-2 text-rose-800">
-          <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-          <p class="text-xs font-bold">Đăng nhập không thành công</p>
-        </div>
-        <p id="login-error-msg" class="text-[11px] text-rose-700 leading-normal pl-6">
-          Email hoặc mật khẩu không chính xác.
-        </p>
-      </div>
-
-      <!-- Form (Inputs default to empty, 100% accessible) -->
-      <form id="standalone-login-form" onsubmit="handleStandaloneLogin(event)" class="space-y-4" autocomplete="on">
-
-        <!-- Email Input -->
-        <div>
-          <label for="login-email-input" class="block text-xs font-bold text-slate-700 mb-1.5">
-            Email làm việc
-          </label>
-          <div class="relative">
-            <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207"/></svg>
-            </div>
-            <input id="login-email-input"
-                   type="email"
-                   name="email"
-                   required
-                   autofocus
-                   autocomplete="username"
-                   spellcheck="false"
-                   autocapitalize="none"
-                   value=""
-                   placeholder="name@company.com"
-                   class="w-full text-xs bg-slate-50/70 hover:bg-slate-50 focus:bg-white border border-slate-200/90 focus:border-brand-600 focus:ring-4 focus:ring-brand-500/10 rounded-xl pl-10 pr-3.5 py-3.5 text-slate-900 placeholder:text-slate-400 font-medium transition-all shadow-2xs">
-          </div>
-        </div>
-
-        <!-- Password Input -->
-        <div>
-          <div class="flex items-center justify-between mb-1.5">
-            <label for="login-password-input" class="block text-xs font-bold text-slate-700">Mật khẩu</label>
-            <button type="button" onclick="requestPasswordReset()" class="text-[11px] font-semibold text-brand-600 hover:text-brand-800 cursor-pointer">Quên mật khẩu?</button>
-          </div>
-          <div class="relative">
-            <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
-            </div>
-            <input id="login-password-input"
-                   type="password"
-                   name="password"
-                   required
-                   autocomplete="current-password"
-                   value=""
-                   placeholder="••••••••"
-                   class="w-full text-xs bg-slate-50/70 hover:bg-slate-50 focus:bg-white border border-slate-200/90 focus:border-brand-600 focus:ring-4 focus:ring-brand-500/10 rounded-xl pl-10 pr-10 py-3.5 text-slate-900 placeholder:text-slate-400 font-medium transition-all shadow-2xs">
-            <button type="button"
-                    onclick="togglePassword()"
-                    class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-700 cursor-pointer transition-colors"
-                    title="Ẩn/Hiện mật khẩu"
-                    aria-label="Ẩn hoặc hiện mật khẩu">
-              <svg id="login-eye-icon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-              </svg>
-            </button>
-          </div>
-          <p id="password-reset-message" role="status" aria-live="polite" class="hidden mt-2 rounded-xl border px-3 py-2 text-[11px] font-medium leading-relaxed break-words"></p>
-        </div>
-
-        <!-- Submit Button (Phúc Sinh Corporate Navy) -->
-        <button id="login-submit-btn"
-                type="submit"
-                class="w-full mt-3 py-3.5 px-5 rounded-xl bg-brand-600 hover:bg-brand-700 active:bg-brand-800 active:scale-[0.99] text-white font-bold text-xs shadow-xs hover:shadow-sm flex items-center justify-center gap-2 transition-all cursor-pointer">
-          <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/></svg>
-          <span>Đăng Nhập</span>
+      <!-- ==================================================== -->
+      <!-- VIEW 2: KHÔI PHỤC MẬT KHẨU RIÊNG BIỆT (#forgot-password-view) -->
+      <!-- ==================================================== -->
+      <div id="forgot-password-view" class="hidden">
+        <button type="button" onclick="closeForgotPasswordView()" class="mb-5 inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-brand-600 transition-colors cursor-pointer">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+          <span>Quay lại đăng nhập</span>
         </button>
 
-      </form>
-      <a href="public-reports.html" class="mt-3 flex w-full items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-3 text-xs font-bold text-slate-700 transition-colors hover:bg-slate-50">
-        Xem lịch & báo cáo kỹ sư
-      </a>
+        <div class="mb-6">
+          <span class="font-condensed text-[11px] font-bold uppercase tracking-widest text-accent-600 block mb-1">Hỗ trợ bảo mật tài khoản</span>
+          <h2 class="font-condensed text-2xl sm:text-3xl font-black text-brand-600 tracking-tight uppercase">
+            Quên Mật Khẩu?
+          </h2>
+          <p class="text-xs text-slate-500 mt-1.5 leading-relaxed">
+            Nhập địa chỉ email tài khoản của bạn vào ô bên dưới. Hệ thống sẽ gửi liên kết đặt lại mật khẩu mới trực tiếp vào hộp thư.
+          </p>
+        </div>
 
-      <!-- Minimalist Support Notice -->
-      <div class="mt-6 text-center">
-        <p class="text-[11px] text-slate-400">
-          Chưa có quyền truy cập? Liên hệ <strong class="text-slate-600 font-semibold">Quản trị viên</strong> để được cấp tài khoản.
-        </p>
+        <form id="forgot-password-form" onsubmit="handleForgotPasswordSubmit(event)" class="space-y-4">
+          <div class="group">
+            <label for="forgot-email-input" class="block text-xs font-bold text-slate-700 mb-1.5">
+              Email nhận liên kết khôi phục
+            </label>
+            <div class="relative">
+              <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 group-focus-within:text-accent-600 transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+              </div>
+              <input id="forgot-email-input"
+                     type="email"
+                     name="recovery_email"
+                     required
+                     autocomplete="email"
+                     spellcheck="false"
+                     autocapitalize="none"
+                     value=""
+                     placeholder="Nhập email công việc của bạn (vd: name@phucsinh.com)"
+                     class="w-full text-xs bg-slate-50/70 hover:bg-slate-50 focus:bg-white border border-slate-200/90 focus:border-accent-500 rounded-xl pl-10 pr-3.5 py-3.5 text-slate-900 placeholder:text-slate-400 font-medium transition-all">
+            </div>
+          </div>
+
+          <p id="password-reset-message" role="status" aria-live="polite" class="hidden rounded-xl border px-3.5 py-2.5 text-xs font-medium leading-relaxed break-words"></p>
+
+          <button id="forgot-submit-btn"
+                  type="submit"
+                  class="w-full py-3.5 px-5 rounded-xl bg-accent-600 hover:bg-accent-700 active:bg-accent-800 text-white font-condensed font-bold uppercase tracking-wider text-sm shadow-xs hover:shadow-sm flex items-center justify-center gap-2 transition-all cursor-pointer">
+            <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+            <span>Gửi Liên Kết Đặt Lại Mật Khẩu</span>
+          </button>
+        </form>
       </div>
 
     </div>
 
     <!-- Clean Corporate Copyright Footer -->
-    <footer class="pt-8 text-center lg:text-left border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-2">
+    <footer class="pt-6 text-center lg:text-left border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-2">
       <p class="text-[11px] text-slate-400 font-medium">
         &copy; Copyright Phuc Sinh Consumer Corp. All rights reserved.
       </p>
@@ -212,11 +308,15 @@
       const recoveryFromUrl = new URLSearchParams(window.location.hash.slice(1)).get('type') === 'recovery';
       if (client?.auth) {
         const { data: { session } = {} } = await client.auth.getSession();
-        if (recoveryFromUrl && session?.user) {
-          sessionStorage.setItem('k_password_recovery', '1');
-          await BookingData.establishAuthenticatedUser(session.user);
-          window.location.replace('index.html');
-          return;
+        if (session?.user) {
+          if (recoveryFromUrl) {
+            sessionStorage.setItem('k_password_recovery', '1');
+          }
+          const result = await BookingData.establishAuthenticatedUser(session.user);
+          if (result?.success) {
+            window.location.replace('index.html');
+            return;
+          }
         }
       }
       if (window.BookingData && BookingData.isAuthenticated()) {
@@ -241,26 +341,62 @@
       }
     }
 
-    async function requestPasswordReset() {
-      const email = document.getElementById('login-email-input')?.value.trim().toLowerCase();
+    function openForgotPasswordView() {
+      const loginView = document.getElementById('login-workspace-view');
+      const forgotView = document.getElementById('forgot-password-view');
+      const loginEmail = document.getElementById('login-email-input')?.value.trim() || '';
+      const forgotEmailInput = document.getElementById('forgot-email-input');
       const message = document.getElementById('password-reset-message');
+
+      if (loginView) loginView.classList.add('hidden');
+      if (forgotView) forgotView.classList.remove('hidden');
+      if (message) message.classList.add('hidden');
+
+      if (forgotEmailInput) {
+        if (!forgotEmailInput.value && loginEmail) {
+          forgotEmailInput.value = loginEmail;
+        }
+        setTimeout(() => forgotEmailInput.focus(), 50);
+      }
+    }
+
+    function closeForgotPasswordView() {
+      const loginView = document.getElementById('login-workspace-view');
+      const forgotView = document.getElementById('forgot-password-view');
+      if (forgotView) forgotView.classList.add('hidden');
+      if (loginView) loginView.classList.remove('hidden');
+      document.getElementById('login-email-input')?.focus();
+    }
+
+    async function handleForgotPasswordSubmit(event) {
+      if (event && event.preventDefault) event.preventDefault();
+      await requestPasswordReset();
+    }
+
+    async function requestPasswordReset() {
+      const forgotInput = document.getElementById('forgot-email-input');
+      const email = (forgotInput?.value || '').trim().toLowerCase();
+      const message = document.getElementById('password-reset-message');
+      const btn = document.getElementById('forgot-submit-btn');
+
       const showMessage = (text, tone = 'info') => {
         if (!message) return;
         const colors = {
           info: 'border-slate-200 bg-slate-50 text-slate-700',
-          success: 'border-emerald-200 bg-emerald-50 text-emerald-800',
+          success: 'border-accent-200 bg-accent-50 text-accent-700',
           warning: 'border-amber-200 bg-amber-50 text-amber-800',
           error: 'border-rose-200 bg-rose-50 text-rose-800'
         };
         message.textContent = text;
-        message.className = `block mt-2 rounded-xl border px-3 py-2 text-[11px] font-medium leading-relaxed break-words ${colors[tone] || colors.info}`;
+        message.className = `block rounded-xl border px-3.5 py-2.5 text-xs font-medium leading-relaxed break-words ${colors[tone] || colors.info}`;
       };
 
       if (!email) {
-        showMessage('Nhập email công việc để yêu cầu đặt lại mật khẩu.', 'warning');
-        document.getElementById('login-email-input')?.focus();
+        showMessage('Vui lòng nhập địa chỉ email tài khoản cần đặt lại mật khẩu.', 'warning');
+        forgotInput?.focus();
         return;
       }
+
       const client = window.SupabaseConfig?.getClient();
       if (!client?.auth) {
         showMessage('Dịch vụ xác thực hiện không khả dụng. Vui lòng thử lại sau.', 'error');
@@ -275,20 +411,37 @@
         ? 'https://vutranpk.github.io/booking/reset-password.html'
         : new URL('reset-password.html', window.location.href).href;
 
-      showMessage('Đang gửi yêu cầu đặt lại mật khẩu…');
-      const { error } = await client.auth.resetPasswordForEmail(email, { redirectTo });
-      if (error) {
-        const isRateLimit = /rate limit|429/i.test(error.message || '');
-        showMessage(
-          isRateLimit
-            ? 'Tạm vượt giới hạn gửi email. Hãy thử lại sau hoặc liên hệ quản trị viên để được hỗ trợ.'
-            : `Chưa gửi được yêu cầu (${error.message || 'Lỗi cấu hình Auth'}). Vui lòng thử lại hoặc liên hệ quản trị viên.`,
-          'error'
-        );
-      } else {
-        showMessage('Nếu email này có tài khoản, hệ thống sẽ gửi liên kết đặt lại mật khẩu. Hãy kiểm tra hộp thư đến và Spam.', 'success');
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = `<svg class="w-4 h-4 animate-spin flex-shrink-0" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><span>Đang gửi liên kết...</span>`;
+      }
+      showMessage('Đang gửi yêu cầu đặt lại mật khẩu…', 'info');
+      if (window.SystemLoader) {
+        window.SystemLoader.show('Đang gửi liên kết khôi phục…', `Đang kết nối máy chủ xác thực cho ${email}…`);
+      }
+
+      try {
+        const { error } = await client.auth.resetPasswordForEmail(email, { redirectTo });
+        if (error) {
+          const isRateLimit = /rate limit|429/i.test(error.message || '');
+          showMessage(
+            isRateLimit
+              ? 'Tạm vượt giới hạn gửi email. Hãy thử lại sau ít phút hoặc liên hệ quản trị viên.'
+              : `Chưa gửi được yêu cầu (${error.message || 'Lỗi cấu hình Auth'}). Vui lòng thử lại.`,
+            'error'
+          );
+        } else {
+          showMessage(`Đã gửi liên kết đặt lại mật khẩu tới ${email}. Vui lòng kiểm tra Hộp thư đến và mục Thư rác (Spam).`, 'success');
+        }
+      } finally {
+        if (window.SystemLoader) window.SystemLoader.hide();
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = `<svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg><span>Gửi Liên Kết Đặt Lại Mật Khẩu</span>`;
+        }
       }
     }
+
     async function handleStandaloneLogin(event) {
       if (event && event.preventDefault) event.preventDefault();
       const email = document.getElementById('login-email-input')?.value.trim().toLowerCase() || '';
@@ -313,17 +466,21 @@
         btn.disabled = true;
         btn.innerHTML = `<svg class="w-4 h-4 animate-spin flex-shrink-0" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> <span>Đang xác thực...</span>`;
       }
+      if (window.SystemLoader) {
+        window.SystemLoader.show('Đang xác thực đăng nhập…', 'Đang kiểm tra tài khoản và quyền truy cập trên máy chủ…');
+      }
 
       try {
         const result = await BookingData.loginWithEmailPassword(email, password);
         if (!result.success) {
+          if (window.SystemLoader) window.SystemLoader.hide();
           if (errBox && errMsg) {
             errMsg.textContent = result.message || 'Email hoặc mật khẩu không chính xác!';
             errBox.classList.remove('hidden');
           }
           if (btn) {
             btn.disabled = false;
-            btn.innerHTML = `<svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/></svg> <span>Đăng Nhập</span>`;
+            btn.innerHTML = `<svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/></svg> <span>Đăng Nhập Hệ Thống</span>`;
           }
           return;
         }
@@ -335,6 +492,7 @@
         }
         window.location.replace('index.html');
       } catch (err) {
+        if (window.SystemLoader) window.SystemLoader.hide();
         console.error('Login error:', err);
         if (errBox && errMsg) {
           errMsg.textContent = err.message || 'Đã xảy ra lỗi kết nối, vui lòng thử lại!';
@@ -342,7 +500,7 @@
         }
         if (btn) {
           btn.disabled = false;
-          btn.innerHTML = `<span>Đăng Nhập</span>`;
+          btn.innerHTML = `<span>Đăng Nhập Hệ Thống</span>`;
         }
       }
     }

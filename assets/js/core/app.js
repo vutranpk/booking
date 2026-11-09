@@ -338,25 +338,25 @@ const App = {
         topAvatarEl.textContent = avatarInitials;
       }
       if (isSuper || isAdmin) {
-        topAvatarEl.className = 'w-8 h-8 rounded-full bg-amber-500 text-white font-bold flex items-center justify-center text-xs flex-shrink-0 border border-amber-600 shadow-2xs overflow-hidden';
+        topAvatarEl.className = 'w-9 h-9 rounded-full bg-amber-500 text-white font-condensed font-bold flex items-center justify-center text-xs flex-shrink-0 ring-2 ring-white shadow-xs overflow-hidden transition-transform group-hover:scale-105';
       } else if (isApprover) {
-        topAvatarEl.className = 'w-8 h-8 rounded-full bg-brand-50 text-brand-700 font-bold flex items-center justify-center text-xs flex-shrink-0 border border-brand-200 shadow-2xs overflow-hidden';
+        topAvatarEl.className = 'w-9 h-9 rounded-full bg-brand-700 text-white font-condensed font-bold flex items-center justify-center text-xs flex-shrink-0 ring-2 ring-white shadow-xs overflow-hidden transition-transform group-hover:scale-105';
       } else if (isTechnician) {
-        topAvatarEl.className = 'w-8 h-8 rounded-full bg-accent-600 text-white font-bold flex items-center justify-center text-xs flex-shrink-0 border border-accent-700 shadow-2xs overflow-hidden';
+        topAvatarEl.className = 'w-9 h-9 rounded-full bg-accent-600 text-white font-condensed font-bold flex items-center justify-center text-xs flex-shrink-0 ring-2 ring-white shadow-xs overflow-hidden transition-transform group-hover:scale-105';
       } else {
-        topAvatarEl.className = 'w-8 h-8 rounded-full bg-slate-200 text-slate-700 font-bold flex items-center justify-center text-xs flex-shrink-0 border border-slate-300 shadow-2xs overflow-hidden';
+        topAvatarEl.className = 'w-9 h-9 rounded-full bg-slate-200 text-slate-700 font-condensed font-bold flex items-center justify-center text-xs flex-shrink-0 ring-2 ring-white shadow-xs overflow-hidden transition-transform group-hover:scale-105';
       }
     }
     if (topRoleEl) {
       topRoleEl.textContent = roleLabel;
       if (isAdmin) {
-        topRoleEl.className = 'text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200 inline-block mt-0.5';
+        topRoleEl.className = 'text-[11px] font-condensed font-bold uppercase tracking-wider text-amber-600 leading-none';
       } else if (isApprover) {
-        topRoleEl.className = 'text-[10px] font-bold text-brand-700 bg-brand-50 px-2 py-0.5 rounded-full border border-brand-200 inline-block mt-0.5';
+        topRoleEl.className = 'text-[11px] font-condensed font-bold uppercase tracking-wider text-brand-600 leading-none';
       } else if (isTechnician) {
-        topRoleEl.className = 'text-[10px] font-bold text-accent-800 bg-accent-50 px-2 py-0.5 rounded-full border border-accent-300 inline-block mt-0.5';
+        topRoleEl.className = 'text-[11px] font-condensed font-bold uppercase tracking-wider text-accent-700 leading-none';
       } else {
-        topRoleEl.className = 'text-[10px] font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200 inline-block mt-0.5';
+        topRoleEl.className = 'text-[11px] font-condensed font-semibold uppercase tracking-wider text-slate-500 leading-none';
       }
     }
 

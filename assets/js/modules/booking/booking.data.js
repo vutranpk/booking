@@ -383,11 +383,18 @@ const BookingData = {
     }
   },
 
-  async syncWithSupabase() {
+  _initialSyncCompleted: false,
+
+  async syncWithSupabase(options = {}) {
     const client = window.SupabaseConfig ? window.SupabaseConfig.getClient() : null;
     if (!client) {
       this.updateCloudStatus(false, 'Chưa tải được Supabase SDK');
       return;
+    }
+
+    const shouldShowLoader = (!this._initialSyncCompleted && !options.silent && !window.location.pathname.endsWith('login.html')) || options.showLoader;
+    if (shouldShowLoader && window.SystemLoader) {
+      window.SystemLoader.show('Đang tải dữ liệu từ máy chủ…', 'Đang đồng bộ lịch trực, kỹ sư và phân quyền mới nhất…');
     }
 
     try {
@@ -536,24 +543,29 @@ const BookingData = {
           .channel('public:system_changes')
           .on('postgres_changes', { event: '*', schema: 'public', table: 'bookings' }, (payload) => {
             console.log('⚡ Realtime sync [bookings]:', payload);
-            this.syncWithSupabase();
+            this.syncWithSupabase({ silent: true });
           })
           .on('postgres_changes', { event: '*', schema: 'public', table: 'technicians' }, (payload) => {
             console.log('⚡ Realtime sync [technicians]:', payload);
-            this.syncWithSupabase();
+            this.syncWithSupabase({ silent: true });
           })
           .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, (payload) => {
             console.log('⚡ Realtime sync [users]:', payload);
-            this.syncWithSupabase();
+            this.syncWithSupabase({ silent: true });
           })
           .subscribe();
       }
 
+      this._initialSyncCompleted = true;
       this.updateCloudStatus(true);
       console.log('✅ Supabase Cloud connected & synced successfully (' + (remoteBookings?.length || 0) + ' bookings).');
     } catch (err) {
       console.warn('Supabase sync warning:', err);
       this.updateCloudStatus(false, err?.message);
+    } finally {
+      if (shouldShowLoader && window.SystemLoader) {
+        window.SystemLoader.hide();
+      }
     }
   },
 
@@ -645,12 +657,15 @@ const BookingData = {
       target_roles: ['admin', 'approver']
     });
 
-    // Asynchronously push to Supabase
+    // Push to Supabase with SystemLoader action lock
     const client = window.SupabaseConfig ? window.SupabaseConfig.getClient() : null;
     if (client) {
-      client.from('bookings').insert([newBooking]).then(({ error }) => {
+      const insertPromise = client.from('bookings').insert([newBooking]).then(({ error }) => {
         if (error) console.warn('Supabase insert booking warning:', error);
       });
+      if (window.SystemLoader) {
+        window.SystemLoader.track(insertPromise, 'Đang lưu yêu cầu đặt lịch…', 'Đang ghi dữ liệu ca trực lên máy chủ Supabase');
+      }
     }
 
     return { success: true, booking: newBooking };
@@ -683,9 +698,12 @@ const BookingData = {
 
     const client = window.SupabaseConfig ? window.SupabaseConfig.getClient() : null;
     if (client) {
-      client.from('bookings').update({ status: 'APPROVED', approver_email, reject_reason: '' }).eq('booking_id', booking_id).then(({ error }) => {
+      const approvePromise = client.from('bookings').update({ status: 'APPROVED', approver_email, reject_reason: '' }).eq('booking_id', booking_id).then(({ error }) => {
         if (error) console.warn('Supabase approve warning:', error); else this.syncGoogleCalendarBooking(booking_id);
       });
+      if (window.SystemLoader) {
+        window.SystemLoader.track(approvePromise, 'Đang phê duyệt ca trực…', 'Đang khóa khung giờ và đồng bộ lịch máy chủ');
+      }
     }
 
     return { success: true, booking };
@@ -716,9 +734,12 @@ const BookingData = {
 
     const client = window.SupabaseConfig ? window.SupabaseConfig.getClient() : null;
     if (client) {
-      client.from('bookings').update({ status: 'REJECTED', approver_email, reject_reason: reason.trim() }).eq('booking_id', booking_id).then(({ error }) => {
+      const rejectPromise = client.from('bookings').update({ status: 'REJECTED', approver_email, reject_reason: reason.trim() }).eq('booking_id', booking_id).then(({ error }) => {
         if (error) console.warn('Supabase reject warning:', error); else this.syncGoogleCalendarBooking(booking_id);
       });
+      if (window.SystemLoader) {
+        window.SystemLoader.track(rejectPromise, 'Đang cập nhật từ chối…', 'Đang ghi trạng thái và giải phóng khung giờ trên máy chủ');
+      }
     }
 
     return { success: true, booking };
@@ -744,9 +765,12 @@ const BookingData = {
 
     const client = window.SupabaseConfig ? window.SupabaseConfig.getClient() : null;
     if (client) {
-      client.rpc('cancel_my_booking', { p_booking_id: booking_id }).then(({ data, error }) => {
+      const cancelPromise = client.rpc('cancel_my_booking', { p_booking_id: booking_id }).then(({ data, error }) => {
         if (error || !data) console.warn('Supabase cancel rejected:', error || 'Booking is not owned by the authenticated user or is no longer cancellable.'); else this.syncGoogleCalendarBooking(booking_id);
       });
+      if (window.SystemLoader) {
+        window.SystemLoader.track(cancelPromise, 'Đang hủy yêu cầu đặt lịch…', 'Đang cập nhật trạng thái hủy trên máy chủ');
+      }
     }
 
     return { success: true, booking };
@@ -820,9 +844,12 @@ const BookingData = {
 
     const client = window.SupabaseConfig ? window.SupabaseConfig.getClient() : null;
     if (client) {
-      client.from('bookings').update({ booking_date: newStartDateStr, end_date: newEndDateStr }).eq('booking_id', booking_id).then(({ error }) => {
+      const reschedulePromise = client.from('bookings').update({ booking_date: newStartDateStr, end_date: newEndDateStr }).eq('booking_id', booking_id).then(({ error }) => {
         if (error) console.warn('Supabase reschedule warning:', error); else this.syncGoogleCalendarBooking(booking_id);
       });
+      if (window.SystemLoader) {
+        window.SystemLoader.track(reschedulePromise, 'Đang cập nhật lịch trực…', 'Đang lưu thay đổi ngày trực lên máy chủ');
+      }
     }
 
     return {
