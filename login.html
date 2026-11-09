@@ -49,45 +49,18 @@
     <div class="absolute inset-0 bg-cover bg-center opacity-45" style="background-image: url('images/bg-login.webp')"></div>
     <div class="absolute inset-0 bg-gradient-to-br from-[#0b1428]/85 via-[#192b52]/75 to-[#213664]/80"></div>
 
-    <!-- Top: Logo & Live Badge -->
-    <div class="relative z-10 flex items-center justify-between gap-3">
-      <div class="px-3.5 py-2.5 sm:px-4 sm:py-3 rounded-2xl inline-flex items-center bg-white shadow-sm">
-        <img src="images/logo-full.png" alt="Phúc Sinh Consumer Corp." class="h-8 sm:h-10 w-auto object-contain">
-      </div>
-      <div class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-xs border border-white/15 text-white text-[11px] font-condensed font-bold uppercase tracking-wider">
-        <span class="w-2 h-2 rounded-full bg-accent-500"></span>
-        <span>K-Workspace Live</span>
-      </div>
-    </div>
 
     <!-- Center: Punchy Brand Editorial -->
     <div class="relative z-10 my-6 sm:my-10 lg:my-auto max-w-lg space-y-3 sm:space-y-4">
       <div class="inline-flex items-center gap-2 text-accent-400 font-condensed text-xs sm:text-sm font-bold uppercase tracking-widest">
         <span class="w-6 h-0.5 bg-accent-500"></span>
-        <span>Hệ Thống Điều Phối Kỹ Thuật</span>
       </div>
       <h2 class="font-condensed text-3xl sm:text-5xl xl:text-6xl font-black text-white tracking-tight leading-[1.08] uppercase">
-        Quản Trị &amp; <br class="hidden sm:inline">Vận Hành Ca Trực
+        Quản Trị &amp; <br class="hidden sm:inline">Vận Hành
       </h2>
       <p class="text-xs sm:text-sm text-white/80 leading-relaxed font-normal max-w-md">
         Nền tảng điều phối kỹ sư hiện trường, phê duyệt lịch trực và đồng bộ thời gian thực toàn hệ thống Phúc Sinh.
       </p>
-    </div>
-
-    <!-- Bottom: Architectural Capability Strip (Desktop & Tablet) -->
-    <div class="relative z-10 hidden sm:grid grid-cols-3 divide-x divide-white/15 border-t border-white/15 pt-5 text-white">
-      <div class="pr-4">
-        <p class="font-condensed text-xs font-bold uppercase tracking-wider text-accent-400">Thời gian thực</p>
-        <p class="text-[11px] text-white/75 mt-0.5">Đồng bộ lịch trực &amp; kiểm tra trùng ca tức thì</p>
-      </div>
-      <div class="px-4">
-        <p class="font-condensed text-xs font-bold uppercase tracking-wider text-accent-400">Phân quyền 3 cấp</p>
-        <p class="text-[11px] text-white/75 mt-0.5">Admin, Vận hành, Kỹ sư &amp; Người đặt lịch</p>
-      </div>
-      <div class="pl-4">
-        <p class="font-condensed text-xs font-bold uppercase tracking-wider text-accent-400">Lịch mời (.ics)</p>
-        <p class="text-[11px] text-white/75 mt-0.5">Tự động gửi thông báo &amp; Google Calendar</p>
-      </div>
     </div>
   </aside>
 
@@ -98,9 +71,11 @@
 
     <!-- Top Right Quick Link -->
     <div class="flex items-center justify-between">
-      <span class="font-condensed text-xs font-bold uppercase tracking-wider text-slate-400">Cổng xác thực nội bộ</span>
+      <div class="inline-flex items-center mb-6">
+        <img src="images/logo-full.png" alt="Phúc Sinh Consumer Corp." class="h-8 sm:h-10 w-auto object-contain">
+      </div>
       <a href="public-reports.html" class="inline-flex items-center gap-1.5 text-xs font-bold font-condensed uppercase tracking-wider text-brand-600 hover:text-accent-600 transition-colors">
-        <span>Xem lịch trực công khai</span>
+        <span>Xem lịch trực</span>
         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
       </a>
     </div>
@@ -201,29 +176,6 @@
           </button>
 
         </form>
-
-        <!-- Public Schedule Quick Access Bar -->
-        <div class="mt-6 pt-5 border-t border-slate-100">
-          <a href="public-reports.html" class="group flex w-full items-center justify-between rounded-xl border border-slate-200/90 bg-slate-50/60 hover:bg-accent-50/50 hover:border-accent-200 px-4 py-3 transition-all">
-            <div class="flex items-center gap-3 min-w-0">
-              <div class="w-8 h-8 rounded-lg bg-white border border-slate-200/80 text-brand-600 group-hover:bg-accent-600 group-hover:text-white group-hover:border-accent-600 flex items-center justify-center flex-shrink-0 transition-colors">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-              </div>
-              <div class="min-w-0 text-left">
-                <p class="text-xs font-bold text-slate-800 group-hover:text-accent-700 transition-colors">Xem lịch &amp; báo cáo kỹ sư</p>
-                <p class="text-[11px] text-slate-500 truncate">Chế độ tra cứu nhanh không cần đăng nhập</p>
-              </div>
-            </div>
-            <svg class="w-4 h-4 text-slate-400 group-hover:text-accent-600 group-hover:translate-x-0.5 transition-all flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-          </a>
-        </div>
-
-        <!-- Minimalist Support Notice -->
-        <div class="mt-5 text-center">
-          <p class="text-[11px] text-slate-400">
-            Chưa có quyền truy cập? Liên hệ <strong class="text-slate-600 font-semibold">Quản trị viên</strong> để được cấp tài khoản.
-          </p>
-        </div>
       </div>
 
       <!-- ==================================================== -->
@@ -283,10 +235,10 @@
     <!-- Clean Corporate Copyright Footer -->
     <footer class="pt-6 text-center lg:text-left border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-2">
       <p class="text-[11px] text-slate-400 font-medium">
-        &copy; Copyright Phuc Sinh Consumer Corp. All rights reserved.
+        &copy; Copyright Phuc Sinh Consumer Corp.
       </p>
       <p class="text-[10px] text-slate-400 font-medium">
-        Designed by <span class="font-bold text-brand-600">Vu Tran</span>
+        All rights reserved.
       </p>
     </footer>
 
