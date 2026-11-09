@@ -4977,7 +4977,7 @@ const BookingUI = {
     const container = document.getElementById('user-detail-avatar-container');
     if (!container) return;
     if (url && (url.startsWith('data:image') || url.startsWith('http://') || url.startsWith('https://'))) {
-      container.innerHTML = `<img src="${url}" alt="Avatar" class="w-full h-full object-cover">`;
+      container.innerHTML = `<img src="${url}" alt="Avatar" class="w-full h-full object-cover block max-w-full max-h-full">`;
     } else {
       const initial = (fallbackName || 'U').charAt(0).toUpperCase();
       container.innerHTML = `<span class="text-slate-700 font-bold text-xl">${initial}</span>`;
