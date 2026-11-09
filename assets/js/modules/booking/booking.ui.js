@@ -1487,7 +1487,7 @@ const BookingUI = {
     const thirtyDaysAgoTime = nowTime - (30 * 24 * 60 * 60 * 1000);
     const thirtyDaysFutureTime = nowTime + (30 * 24 * 60 * 60 * 1000);
     const shifts30Days = BookingData.bookings.filter(b => {
-      if (b.status !== 'APPROVED') return false;
+      if (b.status !== 'APPROVED' && b.status !== 'COMPLETED') return false;
       if (isTechnician && techId && b.tech_id !== techId) return false;
       const dStr = b.booking_date || b.date;
       if (!dStr) return false;
@@ -1655,6 +1655,7 @@ const BookingUI = {
 
     shiftsContainer.innerHTML = upcomingBookings.map(b => {
       const tech = BookingData.technicians.find(t => t.tech_id === b.tech_id);
+      const isCompleted = b.status === 'COMPLETED';
       const isApproved = b.status === 'APPROVED';
       const isTodayShift = b.booking_date <= todayStr && (b.end_date || b.booking_date) >= todayStr;
       const parts = (b.booking_date || '').split('-');
@@ -1664,11 +1665,21 @@ const BookingUI = {
         ? `${this.formatDateDisplay(b.booking_date)} → ${this.formatDateDisplay(b.end_date)}`
         : this.formatDateDisplay(b.booking_date);
 
+      let dateBadgeClass = 'bg-slate-50 border-slate-200/80 text-slate-800';
+      let statusBadgeHtml = '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold font-condensed uppercase tracking-wide bg-amber-50 text-amber-800 border border-amber-200">Chờ duyệt</span>';
+      if (isCompleted) {
+        dateBadgeClass = 'bg-blue-50 border-blue-200 text-blue-800';
+        statusBadgeHtml = '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold font-condensed uppercase tracking-wide bg-blue-50 text-blue-700 border border-blue-200">Hoàn thành</span>';
+      } else if (isApproved) {
+        dateBadgeClass = isTodayShift ? 'bg-accent-50 border-accent-200 text-accent-800' : 'bg-slate-50 border-slate-200/80 text-slate-800';
+        statusBadgeHtml = '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold font-condensed uppercase tracking-wide bg-accent-50 text-accent-700 border border-accent-200">Đã duyệt</span>';
+      }
+
       return `
         <div onclick="BookingUI.openDetailModal('${b.booking_id}')" class="px-4 py-3 flex items-center justify-between gap-3 hover:bg-slate-50/90 transition-colors cursor-pointer group">
           <div class="flex items-center gap-3 min-w-0">
             <!-- Date Badge (Roboto Condensed) -->
-            <div class="w-11 h-11 rounded-xl ${isTodayShift ? 'bg-accent-50 border-accent-200 text-accent-800' : 'bg-slate-50 border-slate-200/80 text-slate-800'} border flex flex-col items-center justify-center flex-shrink-0 font-condensed">
+            <div class="w-11 h-11 rounded-xl ${dateBadgeClass} border flex flex-col items-center justify-center flex-shrink-0 font-condensed">
               <span class="text-[10px] font-bold uppercase leading-none opacity-75">${isTodayShift ? 'H.NAY' : monthStr}</span>
               <span class="text-base font-black leading-tight">${dayStr}</span>
             </div>
@@ -1687,9 +1698,7 @@ const BookingUI = {
           </div>
 
           <div class="flex items-center gap-2 flex-shrink-0">
-            ${isApproved
-              ? '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold font-condensed uppercase tracking-wide bg-accent-50 text-accent-700 border border-accent-200">Đã duyệt</span>'
-              : '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold font-condensed uppercase tracking-wide bg-amber-50 text-amber-800 border border-amber-200">Chờ duyệt</span>'}
+            ${statusBadgeHtml}
             <svg class="w-4 h-4 text-slate-300 group-hover:text-slate-600 group-hover:translate-x-0.5 transition-all hidden sm:block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
           </div>
         </div>
@@ -1708,7 +1717,7 @@ const BookingUI = {
       ? (BookingData.bookings || []).filter(b => Boolean(techId) && b.tech_id === techId)
       : (BookingData.bookings || []);
     const pendingCount = scopedBookings.filter(b => b.status === 'PENDING').length;
-    const approvedCount = scopedBookings.filter(b => b.status === 'APPROVED').length;
+    const approvedCount = scopedBookings.filter(b => b.status === 'APPROVED' || b.status === 'COMPLETED').length;
     const totalCount = scopedBookings.filter(b => b.status !== 'CANCELLED' && b.status !== 'REJECTED').length;
     const myBookings = isTechnician
       ? scopedBookings
@@ -2075,6 +2084,7 @@ const BookingUI = {
                 }
 
                 const tech = BookingData.technicians.find(t => t.tech_id === b.tech_id);
+                const isCompleted = b.status === 'COMPLETED';
                 const isApproved = b.status === 'APPROVED';
                 const bStart = b.booking_date;
                 const bEnd = b.end_date || b.booking_date;
@@ -2085,7 +2095,7 @@ const BookingUI = {
                 const bTime = (b.start_time && b.end_time) ? `${b.start_time.slice(0, 5)}-${b.end_time.slice(0, 5)}` : '';
                 const bTimeBadge = bTime ? `<span class="text-[9px] font-mono font-bold bg-black/20 px-1 py-0.5 rounded text-white/95 leading-none shrink-0">${bTime}</span>` : '';
 
-                const canDrag = BookingData.hasPermission('drag_reschedule');
+                const canDrag = BookingData.hasPermission('drag_reschedule') && !isCompleted;
                 const dragAttrs = canDrag ? `draggable="true" ondragstart="BookingUI.handleDragStart(event, '${b.booking_id}')" ondragend="BookingUI.handleDragEnd(event)"` : '';
                 const dragCursorClass = canDrag ? 'cursor-grab active:cursor-grabbing hover:brightness-95' : 'cursor-pointer';
                 const dragHint = canDrag ? ' • Kéo thả để dời ngày' : '';
@@ -2093,8 +2103,20 @@ const BookingUI = {
                 const isFirstCol = dayIdx === 0;
                 const isLastCol = dayIdx === 6;
 
-                const baseBg = isApproved ? 'bg-accent-600 hover:bg-accent-700' : 'bg-orange-500 hover:bg-orange-600';
-                const borderColor = isApproved ? 'border-accent-500/60' : 'border-orange-400/60';
+                let baseBg = 'bg-orange-500 hover:bg-orange-600';
+                let borderColor = 'border-orange-400/60';
+                let statusLabel = 'Chờ duyệt';
+                if (isCompleted) {
+                  baseBg = 'bg-blue-600 hover:bg-blue-700';
+                  borderColor = 'border-blue-500/60';
+                  statusLabel = 'Đã hoàn thành';
+                } else if (isApproved) {
+                  baseBg = 'bg-accent-600 hover:bg-accent-700';
+                  borderColor = 'border-accent-500/60';
+                  statusLabel = 'Đã duyệt';
+                }
+
+                const completedIcon = isCompleted ? `<span class="w-3.5 h-3.5 rounded-full bg-white/25 flex items-center justify-center shrink-0 text-white" title="Đã hoàn thành"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg></span>` : '';
 
                 const extendRight = !isLastCol && !isEnd;
                 const extendLeft = !isFirstCol && !isStart;
@@ -2104,8 +2126,9 @@ const BookingUI = {
                     <div onclick="event.stopPropagation(); if (!BookingUI.justDropped) BookingUI.openDetailModal('${b.booking_id}')"
                          ${dragAttrs}
                          class="h-6 sm:h-8 w-full px-1.5 sm:px-2 rounded-lg ${baseBg} border ${borderColor} text-white transition-all flex items-center justify-between gap-1 shadow-2xs ${dragCursorClass}"
-                         title="${tech ? tech.name : ''}: ${b.title} (${b.location || 'Văn phòng'}) [${bTime || '08:00 - 17:00'}] • ${isApproved ? 'Đã duyệt' : 'Chờ duyệt'}${dragHint}">
+                         title="${tech ? tech.name : ''}: ${b.title} (${b.location || 'Văn phòng'}) [${bTime || '08:00 - 17:00'}] • ${statusLabel}${dragHint}">
                       <div class="flex items-center gap-1 min-w-0">
+                        ${completedIcon}
                         ${bTimeBadge}
                         <span class="text-[10px] sm:text-xs font-bold font-condensed tracking-tight text-white truncate leading-none select-none">${techShortName}</span>
                         <span class="hidden sm:inline text-[10px] text-white/90 truncate font-sans">• ${b.title}</span>
@@ -2119,7 +2142,8 @@ const BookingUI = {
                     <div onclick="event.stopPropagation(); if (!BookingUI.justDropped) BookingUI.openDetailModal('${b.booking_id}')"
                          ${dragAttrs}
                          class="h-6 sm:h-8 ${rightMargin} px-1.5 sm:px-2 rounded-l-lg ${baseBg} border-y border-l ${borderColor} text-white flex items-center gap-1 z-20 shadow-2xs transition-all ${dragCursorClass}"
-                         title="${tech ? tech.name : ''}: ${b.title} (${bStart} đến ${bEnd}) [${bTime || '08:00 - 17:00'}] • ${isApproved ? 'Đã duyệt' : 'Chờ duyệt'}${dragHint}">
+                         title="${tech ? tech.name : ''}: ${b.title} (${bStart} đến ${bEnd}) [${bTime || '08:00 - 17:00'}] • ${statusLabel}${dragHint}">
+                      ${completedIcon}
                       ${bTimeBadge}
                       <span class="text-[10px] sm:text-xs font-bold font-condensed tracking-tight text-white truncate leading-none select-none">
                         ${isWeekContinuation ? `↳ ${techShortName}` : techShortName}
@@ -2133,7 +2157,7 @@ const BookingUI = {
                     <div onclick="event.stopPropagation(); if (!BookingUI.justDropped) BookingUI.openDetailModal('${b.booking_id}')"
                          ${dragAttrs}
                          class="h-6 sm:h-8 ${leftMargin} px-1.5 rounded-r-lg ${baseBg} border-y border-r ${borderColor} text-white flex items-center justify-end z-20 shadow-2xs transition-all ${dragCursorClass}"
-                         title="${tech ? tech.name : ''}: ${b.title} (${isEnd ? `Hết ca ${bEnd}` : 'Tiếp tục tuần sau'}) [${bTime || '08:00 - 17:00'}] • ${isApproved ? 'Đã duyệt' : 'Chờ duyệt'}${dragHint}">
+                         title="${tech ? tech.name : ''}: ${b.title} (${isEnd ? `Hết ca ${bEnd}` : 'Tiếp tục tuần sau'}) [${bTime || '08:00 - 17:00'}] • ${statusLabel}${dragHint}">
                     </div>
                   `;
                 } else {
@@ -2149,7 +2173,7 @@ const BookingUI = {
                     <div onclick="event.stopPropagation(); if (!BookingUI.justDropped) BookingUI.openDetailModal('${b.booking_id}')"
                          ${dragAttrs}
                          class="h-6 sm:h-8 ${spanClass} ${baseBg} border-y ${borderColor} text-white flex items-center justify-center z-20 shadow-2xs transition-all ${dragCursorClass}"
-                         title="${tech ? tech.name : ''}: ${b.title} (${bStart} đến ${bEnd}) • ${isApproved ? 'Đã duyệt' : 'Chờ duyệt'}${dragHint}">
+                         title="${tech ? tech.name : ''}: ${b.title} (${bStart} đến ${bEnd}) • ${statusLabel}${dragHint}">
                     </div>
                   `;
                 }
@@ -2226,6 +2250,7 @@ const BookingUI = {
       <div class="divide-y divide-slate-100">
         ${monthBookings.map(b => {
           const tech = BookingData.technicians.find(t => t.tech_id === b.tech_id);
+          const isCompleted = b.status === 'COMPLETED';
           const isApproved = b.status === 'APPROVED';
           const isTodayShift = b.booking_date <= todayStr && (b.end_date || b.booking_date) >= todayStr;
           const parts = (b.booking_date || '').split('-');
@@ -2236,10 +2261,23 @@ const BookingUI = {
             ? this.formatDateDisplay(b.booking_date)
             : `${this.formatDateDisplay(b.booking_date)} → ${this.formatDateDisplay(bEnd)}`;
 
+          let agendaBadgeClass = 'bg-orange-50 text-orange-700 border border-orange-200';
+          let agendaStatusText = 'Chờ duyệt';
+          let agendaDateBoxClass = 'bg-orange-50 text-orange-800 border border-orange-200/80';
+          if (isCompleted) {
+            agendaBadgeClass = 'bg-blue-50 text-blue-700 border border-blue-200';
+            agendaStatusText = 'Hoàn thành';
+            agendaDateBoxClass = 'bg-blue-50 text-blue-800 border border-blue-200/80';
+          } else if (isApproved) {
+            agendaBadgeClass = 'bg-accent-50 text-accent-700 border border-accent-200';
+            agendaStatusText = 'Đã duyệt';
+            agendaDateBoxClass = 'bg-accent-50 text-accent-800 border border-accent-200/80';
+          }
+
           return `
             <div onclick="BookingUI.openDetailModal('${b.booking_id}')" class="px-4 py-3 flex items-center justify-between gap-3 hover:bg-slate-50/90 transition-colors cursor-pointer group">
               <div class="flex items-center gap-3 min-w-0">
-                <div class="w-10 h-10 rounded-xl ${isTodayShift ? 'bg-brand-600 text-white' : (isApproved ? 'bg-accent-50 text-accent-800 border border-accent-200/80' : 'bg-orange-50 text-orange-800 border border-orange-200/80')} flex flex-col items-center justify-center flex-shrink-0 font-condensed">
+                <div class="w-10 h-10 rounded-xl ${isTodayShift ? 'bg-brand-600 text-white' : agendaDateBoxClass} flex flex-col items-center justify-center flex-shrink-0 font-condensed">
                   <span class="text-[9px] font-bold uppercase leading-none opacity-80">${monthNum}</span>
                   <span class="text-sm font-black leading-tight">${dayNum}</span>
                 </div>
@@ -2260,8 +2298,8 @@ const BookingUI = {
                 </div>
               </div>
               <div class="flex items-center gap-2 flex-shrink-0">
-                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold font-condensed uppercase ${isApproved ? 'bg-accent-50 text-accent-700 border border-accent-200' : 'bg-orange-50 text-orange-700 border border-orange-200'}">
-                  ${isApproved ? 'Đã duyệt' : 'Chờ duyệt'}
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold font-condensed uppercase ${agendaBadgeClass}">
+                  ${agendaStatusText}
                 </span>
                 <svg class="w-4 h-4 text-slate-300 group-hover:text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
               </div>
@@ -4028,7 +4066,7 @@ const BookingUI = {
     const thirtyDaysAgoTime = nowTime - (30 * 24 * 60 * 60 * 1000);
     const thirtyDaysFutureTime = nowTime + (30 * 24 * 60 * 60 * 1000);
     const shifts30Days = (BookingData.bookings || []).filter(b => {
-      if (b.status !== 'APPROVED') return false;
+      if (b.status !== 'APPROVED' && b.status !== 'COMPLETED') return false;
       const dStr = b.booking_date || b.date;
       if (!dStr) return false;
       const bTime = new Date(dStr).getTime();

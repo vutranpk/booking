@@ -139,6 +139,9 @@
   }
 
   function statusBadge(status) {
+    if (status === 'COMPLETED') {
+      return '<span class="inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-condensed uppercase tracking-wider font-bold border bg-blue-50 text-blue-700 border-blue-200"><span class="h-1.5 w-1.5 rounded-full bg-blue-600"></span>Hoàn thành</span>';
+    }
     const approved = status === 'APPROVED';
     return `<span class="inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-condensed uppercase tracking-wider font-bold border ${approved ? 'bg-accent-50 text-accent-700 border-accent-200' : 'bg-amber-50 text-amber-700 border-amber-200'}"><span class="h-1.5 w-1.5 rounded-full ${approved ? 'bg-accent-600' : 'bg-amber-500'}"></span>${approved ? 'Đã duyệt' : 'Chờ duyệt'}</span>`;
   }
@@ -372,6 +375,7 @@
                   return `<div class="h-6 sm:h-8 w-full invisible pointer-events-none"></div>`;
                 }
 
+                const isCompleted = b.status === 'COMPLETED';
                 const isApproved = b.status === 'APPROVED';
                 const bStart = b.booking_date;
                 const bEnd = b.end_date || b.booking_date;
@@ -384,8 +388,20 @@
                 const isFirstCol = dayIdx === 0;
                 const isLastCol = dayIdx === 6;
 
-                const baseBg = isApproved ? 'bg-accent-600 hover:bg-accent-700' : 'bg-orange-500 hover:bg-orange-600';
-                const borderColor = isApproved ? 'border-accent-500/60' : 'border-orange-400/60';
+                let baseBg = 'bg-orange-500 hover:bg-orange-600';
+                let borderColor = 'border-orange-400/60';
+                let statusLabel = 'Chờ duyệt';
+                if (isCompleted) {
+                  baseBg = 'bg-blue-600 hover:bg-blue-700';
+                  borderColor = 'border-blue-500/60';
+                  statusLabel = 'Đã hoàn thành';
+                } else if (isApproved) {
+                  baseBg = 'bg-accent-600 hover:bg-accent-700';
+                  borderColor = 'border-accent-500/60';
+                  statusLabel = 'Đã duyệt';
+                }
+
+                const completedIcon = isCompleted ? `<span class="w-3.5 h-3.5 rounded-full bg-white/25 flex items-center justify-center shrink-0 text-white" title="Đã hoàn thành"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg></span>` : '';
 
                 const extendRight = !isLastCol && !isEnd;
                 const extendLeft = !isFirstCol && !isStart;
@@ -393,7 +409,7 @@
                 const eTime = b.end_time || state.detailsByBookingId.get(b.booking_id)?.end_time;
                 const timeStr = (sTime && eTime) ? `${timeLabel(sTime)} - ${timeLabel(eTime)}` : '';
                 const timeBadge = (sTime && eTime) ? `<span class="text-[9px] font-mono font-bold bg-black/20 px-1 py-0.5 rounded text-white/95 leading-none shrink-0">${timeLabel(sTime)}-${timeLabel(eTime)}</span>` : '';
-                const tooltip = `${b.engineer_name || ''}${titleText ? `: ${titleText}` : ''} (${bStart}${!isSingleDay ? ` đến ${bEnd}` : ''}) [${timeStr || 'Cả ngày'}] • ${isApproved ? 'Đã duyệt' : 'Chờ duyệt'}`;
+                const tooltip = `${b.engineer_name || ''}${titleText ? `: ${titleText}` : ''} (${bStart}${!isSingleDay ? ` đến ${bEnd}` : ''}) [${timeStr || 'Cả ngày'}] • ${statusLabel}`;
 
                 if (isSingleDay) {
                   return `
@@ -401,6 +417,7 @@
                           class="h-6 sm:h-8 w-full px-1.5 sm:px-2 rounded-lg ${baseBg} border ${borderColor} text-white transition-all flex items-center justify-between gap-1 shadow-2xs cursor-pointer"
                           title="${escapeHtml(tooltip)}">
                       <div class="flex items-center gap-1 min-w-0">
+                        ${completedIcon}
                         ${timeBadge}
                         <span class="text-[10px] sm:text-xs font-bold font-condensed tracking-tight text-white truncate leading-none select-none">${escapeHtml(techShortName)}</span>
                         ${titleText ? `<span class="hidden sm:inline text-[10px] text-white/90 truncate font-sans">• ${escapeHtml(titleText)}</span>` : ''}
@@ -414,6 +431,7 @@
                     <div data-booking-id="${escapeHtml(b.booking_id)}"
                           class="h-6 sm:h-8 ${rightMargin} px-1.5 sm:px-2 rounded-l-lg ${baseBg} border-y border-l ${borderColor} text-white flex items-center gap-1 z-20 shadow-2xs transition-all cursor-pointer"
                           title="${escapeHtml(tooltip)}">
+                      ${completedIcon}
                       ${timeBadge}
                       <span class="text-[10px] sm:text-xs font-bold font-condensed tracking-tight text-white truncate leading-none select-none">
                         ${isWeekContinuation ? `↳ ${escapeHtml(techShortName)}` : escapeHtml(techShortName)}
@@ -425,8 +443,8 @@
                   const leftMargin = extendLeft ? 'w-[calc(100%+0.25rem+2px)] sm:w-[calc(100%+0.375rem+2px)] -ml-[calc(0.25rem+2px)] sm:-ml-[calc(0.375rem+2px)] rounded-l-none border-l-0' : 'w-full ml-0 rounded-l-lg border-l';
                   return `
                     <div data-booking-id="${escapeHtml(b.booking_id)}"
-                         class="h-6 sm:h-8 ${leftMargin} px-1.5 rounded-r-lg ${baseBg} border-y border-r ${borderColor} text-white flex items-center justify-end z-20 shadow-2xs transition-all cursor-pointer"
-                         title="${escapeHtml(tooltip)}">
+                          class="h-6 sm:h-8 ${leftMargin} px-1.5 rounded-r-lg ${baseBg} border-y border-r ${borderColor} text-white flex items-center justify-end z-20 shadow-2xs transition-all cursor-pointer"
+                          title="${escapeHtml(tooltip)}">
                     </div>
                   `;
                 } else {
@@ -440,8 +458,8 @@
                   }
                   return `
                     <div data-booking-id="${escapeHtml(b.booking_id)}"
-                         class="h-6 sm:h-8 ${spanClass} ${baseBg} border-y ${borderColor} text-white flex items-center justify-center z-20 shadow-2xs transition-all cursor-pointer"
-                         title="${escapeHtml(tooltip)}">
+                          class="h-6 sm:h-8 ${spanClass} ${baseBg} border-y ${borderColor} text-white flex items-center justify-center z-20 shadow-2xs transition-all cursor-pointer"
+                          title="${escapeHtml(tooltip)}">
                     </div>
                   `;
                 }
@@ -555,7 +573,7 @@
     const allMonthBookings = getAllUniqueBookings();
     const visibleRows = getFilteredRows();
     const selectedEngineers = state.selectedTech === 'all' ? engineers : engineers.filter((engineer) => engineer.id === state.selectedTech);
-    const approved = visibleRows.filter((row) => row.status === 'APPROVED').length;
+    const approved = visibleRows.filter((row) => row.status === 'APPROVED' || row.status === 'COMPLETED').length;
     const pending = visibleRows.filter((row) => row.status === 'PENDING').length;
     $('summary-engineers').textContent = String(selectedEngineers.length);
     $('summary-shifts').textContent = String(visibleRows.length);

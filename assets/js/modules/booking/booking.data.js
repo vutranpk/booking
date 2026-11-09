@@ -35,6 +35,22 @@ const BookingData = {
     ]
   },
 
+  // Status Mappings & Styling Tokens
+  STATUS_LABELS: {
+    PENDING: 'Chờ duyệt',
+    APPROVED: 'Đã duyệt',
+    COMPLETED: 'Hoàn thành',
+    REJECTED: 'Từ chối',
+    CANCELLED: 'Đã hủy'
+  },
+  STATUS_CLASSES: {
+    PENDING: 'bg-amber-50 text-amber-800 border border-amber-200',
+    APPROVED: 'bg-accent-50 text-accent-700 border border-accent-200',
+    COMPLETED: 'bg-blue-50 text-blue-700 border border-blue-200',
+    REJECTED: 'bg-rose-50 text-rose-700 border border-rose-200',
+    CANCELLED: 'bg-slate-100 text-slate-600 border border-slate-200'
+  },
+
   // Default System Password
   DEFAULT_PASSWORD: '',
 
