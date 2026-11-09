@@ -14,7 +14,8 @@ const BookingData = {
     { key: 'manage_technicians', label: 'Thêm & Sửa kỹ sư', group: 'Quản Lý Kỹ Sư', desc: 'Thêm mới, sửa thông tin, bật/tắt kỹ sư' },
     { key: 'view_users', label: 'Xem danh sách người dùng', group: 'Quản Trị Người Dùng', desc: 'Xem danh sách tài khoản thành viên' },
     { key: 'manage_users', label: 'Thêm & Sửa người dùng', group: 'Quản Trị Người Dùng', desc: 'Thêm mới hoặc sửa thông tin user' },
-    { key: 'manage_permissions', label: 'Phân quyền chi tiết', group: 'Quản Trị Người Dùng', desc: 'Tùy biến checkbox ma trận quyền' }
+    { key: 'manage_permissions', label: 'Phân quyền chi tiết', group: 'Quản Trị Người Dùng', desc: 'Tùy biến checkbox ma trận quyền' },
+    { key: 'debug_role_switcher', label: 'Debug phân quyền vai trò', group: 'Quản Trị Người Dùng', desc: 'Bật bong bóng chuyển đổi nhanh các vai trò để kiểm thử phân quyền giao diện' }
   ],
 
   // 3-Tier Default Role Permissions Presets + Technician
@@ -29,7 +30,8 @@ const BookingData = {
     admin: [
       'view_schedule', 'drag_reschedule', 'create_booking', 'cancel_own_booking',
       'edit_booking', 'view_approval_queue', 'approve_booking', 'reject_booking',
-      'view_technicians', 'manage_technicians', 'view_users', 'manage_users', 'manage_permissions'
+      'view_technicians', 'manage_technicians', 'view_users', 'manage_users', 'manage_permissions',
+      'debug_role_switcher'
     ]
   },
 
@@ -52,10 +54,14 @@ const BookingData = {
     return this.currentUser?.auth_role === 'admin';
   },
 
-  // Only authenticated admins can open the local role preview.
+  // Only authenticated admins or users with debug_role_switcher permission can open the role switcher preview.
   canAccessDebugRoleSwitcher() {
     if (!this.currentUser) return false;
-    return this.currentUser.auth_role === 'admin';
+    // Always accessible if authenticated as admin or root admin session
+    if (this.currentUser.auth_role === 'admin' || this.originalAdminEmail) return true;
+    // Preserve access during role test mode if original session had this capability
+    if (this.originalUserSession?.permissions && this.originalUserSession.permissions.includes('debug_role_switcher')) return true;
+    return this.hasPermission('debug_role_switcher');
   },
 
   // Check if current user has a specific granular capability
@@ -862,33 +868,52 @@ const BookingData = {
   },
 
   switchRole(role) {
-    if (!this.isSuperAdmin()) return;
+    if (!this.canAccessDebugRoleSwitcher()) return;
 
-    const isRoot = this.currentUser.auth_role === 'admin';
+    if (!this.originalUserSession) {
+      this.originalUserSession = {
+        role: this.currentUser.role,
+        auth_role: this.currentUser.auth_role,
+        permissions: Array.isArray(this.currentUser.permissions) ? [...this.currentUser.permissions] : (this.ROLE_PERMISSIONS[this.currentUser.role] || []),
+        full_name: this.currentUser.full_name,
+        email: this.currentUser.email,
+        avatar: this.currentUser.avatar,
+        avatar_text: this.currentUser.avatar_text
+      };
+    }
+
+    const isRoot = this.currentUser.auth_role === 'admin' || !!this.originalAdminEmail;
     const effectiveRole = ['admin', 'approver', 'requester'].includes(role) ? role : 'admin';
-    const isTestMode = isRoot && (effectiveRole !== 'admin');
+    const isTestMode = effectiveRole !== (this.originalUserSession?.role || 'admin');
 
     if (isRoot && !this.originalAdminEmail) {
       this.originalAdminEmail = this.currentUser.email;
     }
 
-    const rootEmail = isRoot ? (this.originalAdminEmail || this.currentUser.email) : this.currentUser.email;
-    const rootAdminUser = this.users.find(u => (u.email || '').toLowerCase() === rootEmail);
-    const rootName = this.cleanUserName(rootAdminUser?.full_name || this.currentUser.full_name);
-    const rootAvatar = rootAdminUser?.avatar || this.currentUser.avatar || '';
-    const rootInitials = rootAdminUser?.avatar_text || this.currentUser.avatar_text || rootName.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+    const baseEmail = this.originalUserSession?.email || this.currentUser.email;
+    const baseUser = this.users.find(u => (u.email || '').toLowerCase() === baseEmail.toLowerCase());
+    const baseName = this.cleanUserName(baseUser?.full_name || this.currentUser.full_name);
+    const baseAvatar = baseUser?.avatar || this.currentUser.avatar || '';
+    const baseInitials = baseUser?.avatar_text || this.currentUser.avatar_text || baseName.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+
+    // Default permissions for target role
+    let nextPerms = this.ROLE_PERMISSIONS[effectiveRole] ? [...this.ROLE_PERMISSIONS[effectiveRole]] : [...this.ROLE_PERMISSIONS.admin];
+    // If switching back to original role and had custom permissions, restore them
+    if (this.originalUserSession && effectiveRole === this.originalUserSession.role && Array.isArray(this.originalUserSession.permissions)) {
+      nextPerms = [...this.originalUserSession.permissions];
+    }
 
     this.currentTestRole = effectiveRole;
     this.currentUser = {
       ...this.currentUser,
-      email: rootEmail,
-      full_name: rootName,
-      avatar: rootAvatar,
-      avatar_text: rootInitials,
+      email: baseEmail,
+      full_name: baseName,
+      avatar: baseAvatar,
+      avatar_text: baseInitials,
       role: effectiveRole,
       test_mode: isTestMode,
       role_label: this.getRoleLabel(effectiveRole),
-      permissions: this.ROLE_PERMISSIONS[effectiveRole] ? [...this.ROLE_PERMISSIONS[effectiveRole]] : [...this.ROLE_PERMISSIONS.admin]
+      permissions: nextPerms
     };
 
     // Note: Do NOT mutate this.users so the permanent user directory record
