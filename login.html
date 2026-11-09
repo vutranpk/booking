@@ -302,9 +302,36 @@
     // Initialize Toast
     if (window.Toast) Toast.init();
 
-    // Check if already authenticated -> go to app
+    // Check if already authenticated -> go to app (unless user has logged out)
     document.addEventListener('DOMContentLoaded', async () => {
+      const isExplicitlyLoggedOut =
+        localStorage.getItem('k_workspace_logged_out') === 'true' ||
+        new URLSearchParams(window.location.search).get('logged_out') === '1';
+
       const client = window.SupabaseConfig?.getClient();
+
+      if (isExplicitlyLoggedOut) {
+        // Enforce full logout: purge all local session tokens and revoke Supabase auth session
+        localStorage.setItem('k_workspace_logged_out', 'true');
+        localStorage.removeItem('k_workspace_session');
+        localStorage.removeItem('kcoffee_current_email');
+        localStorage.removeItem('kcoffee_current_role');
+        Object.keys(localStorage).forEach((key) => {
+          if (key.startsWith('sb-') && key.endsWith('-auth-token')) {
+            localStorage.removeItem(key);
+          }
+        });
+        if (client?.auth) {
+          try {
+            await client.auth.signOut();
+          } catch (_) {}
+        }
+        if (window.history && window.history.replaceState) {
+          window.history.replaceState(null, document.title, window.location.pathname);
+        }
+        return; // Stay on login screen!
+      }
+
       const recoveryFromUrl = new URLSearchParams(window.location.hash.slice(1)).get('type') === 'recovery';
       if (client?.auth) {
         const { data: { session } = {} } = await client.auth.getSession();

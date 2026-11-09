@@ -1489,7 +1489,7 @@ const BookingData = {
     }
   },
 
-  logout() {
+  async logout() {
     this.currentUser = null;
     this.originalAdminEmail = null;
     try {
@@ -1497,11 +1497,19 @@ const BookingData = {
       localStorage.removeItem('k_workspace_session');
       localStorage.removeItem('kcoffee_current_email');
       localStorage.removeItem('kcoffee_current_role');
+      // Clear Supabase client tokens from localStorage
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith('sb-') && key.endsWith('-auth-token')) {
+          localStorage.removeItem(key);
+        }
+      });
     } catch (e) {}
 
     const client = window.SupabaseConfig ? window.SupabaseConfig.getClient() : null;
     if (client && client.auth) {
-      client.auth.signOut().catch(() => {});
+      try {
+        await client.auth.signOut();
+      } catch (_) {}
     }
   },
 

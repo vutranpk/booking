@@ -6040,15 +6040,17 @@ const BookingUI = {
     Toast.show(`Đã gửi lại lời mời Google Calendar tới ${recipient} thành công!`, 'success', 'Đã phát lời mời');
   },
 
-  logout() {
+  async logout() {
     if (window.SystemLoader) {
       window.SystemLoader.show('Đang đăng xuất…', 'Đang đóng phiên làm việc an toàn…');
     }
-    BookingData.logout();
     if (window.App) {
       App.toggleTopUserMenu(false);
     }
-    window.location.replace('login.html');
+    try {
+      await BookingData.logout();
+    } catch (_) {}
+    window.location.replace('login.html?logged_out=1');
   }
 };
 
