@@ -54,13 +54,17 @@ const BookingData = {
     return this.currentUser?.auth_role === 'admin';
   },
 
-  // Only authenticated admins or users with debug_role_switcher permission can open the role switcher preview.
+  // Only users who have been granted debug_role_switcher capability can open the role switcher preview.
   canAccessDebugRoleSwitcher() {
     if (!this.currentUser) return false;
-    // Always accessible if authenticated as admin or root admin session
-    if (this.currentUser.auth_role === 'admin' || this.originalAdminEmail) return true;
-    // Preserve access during role test mode if original session had this capability
-    if (this.originalUserSession?.permissions && this.originalUserSession.permissions.includes('debug_role_switcher')) return true;
+    // When in role test mode, check original session capability so tester can switch back
+    if (this.currentUser.test_mode && this.originalUserSession) {
+      if (Array.isArray(this.originalUserSession.permissions)) {
+        return this.originalUserSession.permissions.includes('debug_role_switcher');
+      }
+      return this.originalUserSession.role === 'admin';
+    }
+    // Strictly respect granular permission setting (whether admin or any user)
     return this.hasPermission('debug_role_switcher');
   },
 
@@ -461,9 +465,13 @@ const BookingData = {
               ? ru.referrer_email
               : (localUser.referrer_email || '');
 
-            const finalPerms = (Array.isArray(ru.permissions) && ru.permissions.length > 0)
-              ? ru.permissions
-              : (localUser.permissions || this.ROLE_PERMISSIONS[ru.role || localUser.role]);
+            let finalPerms = ru.permissions;
+            if (typeof finalPerms === 'string') {
+              try { finalPerms = JSON.parse(finalPerms); } catch (e) { finalPerms = finalPerms.split(',').map(s => s.trim()); }
+            }
+            if (!Array.isArray(finalPerms)) {
+              finalPerms = localUser.permissions || this.ROLE_PERMISSIONS[ru.role || localUser.role] || [];
+            }
 
             this.users[idx] = {
               ...this.users[idx],
@@ -475,11 +483,18 @@ const BookingData = {
               avatar_updated_at: localAvatarTimestamp
             };
           } else {
+            let addPerms = ru.permissions;
+            if (typeof addPerms === 'string') {
+              try { addPerms = JSON.parse(addPerms); } catch (e) { addPerms = addPerms.split(',').map(s => s.trim()); }
+            }
+            if (!Array.isArray(addPerms)) {
+              addPerms = this.ROLE_PERMISSIONS[ru.role] || [];
+            }
             this.users.push({
               ...ru,
               full_name: this.cleanUserName(ru.full_name),
               referrer_email: ru.referrer_email || '',
-              permissions: ru.permissions || this.ROLE_PERMISSIONS[ru.role] || []
+              permissions: addPerms
             });
           }
         });
@@ -1579,11 +1594,17 @@ const BookingData = {
     delete safeProfile.password;
     this.users = [...this.users.filter(u => (u.email || '').toLowerCase() !== email), safeProfile];
     const role = profile.role || 'requester';
+    let userPerms = profile.permissions;
+    if (typeof userPerms === 'string') {
+      try { userPerms = JSON.parse(userPerms); } catch (e) { userPerms = userPerms.split(',').map(s => s.trim()); }
+    }
+    const finalUserPerms = Array.isArray(userPerms) ? userPerms : (this.ROLE_PERMISSIONS[role] || []);
+
     this.currentUser = {
       email, full_name: this.cleanUserName(profile.full_name || email), role, auth_role: role,
       role_label: this.getRoleLabel(role), avatar: profile.avatar || '', phone: profile.phone || '',
       department: profile.department || '', referrer_email: profile.referrer_email || '',
-      permissions: Array.isArray(profile.permissions) ? profile.permissions : (this.ROLE_PERMISSIONS[role] || []),
+      permissions: finalUserPerms,
       auth_verified: true
     };
     this.originalAdminEmail = role === 'admin' ? email : null;

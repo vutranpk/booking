@@ -396,6 +396,16 @@ const BookingUI = {
     if (targetTab === 'email-settings' && !canViewExtensions) {
       this.switchTab('my-bookings');
     }
+
+    // 5. Toggle Floating Role Debug Bubble strictly based on granular capability
+    const canAccessBubble = typeof BookingData !== 'undefined' && BookingData.canAccessDebugRoleSwitcher
+      ? BookingData.canAccessDebugRoleSwitcher()
+      : false;
+    const bubbleContainer = document.getElementById('admin-role-bubble-container');
+    if (bubbleContainer) {
+      bubbleContainer.classList.toggle('hidden', !canAccessBubble);
+      bubbleContainer.classList.toggle('flex', canAccessBubble);
+    }
   },
 
   // ==========================================
@@ -4708,10 +4718,10 @@ const BookingUI = {
           permsList = permsList.split(',').map(s => s.trim());
         }
       }
-      if (isTargetSuper) {
-        selectedPerms = [...BookingData.ROLE_PERMISSIONS.admin];
-      } else if (Array.isArray(permsList) && permsList.length > 0) {
+      if (Array.isArray(permsList)) {
         selectedPerms = [...permsList];
+      } else if (isTargetSuper) {
+        selectedPerms = [...BookingData.ROLE_PERMISSIONS.admin];
       } else {
         selectedPerms = [...(BookingData.ROLE_PERMISSIONS[selectedRole] || BookingData.ROLE_PERMISSIONS.requester)];
       }
