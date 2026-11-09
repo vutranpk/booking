@@ -994,6 +994,10 @@ const BookingUI = {
       if (e.key === 'Escape') {
         this.closeCustomDatePicker();
         this.closeDetailDatePicker();
+        const profileModal = document.getElementById('user-profile-modal');
+        if (profileModal && !profileModal.classList.contains('hidden')) {
+          this.closeProfileModal();
+        }
       }
     });
   },
@@ -5298,83 +5302,62 @@ const BookingUI = {
       if (currentTech && !calendarPanel.classList.contains('hidden')) this.loadGoogleCalendarStatus();
     }
 
+    const cleanName = BookingData.cleanUserName(user.full_name);
+
+    // Hero banner identity
+    const displayNameEl = document.getElementById('profile-display-name');
+    if (displayNameEl) displayNameEl.textContent = cleanName || user.full_name || 'Người dùng';
+
+    const displayEmailEl = document.getElementById('profile-display-email');
+    if (displayEmailEl) {
+      displayEmailEl.innerHTML = `
+        <svg class="w-3.5 h-3.5 text-accent-600 inline-block shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        <span>${user.email}</span>
+      `;
+    }
+
+    const displayRoleBadge = document.getElementById('profile-display-role-badge');
+    if (displayRoleBadge) {
+      const roleLabels = { admin: 'Quản Trị Viên', manager: 'Điều Phối', technician: 'Kỹ Sư Trực', user: 'Thành Viên' };
+      displayRoleBadge.textContent = roleLabels[user.role] || (user.role || 'Thành Viên').toUpperCase();
+    }
+
     // Avatar preview & input
     const avatarInput = document.getElementById('profile-avatar-input');
     if (avatarInput) avatarInput.value = user.avatar || '';
     this.syncProfileAvatarInputState(user.avatar || '');
     const fileInput = document.getElementById('profile-avatar-file-input');
     if (fileInput) fileInput.value = '';
-    const cleanName = BookingData.cleanUserName(user.full_name);
     this.updateProfileAvatarPreview(user.avatar, cleanName);
+
+    // Hide URL field initially
+    const urlFieldWrap = document.getElementById('profile-avatar-url-field-wrap');
+    if (urlFieldWrap) urlFieldWrap.classList.add('hidden');
 
     // Personal info
     const nameInput = document.getElementById('profile-name-input');
     const phoneInput = document.getElementById('profile-phone-input');
     const deptInput = document.getElementById('profile-dept-input');
+    const emailInput = document.getElementById('profile-email-input');
+    const referrerInput = document.getElementById('profile-referrer-input');
+
     if (nameInput) nameInput.value = cleanName || '';
     if (phoneInput) phoneInput.value = user.phone || '';
     if (deptInput) deptInput.value = user.department || '';
-
-    // Fixed Security Fields: Email & Referrer (CHỈ HIỂN THỊ KHI LÀ TÀI KHOẢN ADMIN - Hình 4)
-    const fixedGroup = document.getElementById('profile-fixed-info-group');
-    if (fixedGroup) {
-      fixedGroup.classList.toggle('hidden', !callerIsAdmin);
-    }
-
-    const emailInput = document.getElementById('profile-email-input');
-    const referrerInput = document.getElementById('profile-referrer-input');
-    const adminIndicator = document.getElementById('profile-admin-badge-indicator');
-    const fixedNotice = document.getElementById('profile-fixed-notice');
-
-    if (emailInput) emailInput.value = user.email;
+    if (emailInput) emailInput.value = user.email || '';
     if (referrerInput) {
-      const ref = BookingData.getReferrer(user);
-      referrerInput.value = ref ? `${BookingData.cleanUserName(ref.full_name)} (${ref.email})` : (user.referrer_email || 'Gốc hệ thống (Chưa có)');
+      referrerInput.value = user.referrer_email || '';
     }
 
-    if (callerIsAdmin) {
-      // Admin can edit email & referrer
-      if (emailInput) {
-        emailInput.readOnly = false;
-        emailInput.disabled = false;
-        emailInput.className = 'w-full text-xs bg-white border border-slate-200 rounded-xl p-2.5 text-slate-800 font-medium focus:ring-2 focus:ring-brand-500/20';
-      }
-      if (referrerInput) {
-        referrerInput.readOnly = false;
-        referrerInput.disabled = false;
-        referrerInput.className = 'w-full text-xs bg-white border border-slate-200 rounded-xl p-2.5 text-slate-800 font-medium focus:ring-2 focus:ring-brand-500/20';
-        referrerInput.value = user.referrer_email || '';
-        referrerInput.placeholder = 'Nhập email người giới thiệu';
-      }
-      if (adminIndicator) adminIndicator.textContent = 'Quyền Quản Trị: Được Phép Sửa';
-      if (fixedNotice) fixedNotice.innerHTML = '👑 <strong>Chế độ Admin:</strong> Bạn có quyền điều chỉnh email đăng nhập và người giới thiệu cho tài khoản này.';
-    } else {
-      if (emailInput) {
-        emailInput.readOnly = true;
-        emailInput.disabled = true;
-        emailInput.className = 'w-full text-xs bg-slate-100/90 border border-slate-200 rounded-xl p-2.5 text-slate-600 font-medium cursor-not-allowed';
-      }
-      if (referrerInput) {
-        referrerInput.readOnly = true;
-        referrerInput.disabled = true;
-        referrerInput.className = 'w-full text-xs bg-slate-100/90 border border-slate-200 rounded-xl p-2.5 text-slate-600 font-medium cursor-not-allowed';
-      }
-      if (adminIndicator) adminIndicator.textContent = 'Bảo vệ quyền Admin';
-      if (fixedNotice) fixedNotice.innerHTML = '* <strong>Chính sách hệ thống:</strong> Địa chỉ email người dùng và email người giới thiệu là dữ liệu liên kết cố định, chỉ <strong>Admin cấp cao</strong> mới có quyền điều chỉnh.';
-    }
-
-    // Reset password fields
+    // Reset and collapse password accordion
     const oldPassGroup = document.getElementById('profile-old-pass-group');
     if (oldPassGroup) oldPassGroup.style.display = callerIsAdmin ? 'none' : 'block';
-    const oldPassInput = document.getElementById('profile-old-password');
-    const newPassInput = document.getElementById('profile-new-password');
-    const confirmPassInput = document.getElementById('profile-confirm-password');
-    if (oldPassInput) oldPassInput.value = '';
-    if (newPassInput) newPassInput.value = '';
-    if (confirmPassInput) confirmPassInput.value = '';
+    this.togglePasswordAccordion(false);
 
+    // Open full-screen modal & lock background scroll
     modal.classList.remove('hidden');
     modal.classList.add('flex');
+    document.body.classList.add('overflow-hidden');
   },
 
   closeProfileModal() {
@@ -5382,6 +5365,47 @@ const BookingUI = {
     if (modal) {
       modal.classList.add('hidden');
       modal.classList.remove('flex');
+    }
+    document.body.classList.remove('overflow-hidden');
+  },
+
+  togglePasswordAccordion(forceState = null) {
+    const body = document.getElementById('profile-password-accordion-body');
+    const chevron = document.getElementById('profile-pass-chevron');
+    const toggleText = document.getElementById('profile-pass-toggle-text');
+    const subText = document.getElementById('profile-pass-accordion-sub');
+    if (!body) return;
+
+    const willOpen = forceState !== null ? forceState : body.classList.contains('hidden');
+
+    if (willOpen) {
+      body.classList.remove('hidden');
+      if (chevron) chevron.classList.add('rotate-180');
+      if (toggleText) toggleText.textContent = 'Thu gọn';
+      if (subText) subText.textContent = 'Nhập mật khẩu mới nếu muốn thay đổi thông tin xác thực';
+    } else {
+      body.classList.add('hidden');
+      if (chevron) chevron.classList.remove('rotate-180');
+      if (toggleText) toggleText.textContent = 'Đổi mật khẩu';
+      if (subText) subText.textContent = 'Nhấn để mở rộng nếu cần đổi mật khẩu đăng nhập';
+
+      // Clear password inputs when collapsed
+      const oldPass = document.getElementById('profile-old-password');
+      const newPass = document.getElementById('profile-new-password');
+      const confirmPass = document.getElementById('profile-confirm-password');
+      if (oldPass) oldPass.value = '';
+      if (newPass) newPass.value = '';
+      if (confirmPass) confirmPass.value = '';
+    }
+  },
+
+  toggleProfileAvatarUrlInput() {
+    const wrap = document.getElementById('profile-avatar-url-field-wrap');
+    if (!wrap) return;
+    const isHidden = wrap.classList.toggle('hidden');
+    if (!isHidden) {
+      const input = document.getElementById('profile-avatar-input');
+      if (input) input.focus();
     }
   },
 
