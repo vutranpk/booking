@@ -1,0 +1,18 @@
+# Web vận hành (vanhanh): site tĩnh, backend là Supabase cloud.
+# Chạy:  docker compose up -d --build
+name: vanhanh
+
+services:
+  web:
+    build: .
+    image: vanhanh-web:latest
+    restart: unless-stopped
+    ports:
+      # Đổi trong file .env (cạnh compose.yml) nếu cần: APP_BIND / APP_PORT
+      - "${APP_BIND:-192.168.10.28}:${APP_PORT:-3200}:8080"
+    read_only: true
+    tmpfs: [/tmp]
+    security_opt: ["no-new-privileges:true"]
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }

@@ -1,0 +1,50 @@
+# CI/CD web vận hành (vanhanh)
+#  - Mọi nhánh / MR: kiểm tra cú pháp JS + đủ file
+#  - Nhánh main: tự deploy lên 192.168.10.28 cổng 3200 (/opt/vanhanh)
+#  - rollback_production: bấm tay khi bản mới lỗi
+# Runner: shell executor trên 192.168.10.28, tag "vanhanh-prod"
+# Lưu ý: SQL migrations và Edge Functions trong supabase/ KHÔNG được deploy tự động.
+
+stages: [test, deploy]
+
+default:
+  tags: [vanhanh-prod]
+
+variables:
+  GIT_DEPTH: "20"
+
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS
+      when: never
+    - if: $CI_COMMIT_BRANCH
+
+test:
+  stage: test
+  script:
+    - sudo -n /usr/local/sbin/vanhanh-deploy test "$CI_PROJECT_DIR" "$CI_COMMIT_SHORT_SHA"
+
+deploy_production:
+  stage: deploy
+  resource_group: production
+  environment:
+    name: production
+    url: http://192.168.10.28:3200
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  script:
+    - sudo -n /usr/local/sbin/vanhanh-deploy deploy "$CI_COMMIT_SHA"
+
+rollback_production:
+  stage: deploy
+  resource_group: production
+  environment:
+    name: production
+    action: access
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      when: manual
+      allow_failure: true
+  script:
+    - sudo -n /usr/local/sbin/vanhanh-deploy rollback

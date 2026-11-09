@@ -1,0 +1,12 @@
+.git
+supabase
+deploy/ci
+*.md
+.env
+.env.*
+*.log
+scratch
+docs
+token.html
+*.pem
+*.key
