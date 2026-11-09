@@ -4019,6 +4019,11 @@ const BookingUI = {
     const avatarPreview = document.getElementById('tech-modal-avatar-preview');
     const activeCheckbox = document.getElementById('tech-modal-active');
 
+    const phoneBadge = document.getElementById('tech-modal-phone-badge');
+    const emailBadge = document.getElementById('tech-modal-email-badge');
+    const lockNotice = document.getElementById('tech-modal-admin-lock-notice');
+    const isSuper = BookingData.isSuperAdmin();
+
     if (avatarFileInput) avatarFileInput.value = '';
     if (passwordInput) passwordInput.value = '';
 
@@ -4031,8 +4036,54 @@ const BookingUI = {
         if (submitTextEl) submitTextEl.textContent = 'Cập Nhật Kỹ Sư';
         if (idInput) idInput.value = tech.tech_id;
         if (nameInput) nameInput.value = tech.name;
-        if (phoneInput) phoneInput.value = tech.phone;
-        if (emailInput) { emailInput.value = tech.email || ''; emailInput.readOnly = true; }
+        if (phoneInput) phoneInput.value = tech.phone || '';
+        if (emailInput) emailInput.value = tech.email || '';
+
+        // Role-based access control: Only Super Admin can edit phone and email of existing technicians
+        if (isSuper) {
+          if (phoneInput) {
+            phoneInput.readOnly = false;
+            phoneInput.className = 'w-full text-xs bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-800 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-brand-500/20';
+          }
+          if (emailInput) {
+            emailInput.readOnly = false;
+            emailInput.className = 'w-full text-xs bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-800 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-brand-500/20 font-mono';
+          }
+          if (phoneBadge) {
+            phoneBadge.className = 'inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-md';
+            phoneBadge.innerHTML = '<svg class="w-2.5 h-2.5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>Admin được sửa';
+          }
+          if (emailBadge) {
+            emailBadge.className = 'inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-md';
+            emailBadge.innerHTML = '<svg class="w-2.5 h-2.5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>Admin được sửa';
+          }
+          if (lockNotice) {
+            lockNotice.className = 'flex items-center gap-2 -mt-1 p-2.5 bg-emerald-50/70 border border-emerald-200/70 rounded-xl text-emerald-800 text-[11px] font-medium';
+            lockNotice.innerHTML = '<svg class="w-4 h-4 text-emerald-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg><span>Tài khoản <strong>Admin cao cấp</strong>: Bạn có quyền thay đổi Số điện thoại và Email đăng nhập của kỹ sư.</span>';
+          }
+        } else {
+          if (phoneInput) {
+            phoneInput.readOnly = true;
+            phoneInput.className = 'w-full text-xs bg-slate-100 border border-slate-200 rounded-xl p-2.5 text-slate-500 font-medium cursor-not-allowed select-none';
+          }
+          if (emailInput) {
+            emailInput.readOnly = true;
+            emailInput.className = 'w-full text-xs bg-slate-100 border border-slate-200 rounded-xl p-2.5 text-slate-500 font-mono cursor-not-allowed select-none';
+          }
+          if (phoneBadge) {
+            phoneBadge.className = 'inline-flex items-center gap-1 text-[10px] font-semibold text-slate-600 bg-slate-100 border border-slate-200 px-1.5 py-0.5 rounded-md';
+            phoneBadge.innerHTML = '<svg class="w-2.5 h-2.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>Chỉ Admin sửa';
+          }
+          if (emailBadge) {
+            emailBadge.className = 'inline-flex items-center gap-1 text-[10px] font-semibold text-slate-600 bg-slate-100 border border-slate-200 px-1.5 py-0.5 rounded-md';
+            emailBadge.innerHTML = '<svg class="w-2.5 h-2.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>Chỉ Admin sửa';
+          }
+          if (lockNotice) {
+            lockNotice.className = 'flex items-center gap-2 -mt-1 p-2.5 bg-amber-50/80 border border-amber-200/80 rounded-xl text-amber-900 text-[11px] font-medium';
+            lockNotice.innerHTML = '<svg class="w-4 h-4 text-amber-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg><span>Riêng tài khoản <strong>Admin cao cấp</strong> mới có thể thay đổi thông tin Số điện thoại và Email của kỹ sư.</span>';
+          }
+        }
+
         if (skillsInput) skillsInput.value = Array.isArray(tech.skills) ? tech.skills.join(', ') : tech.skills;
         if (avatarInput) avatarInput.value = tech.avatar || '';
         if (avatarPreview) avatarPreview.src = tech.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&h=120&q=80';
@@ -4043,8 +4094,28 @@ const BookingUI = {
       if (submitTextEl) submitTextEl.textContent = 'Lưu Kỹ Sư';
       if (idInput) idInput.value = '';
       if (nameInput) nameInput.value = '';
-      if (phoneInput) phoneInput.value = '';
-      if (emailInput) { emailInput.value = ''; emailInput.readOnly = false; }
+      if (phoneInput) {
+        phoneInput.value = '';
+        phoneInput.readOnly = false;
+        phoneInput.className = 'w-full text-xs bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-800 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-brand-500/20';
+      }
+      if (emailInput) {
+        emailInput.value = '';
+        emailInput.readOnly = false;
+        emailInput.className = 'w-full text-xs bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-800 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-brand-500/20 font-mono';
+      }
+      if (phoneBadge) {
+        phoneBadge.className = 'hidden';
+        phoneBadge.innerHTML = '';
+      }
+      if (emailBadge) {
+        emailBadge.className = 'hidden';
+        emailBadge.innerHTML = '';
+      }
+      if (lockNotice) {
+        lockNotice.className = 'hidden';
+        lockNotice.innerHTML = '';
+      }
       if (skillsInput) skillsInput.value = '';
       if (avatarInput) avatarInput.value = '';
       if (avatarPreview) avatarPreview.src = 'https://ui-avatars.com/api/?name=%3F&background=f1f5f9&color=94a3b8';
@@ -4167,8 +4238,8 @@ const BookingUI = {
 
     const techId = idInput ? idInput.value : '';
     const name = nameInput ? nameInput.value.trim() : '';
-    const phone = phoneInput ? phoneInput.value.trim() : '';
-    const email = emailInput ? emailInput.value.trim() : '';
+    let phone = phoneInput ? phoneInput.value.trim() : '';
+    let email = emailInput ? emailInput.value.trim() : '';
     const password = passwordInput ? passwordInput.value.trim() : '';
     const skills = skillsInput ? skillsInput.value.trim() : '';
     const avatar = avatarInput ? avatarInput.value.trim() : '';
@@ -4182,6 +4253,15 @@ const BookingUI = {
     if (!techId && !email) {
       Toast.show('Vui lòng nhập Email đăng nhập cho kỹ sư!', 'error');
       return;
+    }
+
+    // Role-based security safeguard: Only Super Admin can modify phone or email of existing technician
+    if (techId && !BookingData.isSuperAdmin()) {
+      const existingTech = BookingData.technicians.find(t => t.tech_id === techId);
+      if (existingTech) {
+        phone = existingTech.phone || '';
+        email = existingTech.email || '';
+      }
     }
 
     if (password && password.length < 6) {

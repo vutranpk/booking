@@ -51,7 +51,11 @@ const BookingData = {
 
   // Admin identity is loaded from the authenticated Supabase profile.
   isSuperAdmin() {
-    return this.currentUser?.auth_role === 'admin';
+    if (!this.currentUser) return false;
+    if (this.currentUser.test_mode) {
+      return this.currentUser.role === 'admin';
+    }
+    return this.currentUser.auth_role === 'admin' || this.currentUser.role === 'admin';
   },
 
   // Only users who have been granted debug_role_switcher capability can open the role switcher preview.
@@ -1176,9 +1180,23 @@ const BookingData = {
     const idx = this.technicians.findIndex(t => t.tech_id === tech_id);
     if (idx === -1) return { success: false, error: 'Không tìm thấy hồ sơ kỹ sư.' };
 
+    const oldTech = this.technicians[idx];
+    const oldEmail = (oldTech.email || '').trim().toLowerCase();
+    const oldPhone = (oldTech.phone || '').trim();
+
     const normalized = { ...updatedData };
     const newPassword = (normalized.password || '').trim();
     delete normalized.password;
+
+    // Security check: Only Super Admin accounts can change phone or email of existing technician
+    if (!this.isSuperAdmin()) {
+      if (normalized.phone !== undefined && normalized.phone.trim() !== oldPhone) {
+        return { success: false, error: 'Chỉ tài khoản Admin cao cấp mới có quyền thay đổi Số điện thoại của kỹ sư.' };
+      }
+      if (normalized.email !== undefined && normalized.email.trim().toLowerCase() !== oldEmail) {
+        return { success: false, error: 'Chỉ tài khoản Admin cao cấp mới có quyền thay đổi Email của kỹ sư.' };
+      }
+    }
 
     if (normalized.skills !== undefined && typeof normalized.skills === 'string') {
       normalized.skills = normalized.skills.split(',').map(s => s.trim()).filter(Boolean);
@@ -1211,11 +1229,27 @@ const BookingData = {
         return { success: false, error: error.message || 'Database từ chối cập nhật kỹ sư.' };
       }
 
+      // If email was changed by Super Admin, synchronize Auth email if possible
+      const targetEmail = normalized.email || oldEmail;
+      if (oldEmail && normalized.email && oldEmail !== normalized.email) {
+        try {
+          await client.functions.invoke('admin-create-user', {
+            body: {
+              action: 'update_email',
+              account_type: 'technician',
+              old_email: oldEmail,
+              new_email: normalized.email
+            }
+          });
+        } catch (syncErr) {
+          console.warn('⚠️ Could not sync new email to Auth:', syncErr);
+        }
+      }
+
       if (newPassword) {
         if (newPassword.length < 6) {
           return { success: false, error: 'Mật khẩu mới phải có tối thiểu 6 ký tự.' };
         }
-        const targetEmail = normalized.email || this.technicians[idx].email;
         const { data: pwData, error: pwErr } = await client.functions.invoke('admin-create-user', {
           body: {
             action: 'set_password',

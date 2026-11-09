@@ -36,7 +36,7 @@ Deno.serve(async (req) => {
 
   let body: Record<string, unknown>;
   try { body = await req.json(); } catch { return json({ success: false, error: "Invalid JSON body." }, 400); }
-  const action = body.action === "delete" ? "delete" : (body.action === "set_password" ? "set_password" : "create");
+  const action = body.action === "delete" ? "delete" : (body.action === "set_password" ? "set_password" : (body.action === "update_email" ? "update_email" : "create"));
   const accountType = body.account_type === "technician" ? "technician" : "user";
   const { data: callerProfile } = await admin.from("users").select("role").ilike("email", caller.email.toLowerCase()).maybeSingle();
   if (accountType === "user" && callerProfile?.role !== "admin") return json({ success: false, error: "Chỉ Admin mới có quyền quản lý người dùng." }, 403);
@@ -55,6 +55,33 @@ Deno.serve(async (req) => {
       page++;
     }
     return null;
+  }
+
+  // ==========================================
+  // ACTION: UPDATE AUTH USER EMAIL (ADMIN ONLY)
+  // ==========================================
+  if (action === "update_email") {
+    if (callerProfile?.role !== "admin") {
+      return json({ success: false, error: "Chỉ tài khoản Admin cao cấp mới có quyền thay đổi Email của kỹ sư." }, 403);
+    }
+    const oldEmail = String(body.old_email || "").trim().toLowerCase();
+    const newEmail = String(body.new_email || "").trim().toLowerCase();
+    if (!oldEmail || !newEmail) {
+      return json({ success: false, error: "Thiếu địa chỉ email cũ hoặc email mới." }, 400);
+    }
+    if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(newEmail)) {
+      return json({ success: false, error: "Email mới không đúng định dạng chuẩn." }, 400);
+    }
+    const existingAuth = await findAuthUserByEmail(oldEmail);
+    if (existingAuth?.id) {
+      const { error: authUpdateErr } = await admin.auth.admin.updateUserById(existingAuth.id, {
+        email: newEmail,
+        email_confirm: true,
+      });
+      if (authUpdateErr) return json({ success: false, error: authUpdateErr.message }, 400);
+      return json({ success: true, action: "update_email", old_email: oldEmail, new_email: newEmail, authUpdated: true });
+    }
+    return json({ success: true, action: "update_email", old_email: oldEmail, new_email: newEmail, authUpdated: false });
   }
 
   // ==========================================
