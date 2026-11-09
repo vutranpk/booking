@@ -598,9 +598,11 @@ const BookingData = {
     localStorage.removeItem('kcoffee_bookings_data_28days_v7');
   },
 
-  checkConflict(tech_id, start_date, end_date = null, exclude_booking_id = null) {
+  checkConflict(tech_id, start_date, end_date = null, exclude_booking_id = null, start_time = '08:00', end_time = '17:00') {
     const sDate = start_date;
     const eDate = end_date || start_date;
+    const sTime = (start_time || '08:00').slice(0, 5);
+    const eTime = (end_time || '17:00').slice(0, 5);
 
     if (eDate < sDate) {
       return {
@@ -609,8 +611,18 @@ const BookingData = {
       };
     }
 
+    if (sDate === eDate && eTime <= sTime) {
+      return {
+        hasConflict: true,
+        message: 'Giờ kết thúc phải sau giờ bắt đầu ca trực!'
+      };
+    }
+
+    const newStartIso = `${sDate}T${sTime}:00`;
+    const newEndIso = `${eDate}T${eTime}:00`;
+
     const techBookings = this.bookings.filter(b =>
-      b.tech_id === tech_id &&
+      String(b.tech_id) === String(tech_id) &&
       (b.status === 'APPROVED' || b.status === 'PENDING') &&
       b.booking_id !== exclude_booking_id
     );
@@ -618,16 +630,22 @@ const BookingData = {
     for (const b of techBookings) {
       const bStart = b.booking_date;
       const bEnd = b.end_date || b.booking_date;
+      const bStartTime = (b.start_time || '08:00').slice(0, 5);
+      const bEndTime = (b.end_time || '17:00').slice(0, 5);
 
-      // Overlap: sDate <= bEnd && eDate >= bStart
-      if (sDate <= bEnd && eDate >= bStart) {
+      const existStartIso = `${bStart}T${bStartTime}:00`;
+      const existEndIso = `${bEnd}T${bEndTime}:00`;
+
+      // Overlap: newStart < existEnd && newEnd > existStart
+      if (newStartIso < existEndIso && newEndIso > existStartIso) {
         const tech = this.technicians.find(t => t.tech_id === tech_id);
         const statusLabel = b.status === 'APPROVED' ? 'Đã duyệt' : 'Đang chờ duyệt';
         const dateRangeText = bStart === bEnd ? bStart : `${bStart} đến ${bEnd}`;
+        const timeText = `${bStartTime} - ${bEndTime}`;
         return {
           hasConflict: true,
           conflictingBooking: b,
-          message: `Kỹ sư ${tech ? tech.name : tech_id} đã có lịch [${dateRangeText}] (${statusLabel}) cho nhiệm vụ "${b.title}". Vui lòng chọn kỹ sư khác hoặc đổi ngày!`
+          message: `Kỹ sư ${tech ? tech.name : tech_id} đã có lịch [${dateRangeText} lúc ${timeText}] (${statusLabel}) cho nhiệm vụ "${b.title}". Vui lòng chọn khung giờ khác hoặc kỹ sư khác!`
         };
       }
     }
@@ -640,13 +658,15 @@ const BookingData = {
     if (!this.hasPermission('create_booking')) return { success: false, error: 'Tài khoản kỹ sư chỉ được xem ca trực được phân công, không có quyền đặt lịch.' };
     const startDate = data.booking_date;
     const endDate = data.end_date || data.booking_date;
+    const startTime = (data.start_time || '08:00').slice(0, 5);
+    const endTime = (data.end_time || '17:00').slice(0, 5);
 
     const todayStr = this.formatDateStr(new Date());
     if (startDate < todayStr) {
       return { success: false, error: 'Không thể đặt lịch cho ngày trong quá khứ! Vui lòng chọn từ hôm nay trở đi.' };
     }
 
-    const conflict = this.checkConflict(data.tech_id, startDate, endDate);
+    const conflict = this.checkConflict(data.tech_id, startDate, endDate, null, startTime, endTime);
     if (conflict.hasConflict) {
       return { success: false, error: conflict.message };
     }
@@ -660,6 +680,8 @@ const BookingData = {
       location: data.location,
       booking_date: startDate,
       end_date: endDate,
+      start_time: `${startTime}:00`,
+      end_time: `${endTime}:00`,
       status: 'PENDING',
       approver_email: '',
       reject_reason: '',
@@ -674,7 +696,7 @@ const BookingData = {
     this.addNotification({
       type: 'new_request',
       title: 'Yêu cầu booking ca trực mới',
-      message: `${newBooking.requester_name} đã gửi yêu cầu: "${newBooking.title}" (${newBooking.booking_date}).`,
+      message: `${newBooking.requester_name} đã gửi yêu cầu: "${newBooking.title}" (${newBooking.booking_date} lúc ${startTime}-${endTime}).`,
       tab: 'approval',
       booking_id: newBooking.booking_id,
       tech_id: newBooking.tech_id,
@@ -694,6 +716,117 @@ const BookingData = {
     }
 
     return { success: true, booking: newBooking };
+  },
+
+  updateBooking(booking_id, updatedData) {
+    if (!this.isAuthenticated()) return { success: false, error: 'Vui lòng đăng nhập.' };
+    const booking = this.bookings.find(b => b.booking_id === booking_id);
+    if (!booking) return { success: false, error: 'Không tìm thấy ca trực.' };
+
+    const isAdmin = this.isSuperAdmin();
+    const canEdit = this.hasPermission('edit_booking');
+    if (!isAdmin && !canEdit) {
+      return { success: false, error: 'Bạn không có quyền chỉnh sửa nội dung đặt lịch.' };
+    }
+
+    const techId = updatedData.tech_id || booking.tech_id;
+    const startDate = updatedData.booking_date || booking.booking_date;
+    const endDate = updatedData.end_date || booking.end_date || startDate;
+    const startTime = (updatedData.start_time || booking.start_time || '08:00').slice(0, 5);
+    const endTime = (updatedData.end_time || booking.end_time || '17:00').slice(0, 5);
+
+    // Conflict check excluding this booking
+    const conflict = this.checkConflict(techId, startDate, endDate, booking_id, startTime, endTime);
+    if (conflict.hasConflict) {
+      return { success: false, error: conflict.message };
+    }
+
+    if (updatedData.title !== undefined) booking.title = updatedData.title.trim();
+    if (updatedData.location !== undefined) booking.location = updatedData.location.trim();
+    if (updatedData.notes !== undefined) booking.notes = updatedData.notes.trim();
+    booking.tech_id = techId;
+    booking.booking_date = startDate;
+    booking.end_date = endDate;
+    booking.start_time = `${startTime}:00`;
+    booking.end_time = `${endTime}:00`;
+    booking.updated_at = new Date().toISOString();
+
+    this.save();
+
+    const client = window.SupabaseConfig ? window.SupabaseConfig.getClient() : null;
+    if (client) {
+      const dbPayload = {
+        title: booking.title,
+        location: booking.location,
+        notes: booking.notes,
+        tech_id: booking.tech_id,
+        booking_date: booking.booking_date,
+        end_date: booking.end_date,
+        start_time: booking.start_time,
+        end_time: booking.end_time,
+        updated_at: booking.updated_at
+      };
+      const updatePromise = client.from('bookings').update(dbPayload).eq('booking_id', booking_id).then(({ error }) => {
+        if (error) console.warn('Supabase update booking error:', error);
+        else if (booking.status === 'APPROVED') this.syncGoogleCalendarBooking(booking_id);
+      });
+      if (window.SystemLoader) {
+        window.SystemLoader.track(updatePromise, 'Đang cập nhật nội dung ca trực…', 'Đang đồng bộ dữ liệu lên máy chủ');
+      }
+    }
+
+    return { success: true, booking };
+  },
+
+  completeBooking(booking_id) {
+    if (!this.isAuthenticated()) return { success: false, error: 'Vui lòng đăng nhập.' };
+    const booking = this.bookings.find(b => b.booking_id === booking_id);
+    if (!booking) return { success: false, error: 'Không tìm thấy ca trực.' };
+
+    const user = this.currentUser;
+    const isTech = user?.role === 'technician' || Boolean(user?.is_technician);
+    const isAssignedTech = isTech && String(user?.tech_id) === String(booking.tech_id);
+    const isAdmin = this.isSuperAdmin();
+    const canApprove = this.hasPermission('approve_booking');
+
+    if (!isAssignedTech && !isAdmin && !canApprove) {
+      return { success: false, error: 'Chỉ kỹ sư phụ trách ca trực hoặc Quản trị viên mới có thể đánh dấu hoàn thành công việc.' };
+    }
+
+    booking.status = 'COMPLETED';
+    booking.updated_at = new Date().toISOString();
+    this.save();
+
+    const tech = this.technicians.find(t => t.tech_id === booking.tech_id);
+    const techName = tech ? tech.name : (user?.full_name || 'Kỹ sư');
+
+    // Notify requester
+    if (booking.requester_email) {
+      this.addNotification({
+        type: 'shift_reminder',
+        title: 'Công việc đã được hoàn thành',
+        message: `Kỹ sư ${techName} đã hoàn thành nhiệm vụ "${booking.title}" (${booking.booking_date}).`,
+        tab: 'my-bookings',
+        booking_id: booking.booking_id,
+        tech_id: booking.tech_id,
+        target_user: booking.requester_email
+      });
+    }
+
+    const client = window.SupabaseConfig ? window.SupabaseConfig.getClient() : null;
+    if (client) {
+      const completePromise = client.from('bookings').update({
+        status: 'COMPLETED',
+        updated_at: booking.updated_at
+      }).eq('booking_id', booking_id).then(({ error }) => {
+        if (error) console.warn('Supabase complete booking warning:', error);
+      });
+      if (window.SystemLoader) {
+        window.SystemLoader.track(completePromise, 'Đang cập nhật hoàn thành…', 'Đang lưu trạng thái hoàn thành ca trực');
+      }
+    }
+
+    return { success: true, booking };
   },
 
   approveBooking(booking_id, approver_email) {
@@ -1394,11 +1527,22 @@ const BookingData = {
     const client = window.SupabaseConfig ? window.SupabaseConfig.getClient() : null;
     if (!client) return { success: false, error: 'Không có kết nối Supabase.' };
 
-    // Never persist passwords in user profile records.
     const nextData = { ...updatedData };
     const newPassword = (nextData.password || '').trim();
+    const newEmail = (nextData.new_email || nextData.email || cleanEmail).trim().toLowerCase();
     delete nextData.password;
     delete nextData.new_email;
+
+    const emailChanged = newEmail && newEmail !== cleanEmail;
+    if (emailChanged) {
+      if (!this.isSuperAdmin()) {
+        return { success: false, error: 'Chỉ Admin mới có quyền đổi địa chỉ email của người dùng.' };
+      }
+      const dupUser = this.users.find(u => u.email.toLowerCase() === newEmail && u.email.toLowerCase() !== cleanEmail);
+      if (dupUser) return { success: false, error: `Email ${newEmail} đã được sử dụng bởi người dùng khác.` };
+      const dupTech = this.technicians.find(t => (t.email || '').toLowerCase() === newEmail);
+      if (dupTech) return { success: false, error: `Email ${newEmail} đã thuộc về kỹ sư ${dupTech.name}.` };
+    }
 
     const nextRole = nextData.role || user.role || 'requester';
     const nextPerms = Array.isArray(nextData.permissions)
@@ -1406,6 +1550,7 @@ const BookingData = {
       : (Array.isArray(user.permissions) ? user.permissions : (this.ROLE_PERMISSIONS[nextRole] || []));
 
     const payload = {
+      email: emailChanged ? newEmail : cleanEmail,
       full_name: (nextData.full_name !== undefined ? nextData.full_name : user.full_name || '').trim(),
       role: nextRole,
       department: (nextData.department !== undefined ? nextData.department : user.department || '').trim(),
@@ -1428,6 +1573,23 @@ const BookingData = {
         return { success: false, error: error.message || 'Không thể lưu thay đổi lên Supabase.' };
       }
 
+      // If email changed, invoke admin-create-user to update Supabase Auth
+      if (emailChanged) {
+        try {
+          await client.functions.invoke('admin-create-user', {
+            body: {
+              action: 'update_email',
+              account_type: 'user',
+              old_email: cleanEmail,
+              new_email: newEmail
+            }
+          });
+        } catch (syncErr) {
+          console.warn('Could not sync updated email to Auth:', syncErr);
+        }
+      }
+
+      const targetEmail = emailChanged ? newEmail : cleanEmail;
       if (newPassword) {
         if (newPassword.length < 6) {
           return { success: false, error: 'Mật khẩu mới phải có tối thiểu 6 ký tự.' };
@@ -1436,7 +1598,7 @@ const BookingData = {
           body: {
             action: 'set_password',
             account_type: 'user',
-            email: cleanEmail,
+            email: targetEmail,
             password: newPassword,
             full_name: payload.full_name
           }
@@ -1450,6 +1612,7 @@ const BookingData = {
     }
 
     Object.assign(user, {
+      email: payload.email,
       full_name: payload.full_name,
       role: payload.role,
       department: payload.department,
@@ -1462,9 +1625,10 @@ const BookingData = {
     this.saveUsers();
 
     // If active user is updated, refresh active user context
-    if (this.currentUser && this.currentUser.email.toLowerCase() === cleanEmail) {
+    if (this.currentUser && (this.currentUser.email.toLowerCase() === cleanEmail || this.currentUser.email.toLowerCase() === newEmail)) {
       this.currentUser = {
         ...this.currentUser,
+        email: user.email,
         full_name: this.cleanUserName(user.full_name),
         role: user.role,
         role_label: this.getRoleLabel(user.role),

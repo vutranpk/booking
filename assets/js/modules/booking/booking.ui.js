@@ -183,19 +183,24 @@ const BookingUI = {
       bookingForm.addEventListener('submit', (e) => this.handleBookingSubmit(e));
     }
 
-    // Live conflict checker in form (Date Range)
+    // Live conflict checker in form (Date Range & Time Slots)
     const techSelect = document.getElementById('modal-tech-id');
     const startDateField = document.getElementById('modal-booking-date');
     const endDateField = document.getElementById('modal-end-date');
+    const startTimeField = document.getElementById('modal-start-time');
+    const endTimeField = document.getElementById('modal-end-time');
 
     const checkFormConflict = () => {
       const techId = techSelect?.value;
       const sDate = startDateField?.value;
       const eDate = endDateField?.value || sDate;
+      const sTime = startTimeField?.value || '08:00';
+      const eTime = endTimeField?.value || '17:00';
+      const bookingId = document.getElementById('modal-booking-id')?.value || null;
       const alertBox = document.getElementById('modal-conflict-alert');
 
-      if (techId && sDate) {
-        const res = BookingData.checkConflict(techId, sDate, eDate);
+      if (techId && sDate && alertBox) {
+        const res = BookingData.checkConflict(techId, sDate, eDate, bookingId, sTime, eTime);
         if (res.hasConflict) {
           alertBox.classList.remove('hidden');
           alertBox.querySelector('p').textContent = res.message;
@@ -221,6 +226,12 @@ const BookingUI = {
     }
     if (endDateField) {
       endDateField.addEventListener('change', checkFormConflict);
+    }
+    if (startTimeField) {
+      startTimeField.addEventListener('change', checkFormConflict);
+    }
+    if (endTimeField) {
+      endTimeField.addEventListener('change', checkFormConflict);
     }
   },
 
@@ -2474,15 +2485,23 @@ const BookingUI = {
 
     const canCancelBooking = !isTechnician && BookingData.hasPermission('cancel_own_booking');
     const showRequester = isApprover || isTechnician;
+    const isSuper = BookingData.isSuperAdmin();
+    const canEditBooking = isSuper || BookingData.hasPermission('edit_booking');
 
     const mobileRowsHtml = pagedList.map(b => {
       const tech = BookingData.technicians.find(t => t.tech_id === b.tech_id);
       const bStart = b.booking_date;
       const bEnd = b.end_date || b.booking_date;
       const dateStr = bStart === bEnd ? this.formatDateDisplay(bStart) : `${this.formatDateDisplay(bStart)} → ${this.formatDateDisplay(bEnd)}`;
+      const timeStr = (b.start_time && b.end_time) ? `${b.start_time.slice(0, 5)} - ${b.end_time.slice(0, 5)}` : '08:00 - 17:00';
+
+      const isAssignedTech = isTechnician && Boolean(techId) && String(b.tech_id) === String(techId);
+      const canCompleteThis = b.status === 'APPROVED' && (isAssignedTech || isSuper || isApprover);
 
       let badge = '';
-      if (b.status === 'APPROVED') {
+      if (b.status === 'COMPLETED') {
+        badge = `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold font-condensed uppercase bg-blue-50 text-blue-700 border border-blue-200">${Lucide.check} Đã hoàn thành</span>`;
+      } else if (b.status === 'APPROVED') {
         badge = `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold font-condensed uppercase bg-accent-50 text-accent-800 border border-accent-200">${Lucide.check} Đã duyệt</span>`;
       } else if (b.status === 'PENDING') {
         badge = `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold font-condensed uppercase bg-amber-50 text-amber-800 border border-amber-200">${Lucide.clock} Chờ duyệt</span>`;
@@ -2495,10 +2514,11 @@ const BookingUI = {
       return `
         <div onclick="BookingUI.openDetailModal('${b.booking_id}')" class="p-4 hover:bg-slate-50/70 transition-colors space-y-2 cursor-pointer">
           <div class="flex items-center justify-between gap-2">
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-2 flex-wrap">
               <span class="font-black font-condensed text-brand-600 text-xs">${b.booking_id}</span>
               <span class="text-slate-300">•</span>
               <span class="font-bold font-condensed text-slate-700 text-xs">${dateStr}</span>
+              <span class="text-slate-400 text-[11px] font-mono">(${timeStr})</span>
             </div>
             ${badge}
           </div>
@@ -2517,13 +2537,23 @@ const BookingUI = {
               </p>
             ` : ''}
           </div>
-          ${b.status === 'PENDING' && canCancelBooking ? `
-            <div class="pt-1.5 flex items-center justify-end gap-2" onclick="event.stopPropagation()">
+          <div class="pt-1.5 flex items-center justify-end gap-2 flex-wrap" onclick="event.stopPropagation()">
+            ${canCompleteThis ? `
+              <button onclick="BookingUI.handleCompleteBooking('${b.booking_id}')" class="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition-colors cursor-pointer flex items-center gap-1 shadow-2xs">
+                ${Lucide.check} <span>Hoàn thành</span>
+              </button>
+            ` : ''}
+            ${canEditBooking ? `
+              <button onclick="BookingUI.openEditBookingModal('${b.booking_id}')" class="px-2.5 py-1 rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-700 font-semibold text-xs transition-colors cursor-pointer flex items-center gap-1">
+                ${Lucide.pencil} <span>Sửa</span>
+              </button>
+            ` : ''}
+            ${b.status === 'PENDING' && canCancelBooking ? `
               <button onclick="BookingUI.handleCancel('${b.booking_id}')" class="px-3 py-1 rounded-lg border border-rose-200 hover:bg-rose-50 text-rose-600 font-semibold text-xs transition-colors cursor-pointer">
                 Hủy đơn
               </button>
-            </div>
-          ` : ''}
+            ` : ''}
+          </div>
         </div>
       `;
     }).join('');
@@ -2532,8 +2562,15 @@ const BookingUI = {
       const tech = BookingData.technicians.find(t => t.tech_id === b.tech_id);
       const reqUser = (BookingData.users || []).find(u => (u.email || '').toLowerCase() === (b.requester_email || '').toLowerCase());
       const reqName = reqUser ? BookingData.cleanUserName(reqUser.full_name) : (b.requester_name || b.requester_email || 'Hệ thống');
+      const timeStr = (b.start_time && b.end_time) ? `${b.start_time.slice(0, 5)} - ${b.end_time.slice(0, 5)}` : '08:00 - 17:00';
+
+      const isAssignedTech = isTechnician && Boolean(techId) && String(b.tech_id) === String(techId);
+      const canCompleteThis = b.status === 'APPROVED' && (isAssignedTech || isSuper || isApprover);
+
       let badge = '';
-      if (b.status === 'APPROVED') {
+      if (b.status === 'COMPLETED') {
+        badge = `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold font-condensed uppercase bg-blue-50 text-blue-700 border border-blue-200">${Lucide.check} Hoàn thành</span>`;
+      } else if (b.status === 'APPROVED') {
         badge = `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold font-condensed uppercase bg-accent-50 text-accent-800 border border-accent-200">${Lucide.check} Đã duyệt</span>`;
       } else if (b.status === 'PENDING') {
         badge = `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold font-condensed uppercase bg-amber-50 text-amber-800 border border-amber-200">${Lucide.clock} Chờ duyệt</span>`;
@@ -2574,12 +2611,22 @@ const BookingUI = {
           </td>
           <td class="py-3 px-3.5 font-condensed whitespace-nowrap">
             <p class="font-bold text-slate-800 flex items-center">${b.booking_date === (b.end_date || b.booking_date) ? b.booking_date : `<span>${b.booking_date}</span><span class="inline-flex items-center mx-1 text-slate-400">${Lucide.arrowRight}</span><span>${b.end_date}</span>`}</p>
-            <p class="text-slate-400 text-[10px] font-sans">${b.booking_date === (b.end_date || b.booking_date) ? 'Trong ngày' : 'Liên ngày'}</p>
+            <p class="text-slate-500 text-[11px] font-mono">${timeStr}</p>
           </td>
           <td class="py-3 px-3.5 whitespace-nowrap">${badge}</td>
           <td class="py-3 px-4 text-right whitespace-nowrap" onclick="event.stopPropagation()">
-            <div class="flex items-center justify-end gap-1.5">
+            <div class="flex items-center justify-end gap-1.5 flex-wrap">
               <button onclick="BookingUI.openDetailModal('${b.booking_id}')" class="px-2.5 py-1.5 rounded-lg text-slate-600 hover:bg-slate-100 font-medium text-xs transition-colors cursor-pointer">Chi tiết</button>
+              ${canCompleteThis ? `
+                <button onclick="BookingUI.handleCompleteBooking('${b.booking_id}')" class="px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition-colors cursor-pointer inline-flex items-center gap-1 shadow-2xs">
+                  ${Lucide.check} <span>Hoàn thành</span>
+                </button>
+              ` : ''}
+              ${canEditBooking ? `
+                <button onclick="BookingUI.openEditBookingModal('${b.booking_id}')" class="px-2.5 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-700 font-medium text-xs transition-colors cursor-pointer inline-flex items-center gap-1">
+                  ${Lucide.pencil} <span>Sửa</span>
+                </button>
+              ` : ''}
               ${b.status === 'PENDING' && canCancelBooking ? `
                 <button onclick="BookingUI.handleCancel('${b.booking_id}')" class="px-2.5 py-1.5 rounded-lg text-rose-600 hover:bg-rose-50 font-medium text-xs transition-colors cursor-pointer">Hủy đơn</button>
               ` : ''}
@@ -2619,45 +2666,117 @@ const BookingUI = {
   },
 
   // MODAL ACTIONS
-  openBookingModal(prefillTechId = '', prefillDate = '', prefillEndDate = '') {
-    if (!BookingData.hasPermission('create_booking')) {
+  openBookingModal(prefillTechId = '', prefillDate = '', prefillEndDate = '', editBookingId = null) {
+    if (!editBookingId && !BookingData.hasPermission('create_booking')) {
       Toast.show('Tài khoản của bạn không được cấp quyền "Đặt lịch mới"!', 'error', 'Từ chối quyền');
       return;
     }
-
-    const todayStr = BookingData.formatDateStr(new Date());
-    if (prefillDate && prefillDate < todayStr) {
-      Toast.show('Không thể đặt lịch cho ngày trong quá khứ! Vui lòng chọn từ hôm nay trở đi.', 'warning', 'Lịch quá khứ');
+    if (editBookingId && !BookingData.isSuperAdmin() && !BookingData.hasPermission('edit_booking')) {
+      Toast.show('Bạn không có quyền chỉnh sửa nội dung ca trực!', 'error', 'Từ chối quyền');
       return;
     }
 
     const modal = document.getElementById('booking-modal');
     if (!modal) return;
 
-    const techSelect = document.getElementById('modal-tech-id');
-    const defaultTechId = prefillTechId || (BookingData.technicians[0] ? BookingData.technicians[0].tech_id : '');
+    const modalTitle = document.getElementById('booking-modal-title');
+    const submitText = document.getElementById('booking-modal-submit-text');
+    const bookingIdInput = document.getElementById('modal-booking-id');
+    const titleInput = document.getElementById('modal-title');
+    const locationInput = document.getElementById('modal-location');
+    const notesInput = document.getElementById('modal-notes');
+    const startTimeInput = document.getElementById('modal-start-time');
+    const endTimeInput = document.getElementById('modal-end-time');
 
-    if (techSelect) {
-      techSelect.innerHTML = BookingData.technicians.map(t => `
-        <option value="${t.tech_id}" ${t.tech_id === defaultTechId ? 'selected' : ''}>${t.name} • ${t.phone}</option>
-      `).join('');
-      techSelect.value = defaultTechId;
+    const todayStr = BookingData.formatDateStr(new Date());
+
+    if (editBookingId) {
+      const b = BookingData.bookings.find(item => item.booking_id === editBookingId);
+      if (!b) {
+        Toast.show('Không tìm thấy ca trực cần chỉnh sửa!', 'error');
+        return;
+      }
+      if (modalTitle) modalTitle.textContent = `Chỉnh Sửa Ca Trực (${b.booking_id})`;
+      if (submitText) submitText.textContent = 'Lưu Thay Đổi Ca Trực';
+      if (bookingIdInput) bookingIdInput.value = b.booking_id;
+      if (titleInput) titleInput.value = b.title || '';
+      if (locationInput) locationInput.value = b.location || '';
+      if (notesInput) notesInput.value = b.notes || '';
+      if (startTimeInput) startTimeInput.value = (b.start_time || '08:00').slice(0, 5);
+      if (endTimeInput) endTimeInput.value = (b.end_time || '17:00').slice(0, 5);
+
+      const defaultTechId = b.tech_id || (BookingData.technicians[0] ? BookingData.technicians[0].tech_id : '');
+      const techSelect = document.getElementById('modal-tech-id');
+      if (techSelect) {
+        techSelect.innerHTML = BookingData.technicians.map(t => `
+          <option value="${t.tech_id}" ${t.tech_id === defaultTechId ? 'selected' : ''}>${t.name} • ${t.phone}</option>
+        `).join('');
+        techSelect.value = defaultTechId;
+      }
+      this.updateModalTechCard(defaultTechId);
+      this.renderCustomTechOptions(defaultTechId);
+
+      const startDate = b.booking_date;
+      const endDate = b.end_date || b.booking_date;
+      this.updateModalDateRangeDisplay(startDate, endDate);
+    } else {
+      if (prefillDate && prefillDate < todayStr) {
+        Toast.show('Không thể đặt lịch cho ngày trong quá khứ! Vui lòng chọn từ hôm nay trở đi.', 'warning', 'Lịch quá khứ');
+        return;
+      }
+
+      if (modalTitle) modalTitle.textContent = 'Tạo yêu cầu đặt lịch';
+      if (submitText) submitText.textContent = 'Gửi yêu cầu';
+      if (bookingIdInput) bookingIdInput.value = '';
+      if (titleInput) titleInput.value = '';
+      if (locationInput) locationInput.value = '';
+      if (notesInput) notesInput.value = '';
+      if (startTimeInput) startTimeInput.value = '08:00';
+      if (endTimeInput) endTimeInput.value = '17:00';
+
+      const defaultTechId = prefillTechId || (BookingData.technicians[0] ? BookingData.technicians[0].tech_id : '');
+      const techSelect = document.getElementById('modal-tech-id');
+      if (techSelect) {
+        techSelect.innerHTML = BookingData.technicians.map(t => `
+          <option value="${t.tech_id}" ${t.tech_id === defaultTechId ? 'selected' : ''}>${t.name} • ${t.phone}</option>
+        `).join('');
+        techSelect.value = defaultTechId;
+      }
+      this.updateModalTechCard(defaultTechId);
+      this.renderCustomTechOptions(defaultTechId);
+
+      const startDate = (prefillDate && prefillDate >= todayStr) ? prefillDate : todayStr;
+      const endDate = (prefillEndDate && prefillEndDate >= startDate) ? prefillEndDate : startDate;
+      this.updateModalDateRangeDisplay(startDate, endDate);
     }
-
-    // Update Visual Technician Card with Avatar & Custom Dropdown Options
-    this.updateModalTechCard(defaultTechId);
-    this.renderCustomTechOptions(defaultTechId);
-
-    const startDate = (prefillDate && prefillDate >= todayStr) ? prefillDate : todayStr;
-    const endDate = (prefillEndDate && prefillEndDate >= startDate) ? prefillEndDate : startDate;
-
-    this.updateModalDateRangeDisplay(startDate, endDate);
 
     const alertBox = document.getElementById('modal-conflict-alert');
     if (alertBox) alertBox.classList.add('hidden');
 
     modal.classList.remove('hidden');
     modal.classList.add('flex');
+  },
+
+  openEditBookingModal(booking_id) {
+    this.closeDetailModal();
+    this.openBookingModal('', '', '', booking_id);
+  },
+
+  setBookingTimePreset(preset) {
+    const sInput = document.getElementById('modal-start-time');
+    const eInput = document.getElementById('modal-end-time');
+    if (!sInput || !eInput) return;
+    if (preset === 'morning') {
+      sInput.value = '08:00';
+      eInput.value = '12:00';
+    } else if (preset === 'afternoon') {
+      sInput.value = '13:30';
+      eInput.value = '17:30';
+    } else {
+      sInput.value = '08:00';
+      eInput.value = '17:00';
+    }
+    sInput.dispatchEvent(new Event('change'));
   },
 
   closeBookingModal() {
@@ -2679,17 +2798,53 @@ const BookingUI = {
   handleBookingSubmit(e) {
     e.preventDefault();
 
+    const bookingId = document.getElementById('modal-booking-id')?.value;
     const techId = document.getElementById('modal-tech-id').value;
     const bDate = document.getElementById('modal-booking-date').value;
     const endDate = document.getElementById('modal-end-date').value || bDate;
-    const title = document.getElementById('modal-title').value;
-    const location = document.getElementById('modal-location').value;
-    const notes = document.getElementById('modal-notes').value;
+    const startTime = document.getElementById('modal-start-time')?.value || '08:00';
+    const endTime = document.getElementById('modal-end-time')?.value || '17:00';
+    const title = document.getElementById('modal-title').value.trim();
+    const location = document.getElementById('modal-location').value.trim();
+    const notes = document.getElementById('modal-notes').value.trim();
+
+    if (!title) {
+      Toast.show('Vui lòng nhập tiêu đề/nhiệm vụ!', 'error');
+      return;
+    }
+    if (!location) {
+      Toast.show('Vui lòng nhập địa điểm thực hiện!', 'error');
+      return;
+    }
+
+    if (bookingId) {
+      // Update existing booking content (Admin / authorized user)
+      const res = BookingData.updateBooking(bookingId, {
+        tech_id: techId,
+        booking_date: bDate,
+        end_date: endDate,
+        start_time: startTime,
+        end_time: endTime,
+        title,
+        location,
+        notes
+      });
+      if (!res.success) {
+        Toast.show(res.error, 'error', 'Trùng lịch / Lỗi');
+        return;
+      }
+      Toast.show(`Đã cập nhật nội dung ca trực ${bookingId} thành công!`, 'success');
+      this.closeBookingModal();
+      this.render();
+      return;
+    }
 
     const res = BookingData.createBooking({
       tech_id: techId,
       booking_date: bDate,
       end_date: endDate,
+      start_time: startTime,
+      end_time: endTime,
       title: title,
       location: location,
       notes: notes
@@ -2957,6 +3112,8 @@ const BookingUI = {
     let statusText = '';
     if (b.status === 'APPROVED') {
       statusText = `<span class="inline-flex items-center gap-1.5 whitespace-nowrap text-accent-800 font-bold font-condensed bg-accent-50 px-3 py-1 rounded-full border border-accent-200 text-xs tracking-wide shadow-2xs">${Lucide.check} ĐÃ DUYỆT</span>`;
+    } else if (b.status === 'COMPLETED') {
+      statusText = `<span class="inline-flex items-center gap-1.5 whitespace-nowrap text-blue-800 font-bold font-condensed bg-blue-50 px-3 py-1 rounded-full border border-blue-200 text-xs tracking-wide shadow-2xs">${Lucide.check} HOÀN THÀNH</span>`;
     } else if (b.status === 'PENDING') {
       statusText = `<span class="inline-flex items-center gap-1.5 whitespace-nowrap text-amber-800 font-bold font-condensed bg-amber-50 px-3 py-1 rounded-full border border-amber-200 text-xs tracking-wide shadow-2xs">${Lucide.clock} CHỜ DUYỆT</span>`;
     } else if (b.status === 'REJECTED') {
@@ -2975,6 +3132,11 @@ const BookingUI = {
     const canReject = BookingData.hasPermission('reject_booking');
     const canEdit = BookingData.hasPermission('edit_booking');
     const canCancel = BookingData.hasPermission('cancel_own_booking');
+    const isSuper = BookingData.isSuperAdmin();
+    const canEditContent = isSuper || canEdit;
+    const isTechUser = BookingData.currentUser?.role === 'technician' || Boolean(BookingData.currentUser?.is_technician);
+    const isAssignedTech = isTechUser && String(BookingData.currentUser?.tech_id) === String(b.tech_id);
+    const canComplete = b.status === 'APPROVED' && (isAssignedTech || isSuper || canApprove);
     const curEmailLower = (BookingData.currentUser?.email || '').toLowerCase().trim();
     const isOwner = ((b.requester_email || '').toLowerCase().trim() === curEmailLower) ||
                     ((b.created_by || '').toLowerCase().trim() === curEmailLower);
@@ -3102,10 +3264,16 @@ const BookingUI = {
                 </div>
                 <div class="flex items-center justify-between text-[10px] text-slate-500 pt-1.5 border-t border-slate-100/90">
                   <span>${diffDays === 1 ? 'Ca trong ngày' : `Ca liên ngày (${diffDays} ngày)`}</span>
-                  <span class="font-medium text-slate-400">Đã chốt lịch</span>
+                  <span class="font-medium text-slate-400">Đã chốt ngày</span>
                 </div>
               </div>
             `}
+
+            <!-- Working Hours Slot -->
+            <div class="flex items-center gap-1.5 text-xs font-semibold text-slate-700 mt-2 pt-2 border-t border-slate-100">
+              <span class="text-brand-600 flex-shrink-0">${Lucide.clock}</span>
+              <span>Khung giờ: <strong class="text-slate-900 font-mono">${(b.start_time || '08:00').slice(0, 5)} - ${(b.end_time || '17:00').slice(0, 5)}</strong></span>
+            </div>
           </div>
         </div>
 
@@ -3165,13 +3333,24 @@ const BookingUI = {
             </div>
           ` : ''}
         </div>
-
-
       </div>
     `;
 
     // Render Context-Aware Action Footer
     if (footer) {
+      const editBtnHtml = canEditContent ? `
+        <button onclick="BookingUI.openEditBookingModal('${b.booking_id}')" type="button" class="min-h-[40px] sm:min-h-0 px-3.5 py-2 rounded-xl text-xs font-semibold bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 shadow-2xs flex items-center justify-center gap-1.5 transition-all cursor-pointer">
+          ${Lucide.pencil} Sửa nội dung
+        </button>
+      ` : '';
+
+      const completeBtnHtml = canComplete ? `
+        <button onclick="BookingUI.handleCompleteBooking('${b.booking_id}')" type="button" class="min-h-[40px] sm:min-h-0 px-4 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white shadow-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+          Hoàn thành công việc
+        </button>
+      ` : '';
+
       if (b.status === 'PENDING') {
         const actionButtons = [];
         if (canCancel && isOwner) {
@@ -3200,6 +3379,7 @@ const BookingUI = {
             <button onclick="BookingUI.closeDetailModal()" type="button" class="min-h-[40px] sm:min-h-0 px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors cursor-pointer">
               Đóng
             </button>
+            ${editBtnHtml}
             ${actionButtons.join('')}
           </div>
         `;
@@ -3209,19 +3389,22 @@ const BookingUI = {
             <button onclick="BookingUI.closeDetailModal()" type="button" class="min-h-[40px] sm:min-h-0 px-4 py-2 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors cursor-pointer">
               Đóng
             </button>
+            ${editBtnHtml}
             ${canEdit ? `
               <button onclick="BookingUI.handleSaveApprovedDates('${b.booking_id}')" type="button" class="min-h-[40px] sm:min-h-0 px-4 py-2 rounded-xl text-xs font-bold bg-brand-600 hover:bg-brand-700 text-white shadow-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer">
                 ${Lucide.check} Lưu Đổi Lịch
               </button>
             ` : ''}
+            ${completeBtnHtml}
           </div>
         `;
       } else {
         footer.innerHTML = `
-          <div class="flex items-center justify-end w-full">
+          <div class="flex items-center justify-end w-full gap-2 flex-wrap">
             <button onclick="BookingUI.closeDetailModal()" type="button" class="min-h-[40px] sm:min-h-0 px-4 py-2 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors cursor-pointer">
               Đóng
             </button>
+            ${editBtnHtml}
           </div>
         `;
       }
@@ -3613,6 +3796,35 @@ const BookingUI = {
     Toast.show(`Đã cập nhật lịch ca trực sang ${dateLabel}!`, 'success', 'Cập nhật thành công');
     this.closeDetailModal();
     this.render();
+  },
+
+  async handleCompleteBooking(bookingId) {
+    const booking = BookingData.bookings.find(b => b.booking_id === bookingId);
+    if (!booking) return;
+
+    if (!confirm(`Bạn có chắc chắn muốn xác nhận ĐÃ HOÀN THÀNH công việc "${booking.title}" (${bookingId}) không?`)) {
+      return;
+    }
+
+    if (window.SystemLoader) {
+      window.SystemLoader.show('Đang cập nhật trạng thái…', 'Đang xác nhận hoàn thành công việc…');
+    }
+
+    try {
+      const res = await BookingData.completeBooking(bookingId);
+      if (!res.success) {
+        Toast.show(res.error || 'Không thể xác nhận hoàn thành.', 'error');
+        return;
+      }
+      Toast.show(`Đã xác nhận hoàn thành công việc "${booking.title}"!`, 'success', 'Hoàn thành ca trực');
+      this.closeDetailModal();
+      this.render();
+    } catch (err) {
+      console.error(err);
+      Toast.show('Đã có lỗi xảy ra khi xác nhận hoàn thành.', 'error');
+    } finally {
+      if (window.SystemLoader) window.SystemLoader.hide();
+    }
   },
 
   // REJECTION VIEW SWAP (NO BROWSER PROMPT, WITH BACK NAVIGATION)
@@ -4725,7 +4937,8 @@ const BookingUI = {
       const cleanName = BookingData.cleanUserName(user.full_name);
       if (breadcrumbName) breadcrumbName.textContent = cleanName;
       if (pageTitle) pageTitle.textContent = `Phân quyền: ${cleanName}`;
-      if (isEditInput) isEditInput.value = 'true';
+      const origEmailInput = document.getElementById('user-detail-original-email');
+      if (origEmailInput) origEmailInput.value = user.email;
 
       if (emailInput) {
         emailInput.value = user.email;
@@ -4742,7 +4955,13 @@ const BookingUI = {
 
       if (nameInput) nameInput.value = cleanName;
       if (deptInput) deptInput.value = user.department || '';
-      if (phoneInput) phoneInput.value = user.phone || '';
+      if (phoneInput) {
+        phoneInput.value = user.phone || '';
+        phoneInput.readOnly = !callerIsAdmin;
+        phoneInput.className = callerIsAdmin
+          ? 'w-full text-xs bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-800 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-brand-500/20'
+          : 'w-full text-xs bg-slate-100 border border-slate-200 rounded-xl p-2.5 text-slate-500 cursor-not-allowed';
+      }
 
       if (passwordInput) {
         passwordInput.value = '';
@@ -5244,6 +5463,7 @@ const BookingUI = {
 
   async saveUserFromDetail() {
     const isEdit = document.getElementById('user-detail-is-edit')?.value === 'true';
+    const origEmail = document.getElementById('user-detail-original-email')?.value.trim().toLowerCase();
     const email = document.getElementById('user-detail-email')?.value.trim().toLowerCase();
     const name = document.getElementById('user-detail-name')?.value.trim();
     const dept = document.getElementById('user-detail-dept')?.value.trim();
@@ -5293,8 +5513,11 @@ const BookingUI = {
           permissions: checkedPerms,
           referrer_email: referrerEmail || ''
         };
+        if (email && origEmail && email !== origEmail) {
+          payload.new_email = email;
+        }
         if (avatarUrl) payload.avatar = avatarUrl;
-        const res = await BookingData.updateUser(email, payload);
+        const res = await BookingData.updateUser(origEmail || email, payload);
         if (res.success) {
           Toast.show(
             password

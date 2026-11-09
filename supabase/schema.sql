@@ -53,7 +53,7 @@ CREATE TABLE IF NOT EXISTS public.bookings (
   end_date DATE NOT NULL,
   start_time TIME NOT NULL,
   end_time TIME NOT NULL,
-  status TEXT NOT NULL DEFAULT 'PENDING' CHECK (status IN ('PENDING', 'APPROVED', 'REJECTED', 'CANCELLED')),
+  status TEXT NOT NULL DEFAULT 'PENDING' CHECK (status IN ('PENDING', 'APPROVED', 'REJECTED', 'CANCELLED', 'COMPLETED')),
   approver_email TEXT DEFAULT '',
   reject_reason TEXT DEFAULT '',
   notes TEXT DEFAULT '',
@@ -86,7 +86,7 @@ ALTER TABLE public.bookings ADD COLUMN IF NOT EXISTS notes TEXT DEFAULT '';
 ALTER TABLE public.bookings ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
 
 ALTER TABLE public.bookings DROP CONSTRAINT IF EXISTS bookings_status_check;
-ALTER TABLE public.bookings ADD CONSTRAINT bookings_status_check CHECK (status IN ('PENDING', 'APPROVED', 'REJECTED', 'CANCELLED'));
+ALTER TABLE public.bookings ADD CONSTRAINT bookings_status_check CHECK (status IN ('PENDING', 'APPROVED', 'REJECTED', 'CANCELLED', 'COMPLETED'));
 
 -- ==============================================================================
 -- 3. REALTIME PUBLICATION SETUP
