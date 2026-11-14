@@ -117,9 +117,8 @@
       <div>
         <h1 class="text-sm font-bold text-slate-900 flex items-center gap-2">
           <span class="w-2.5 h-2.5 rounded-full bg-brand-600"></span>
-          <span>Báo Cáo Vận Hành Kỹ Sư 16:9 (Bản Tinh Gọn Chữ To)</span>
+          <span>Báo Cáo Vận Hành Kỹ Sư 16:9</span>
         </h1>
-        <p class="text-[11px] text-slate-500">Tỉ lệ 1920×1080 • Chữ to rõ ràng • Chỉ hiện Tên & Số task • Có trạng thái khi không có lịch</p>
       </div>
     </div>
 
@@ -144,10 +143,10 @@
 
       <!-- Quick Shortcuts -->
       <div class="flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-btn p-1">
-        <button type="button" onclick="ReportApp.setQuickRange('this_month')" class="px-2 py-1 rounded-md text-[11px] font-bold text-slate-600 hover:text-brand-600 hover:bg-white transition-colors cursor-pointer">Tháng này</button>
-        <button type="button" onclick="ReportApp.setQuickRange('last_month')" class="px-2 py-1 rounded-md text-[11px] font-bold text-slate-600 hover:text-brand-600 hover:bg-white transition-colors cursor-pointer">Tháng trước</button>
-        <button type="button" onclick="ReportApp.setQuickRange('last_14days')" class="px-2 py-1 rounded-md text-[11px] font-bold text-slate-600 hover:text-brand-600 hover:bg-white transition-colors cursor-pointer">14 ngày qua</button>
-        <button type="button" onclick="ReportApp.setQuickRange('last_30days')" class="px-2 py-1 rounded-md text-[11px] font-bold text-slate-600 hover:text-brand-600 hover:bg-white transition-colors cursor-pointer">30 ngày qua</button>
+        <button type="button" onclick="ReportApp.setQuickRange('this_week')" class="px-2.5 py-1 rounded-md text-[11px] font-bold text-slate-700 hover:text-brand-600 hover:bg-white transition-colors cursor-pointer" title="Chu kỳ: Thứ Bảy tuần trước → Thứ Sáu tuần này">Tuần này</button>
+        <button type="button" onclick="ReportApp.setQuickRange('last_week')" class="px-2.5 py-1 rounded-md text-[11px] font-bold text-slate-700 hover:text-brand-600 hover:bg-white transition-colors cursor-pointer" title="Chu kỳ tuần trước">Tuần trước</button>
+        <button type="button" onclick="ReportApp.setQuickRange('this_month')" class="px-2.5 py-1 rounded-md text-[11px] font-bold text-slate-700 hover:text-brand-600 hover:bg-white transition-colors cursor-pointer">Tháng này</button>
+        <button type="button" onclick="ReportApp.setQuickRange('last_month')" class="px-2.5 py-1 rounded-md text-[11px] font-bold text-slate-700 hover:text-brand-600 hover:bg-white transition-colors cursor-pointer">Tháng trước</button>
       </div>
 
       <!-- Zoom Toggle (Fit screen vs 100%) -->
@@ -558,7 +557,27 @@
 
         let sDate, eDate;
 
-        if (type === 'this_month') {
+        if (type === 'this_week') {
+          // Chu kỳ tuần công ty: Từ Thứ Bảy tuần trước đến Thứ Sáu tuần này
+          const dow = (now.getDay() + 6) % 7; // Mon: 0 ... Fri: 4, Sat: 5, Sun: 6
+          const diffToFriday = 4 - dow;
+          const friday = new Date(now);
+          friday.setDate(now.getDate() + diffToFriday);
+          const saturday = new Date(friday);
+          saturday.setDate(friday.getDate() - 6);
+          sDate = formatD(saturday);
+          eDate = formatD(friday);
+        } else if (type === 'last_week') {
+          // Chu kỳ tuần trước: lùi thêm 7 ngày
+          const dow = (now.getDay() + 6) % 7;
+          const diffToFriday = 4 - dow;
+          const friday = new Date(now);
+          friday.setDate(now.getDate() + diffToFriday - 7);
+          const saturday = new Date(friday);
+          saturday.setDate(friday.getDate() - 6);
+          sDate = formatD(saturday);
+          eDate = formatD(friday);
+        } else if (type === 'this_month') {
           const y = now.getFullYear();
           const m = now.getMonth();
           sDate = formatD(new Date(y, m, 1));
@@ -568,23 +587,15 @@
           const m = now.getMonth() - 1;
           sDate = formatD(new Date(y, m, 1));
           eDate = formatD(new Date(y, m + 1, 0));
-        } else if (type === 'last_14days') {
-          eDate = formatD(now);
-          const past = new Date(now);
-          past.setDate(past.getDate() - 13);
-          sDate = formatD(past);
-        } else if (type === 'last_30days') {
-          eDate = formatD(now);
-          const past = new Date(now);
-          past.setDate(past.getDate() - 29);
-          sDate = formatD(past);
         }
 
-        this.startDate = sDate;
-        this.endDate = eDate;
-        document.getElementById('start-date-input').value = sDate;
-        document.getElementById('end-date-input').value = eDate;
-        this.renderAll();
+        if (sDate && eDate) {
+          this.startDate = sDate;
+          this.endDate = eDate;
+          document.getElementById('start-date-input').value = sDate;
+          document.getElementById('end-date-input').value = eDate;
+          this.renderAll();
+        }
       },
 
       renderAll() {
