@@ -50,6 +50,13 @@ const DEFAULT_DESIGN_TOKENS = {
       dot: '#569c43',    // Exact signature seed green #569c43
       label: 'Đã duyệt'
     },
+    in_progress: {
+      bg: '#ecfdf5',     // emerald-50
+      border: '#6ee7b7', // emerald-300
+      text: '#065f46',   // emerald-800 (Tương phản >= 7.5:1 - Đạt AAA)
+      dot: '#10b981',    // emerald-500
+      label: 'Đang thực hiện'
+    },
     completed: {
       bg: '#eff6ff',     // blue-50
       border: '#bfdbfe', // blue-200

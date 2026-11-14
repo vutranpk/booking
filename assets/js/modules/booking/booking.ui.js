@@ -343,8 +343,8 @@ const BookingUI = {
     }
     if (myPanelSub) {
       myPanelSub.textContent = isTechnician
-        ? 'Ca trực được phân công cho bạn.'
-        : 'Theo dõi yêu cầu và trạng thái ca trực.';
+        ? 'Task được phân công cho bạn.'
+        : 'Theo dõi yêu cầu và trạng thái task.';
     }
 
     setElemVisible(tabApproval, canViewApproval);
@@ -380,6 +380,12 @@ const BookingUI = {
 
     const mobileBookingAction = document.getElementById('mobile-bottom-booking-action');
     if (mobileBookingAction) mobileBookingAction.classList.toggle('hidden', !canCreateBooking);
+
+    const myReportBtn = document.getElementById('btn-my-bookings-report');
+    if (myReportBtn) {
+      const curTechId = (BookingData.currentUser?.role === 'technician' || BookingData.currentUser?.is_technician) ? (BookingData.currentUser.tech_id || 'TECH-003') : null;
+      myReportBtn.href = curTechId ? `template-report.html?tech=${curTechId}` : 'template-report.html';
+    }
 
     const btnOpenTech = document.getElementById('btn-open-tech-modal');
     if (btnOpenTech) btnOpenTech.classList.toggle('hidden', !canManageTechs);
@@ -585,7 +591,7 @@ const BookingUI = {
       const isRequester = BookingData.currentUser?.role === 'requester';
       const emptyDesc = isRequester
         ? 'Mọi cập nhật trạng thái đơn đặt lịch của bạn sẽ hiển thị tại đây.'
-        : 'Mọi cập nhật điều phối ca và phê duyệt sẽ hiển thị tại đây.';
+        : 'Mọi cập nhật điều phối task và phê duyệt sẽ hiển thị tại đây.';
 
       listEl.innerHTML = `
         <div class="py-8 px-4 text-center">
@@ -610,6 +616,11 @@ const BookingUI = {
         iconMarkup = `
           <div class="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 border border-amber-100 flex items-center justify-center flex-shrink-0">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          </div>`;
+      } else if (item.type === 'task_overdue') {
+        iconMarkup = `
+          <div class="w-8 h-8 rounded-xl bg-rose-50 text-rose-600 border border-rose-300 flex items-center justify-center flex-shrink-0 animate-pulse shadow-2xs">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
           </div>`;
       } else if (item.type === 'conflict_alert') {
         iconMarkup = `
@@ -917,14 +928,14 @@ const BookingUI = {
 
     if (diffDays === 1) {
       if (rangeLabel) rangeLabel.textContent = this.formatDateDisplay(sDate);
-      if (rangeSublabel) rangeSublabel.textContent = 'Ca 1 ngày • Nhấp để đổi hoặc chọn dải ngày';
+      if (rangeSublabel) rangeSublabel.textContent = 'Task 1 ngày • Nhấp để đổi hoặc chọn dải ngày';
       if (durationTag) {
         durationTag.textContent = '1 ngày';
         durationTag.className = 'text-[11px] font-bold text-brand-600 font-condensed bg-brand-50 px-2 py-0.5 rounded-full border border-brand-100';
       }
     } else {
       if (rangeLabel) rangeLabel.textContent = `${this.formatDateDisplay(sDate)} → ${this.formatDateDisplay(eDate)}`;
-      if (rangeSublabel) rangeSublabel.textContent = `Ca liên ngày (${diffDays} ngày) • Nhấp để đổi lịch`;
+      if (rangeSublabel) rangeSublabel.textContent = `Task liên ngày (${diffDays} ngày) • Nhấp để đổi lịch`;
       if (durationTag) {
         durationTag.textContent = `${diffDays} ngày`;
         durationTag.className = 'text-[11px] font-bold text-brand-700 font-condensed bg-brand-50 px-2 py-0.5 rounded-full border border-brand-100';
@@ -1086,12 +1097,12 @@ const BookingUI = {
       if (this.rangeStep === 1) {
         badge.textContent = 'Mốc thứ 2';
         badge.className = 'px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-50 text-amber-700 font-condensed border border-amber-200/80';
-        instructionText.textContent = `Đã chọn: ${this.formatDateDisplay(startDateVal)}. Nhấp ngày thứ 2 để đặt ca liên ngày, hoặc nhấp lại để xong.`;
+        instructionText.textContent = `Đã chọn: ${this.formatDateDisplay(startDateVal)}. Nhấp ngày thứ 2 để đặt task liên ngày, hoặc nhấp lại để xong.`;
         if (instructionDot) instructionDot.className = 'w-1.5 h-1.5 rounded-full bg-amber-500 flex-shrink-0 animate-ping';
       } else {
         badge.textContent = '1 Lịch chọn dải ngày';
         badge.className = 'px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-brand-50 text-brand-700 font-condensed border border-brand-100';
-        instructionText.textContent = 'Nhấp 1 ngày để chọn ca 1 ngày. Nhấp ngày thứ 2 để đặt ca liên ngày.';
+        instructionText.textContent = 'Nhấp 1 ngày để chọn task 1 ngày. Nhấp ngày thứ 2 để đặt task liên ngày.';
         if (instructionDot) instructionDot.className = 'w-1.5 h-1.5 rounded-full bg-brand-500 flex-shrink-0 animate-pulse';
       }
     }
@@ -1222,7 +1233,7 @@ const BookingUI = {
         this.rangeStart = null;
         this.hoverDate = null;
         this.closeCustomDatePicker();
-        Toast.show(`Đã xác nhận ca 1 ngày: ${this.formatDateDisplay(dateStr)}`, 'info', 'Thời gian');
+        Toast.show(`Đã xác nhận task 1 ngày: ${this.formatDateDisplay(dateStr)}`, 'info', 'Thời gian');
       } else if (dateStr > currentStart) {
         // User clicked a later date -> Range shift from currentStart to dateStr!
         this.updateModalDateRangeDisplay(currentStart, dateStr);
@@ -1233,7 +1244,7 @@ const BookingUI = {
         const d1 = new Date(currentStart);
         const d2 = new Date(dateStr);
         const diffDays = Math.max(1, Math.round((d2 - d1) / (1000 * 60 * 60 * 24)) + 1);
-        Toast.show(`Đã chọn ca liên ngày (${diffDays} ngày): ${this.formatDateDisplay(currentStart)} → ${this.formatDateDisplay(dateStr)}`, 'info', 'Thời gian');
+        Toast.show(`Đã chọn task liên ngày (${diffDays} ngày): ${this.formatDateDisplay(currentStart)} → ${this.formatDateDisplay(dateStr)}`, 'info', 'Thời gian');
       } else {
         // User clicked an earlier date -> Reset start date to this earlier date
         this.rangeStart = dateStr;
@@ -1377,7 +1388,7 @@ const BookingUI = {
       } else {
         mobActionBtn.setAttribute('onclick', "BookingUI.switchTab('my-bookings')");
         mobActionBtn.setAttribute('data-mobile-tab', 'my-bookings');
-        mobActionLabel.textContent = isTechnician ? 'Ca của tôi' : 'Đơn tôi';
+        mobActionLabel.textContent = isTechnician ? 'Task của tôi' : 'Đơn tôi';
         if (mobActionIcon) {
           mobActionIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>`;
         }
@@ -1451,7 +1462,7 @@ const BookingUI = {
     const greetingSubEl = document.getElementById('overview-user-subtitle');
     if (greetingSubEl) {
       if (isTechnician) {
-        greetingSubEl.textContent = 'Theo dõi lịch trực cá nhân và các ca điều phối được giao cho bạn.';
+        greetingSubEl.textContent = 'Theo dõi lịch trực cá nhân và các task điều phối được giao cho bạn.';
       } else if (user.role === 'admin') {
         greetingSubEl.textContent = 'Tổng quan vận hành, nhân sự kỹ thuật và lịch điều phối.';
       } else if (user.role === 'approver') {
@@ -1538,7 +1549,7 @@ const BookingUI = {
       if (cardPending) cardPending.setAttribute('onclick', "BookingUI.switchTab('approval')");
     } else if (isTechnician) {
       if (elPending) elPending.textContent = myPendingCount;
-      if (elPendingLabel) elPendingLabel.textContent = 'Ca chờ duyệt';
+      if (elPendingLabel) elPendingLabel.textContent = 'Task chờ duyệt';
       if (elPendingSub) elPendingSub.textContent = 'Đang chờ xác nhận';
       if (cardPending) cardPending.setAttribute('onclick', "BookingUI.switchTab('my-bookings')");
     } else {
@@ -1557,8 +1568,8 @@ const BookingUI = {
       if (cardUsers) cardUsers.setAttribute('onclick', "BookingUI.switchTab('users')");
     } else if (isTechnician) {
       if (elUsers) elUsers.textContent = myActiveShiftsCount;
-      if (elUsersLabel) elUsersLabel.textContent = 'Tổng ca của bạn';
-      if (elUsersSub) elUsersSub.textContent = 'Ca trực được phân công';
+      if (elUsersLabel) elUsersLabel.textContent = 'Tổng task của bạn';
+      if (elUsersSub) elUsersSub.textContent = 'Task được phân công';
       if (cardUsers) cardUsers.setAttribute('onclick', "BookingUI.switchTab('my-bookings')");
     } else {
       if (elUsers) elUsers.textContent = myBookings.length;
@@ -1592,7 +1603,7 @@ const BookingUI = {
             </div>
             <div class="min-w-0">
               <p class="text-xs font-bold text-slate-900 group-hover:text-brand-700">Lịch điều phối của tôi</p>
-              <p class="text-[11px] text-slate-500 truncate">Danh sách các ca trực được phân công cho bạn</p>
+              <p class="text-[11px] text-slate-500 truncate">Danh sách các task được phân công cho bạn</p>
             </div>
           </div>
           <svg class="w-4 h-4 text-slate-400 group-hover:text-brand-600 group-hover:translate-x-0.5 transition-all flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
@@ -1615,15 +1626,16 @@ const BookingUI = {
       }
     }
 
-    // 5. Today's and Upcoming Shifts List (Divided Scannable Rows)
+    // 5. Today's, Overdue and Upcoming Tasks List (Divided Scannable Rows)
     const shiftsContainer = document.getElementById('overview-shifts-list');
     const shiftsTitleEl = document.getElementById('overview-shifts-title');
     if (shiftsTitleEl) {
-      shiftsTitleEl.textContent = isTechnician ? 'Lịch trực của bạn hôm nay & sắp tới' : 'Ca trực hôm nay & sắp tới';
+      shiftsTitleEl.textContent = isTechnician ? 'Task của bạn hôm nay & cần xử lý' : 'Task hôm nay & Cần xử lý';
     }
     if (!shiftsContainer) return;
 
     const canCreateBooking = BookingData.hasPermission('create_booking');
+    const overdueBookings = BookingData.getOverdueTasks(isTechnician ? techId : null);
 
     const upcomingBookings = BookingData.bookings
       .filter(b => {
@@ -1631,21 +1643,29 @@ const BookingUI = {
         if (isTechnician && techId && b.tech_id !== techId) return false;
         return (b.end_date || b.booking_date) >= todayStr;
       })
-      .sort((a, b) => a.booking_date.localeCompare(b.booking_date))
-      .slice(0, 6);
+      .sort((a, b) => a.booking_date.localeCompare(b.booking_date));
 
-    if (upcomingBookings.length === 0) {
+    // Combine overdue tasks first, then upcoming tasks (up to 8 items total)
+    const combinedBookings = [...overdueBookings];
+    upcomingBookings.forEach(b => {
+      if (!combinedBookings.some(x => String(x.booking_id) === String(b.booking_id))) {
+        combinedBookings.push(b);
+      }
+    });
+    const displayList = combinedBookings.slice(0, 8);
+
+    if (displayList.length === 0) {
       shiftsContainer.innerHTML = `
         <div class="py-10 px-4 text-center">
           <div class="w-11 h-11 rounded-2xl bg-slate-50 text-slate-400 border border-slate-200/80 flex items-center justify-center mx-auto mb-2.5">
             <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
           </div>
-          <p class="text-xs font-bold text-slate-700">${isTechnician ? 'Bạn chưa có ca trực nào hôm nay & sắp tới' : 'Chưa có ca trực nào hôm nay & sắp tới'}</p>
-          <p class="text-[11px] text-slate-400 mt-0.5">${isTechnician ? 'Khi có lịch điều phối mới, ca trực sẽ hiển thị tại đây.' : 'Nhấn Đặt lịch để phân công kỹ sư.'}</p>
+          <p class="text-xs font-bold text-slate-700">${isTechnician ? 'Bạn chưa có task nào hôm nay & sắp tới' : 'Chưa có task nào hôm nay & sắp tới'}</p>
+          <p class="text-[11px] text-slate-400 mt-0.5">${isTechnician ? 'Khi có task mới được phân công, thông tin sẽ hiển thị tại đây.' : 'Nhấn Đặt lịch để phân công kỹ sư.'}</p>
           ${canCreateBooking ? `
             <button onclick="BookingUI.openBookingModal()" class="mt-3 inline-flex px-3.5 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold font-condensed uppercase tracking-wider transition-all items-center gap-1.5 cursor-pointer shadow-2xs">
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
-              <span>Đặt lịch mới</span>
+              <span>Tạo Task Mới</span>
             </button>
           ` : ''}
         </div>
@@ -1653,8 +1673,26 @@ const BookingUI = {
       return;
     }
 
-    shiftsContainer.innerHTML = upcomingBookings.map(b => {
+    const alertBannerHtml = overdueBookings.length > 0 ? `
+      <div class="p-3 sm:p-3.5 bg-rose-50 border-b border-rose-200/90 flex items-center justify-between gap-3">
+        <div class="flex items-center gap-2.5 min-w-0">
+          <span class="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-rose-100 text-rose-700 flex items-center justify-center shrink-0">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+          </span>
+          <div class="min-w-0">
+            <h4 class="text-xs font-bold text-rose-900 font-condensed uppercase tracking-wider truncate">Có ${overdueBookings.length} task đã qua ngày cần hoàn thành</h4>
+            <p class="text-[11px] text-rose-700 truncate hidden sm:block">Các task đã tới hạn hoặc quá hạn thực hiện nhưng chưa bấm hoàn tất.</p>
+          </div>
+        </div>
+        <button type="button" onclick="BookingUI.openDetailModal('${overdueBookings[0].booking_id}')" class="px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold font-condensed uppercase tracking-wider shrink-0 transition-all cursor-pointer shadow-2xs whitespace-nowrap">
+          Hoàn tất ngay
+        </button>
+      </div>
+    ` : '';
+
+    shiftsContainer.innerHTML = alertBannerHtml + displayList.map(b => {
       const tech = BookingData.technicians.find(t => t.tech_id === b.tech_id);
+      const isOverdue = BookingData.isPendingCompletion(b);
       const isCompleted = b.status === 'COMPLETED';
       const isApproved = b.status === 'APPROVED';
       const isTodayShift = b.booking_date <= todayStr && (b.end_date || b.booking_date) >= todayStr;
@@ -1666,8 +1704,14 @@ const BookingUI = {
         : this.formatDateDisplay(b.booking_date);
 
       let dateBadgeClass = 'bg-slate-50 border-slate-200/80 text-slate-800';
+      let dateTopLabel = isTodayShift ? 'H.NAY' : monthStr;
       let statusBadgeHtml = '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold font-condensed uppercase tracking-wide bg-amber-50 text-amber-800 border border-amber-200">Chờ duyệt</span>';
-      if (isCompleted) {
+      
+      if (isOverdue) {
+        dateBadgeClass = 'bg-rose-50 border-rose-300 text-rose-800 animate-pulse';
+        dateTopLabel = 'QUÁ HẠN';
+        statusBadgeHtml = '<span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold font-condensed uppercase tracking-wide bg-rose-50 text-rose-700 border border-rose-300 flex items-center gap-1 shadow-2xs"><span class="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping"></span>Cần hoàn thành</span>';
+      } else if (isCompleted) {
         dateBadgeClass = 'bg-blue-50 border-blue-200 text-blue-800';
         statusBadgeHtml = '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold font-condensed uppercase tracking-wide bg-blue-50 text-blue-700 border border-blue-200">Hoàn thành</span>';
       } else if (isApproved) {
@@ -1675,12 +1719,14 @@ const BookingUI = {
         statusBadgeHtml = '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold font-condensed uppercase tracking-wide bg-accent-50 text-accent-700 border border-accent-200">Đã duyệt</span>';
       }
 
+      const rowBorderClass = isOverdue ? 'border-l-4 border-l-rose-500 bg-rose-50/20' : '';
+
       return `
-        <div onclick="BookingUI.openDetailModal('${b.booking_id}')" class="px-4 py-3 flex items-center justify-between gap-3 hover:bg-slate-50/90 transition-colors cursor-pointer group">
+        <div onclick="BookingUI.openDetailModal('${b.booking_id}')" class="px-4 py-3 flex items-center justify-between gap-3 hover:bg-slate-50/90 transition-colors cursor-pointer group ${rowBorderClass}">
           <div class="flex items-center gap-3 min-w-0">
             <!-- Date Badge (Roboto Condensed) -->
             <div class="w-11 h-11 rounded-xl ${dateBadgeClass} border flex flex-col items-center justify-center flex-shrink-0 font-condensed">
-              <span class="text-[10px] font-bold uppercase leading-none opacity-75">${isTodayShift ? 'H.NAY' : monthStr}</span>
+              <span class="text-[9px] font-bold uppercase leading-none opacity-85 truncate px-0.5">${dateTopLabel}</span>
               <span class="text-base font-black leading-tight">${dayStr}</span>
             </div>
 
@@ -1796,12 +1842,12 @@ const BookingUI = {
         const fallbackSrc = getFallbackAvatar(ownTech.name);
         container.innerHTML = `
           <div class="relative w-10 h-10 lg:w-auto lg:h-9 lg:pl-1.5 lg:pr-3 rounded-full bg-brand-50 border border-brand-200 text-brand-800 text-xs font-bold inline-flex items-center justify-center lg:justify-start gap-2 flex-shrink-0"
-               title="${ownTech.name} (${ownCount} ca trong tháng)">
+               title="${ownTech.name} (${ownCount} task trong tháng)">
             <img src="${avatarSrc}" alt="${ownTech.name}"
                  onerror="this.onerror=null;this.src='${fallbackSrc}'"
                  class="w-9 h-9 lg:w-6 lg:h-6 rounded-full object-cover ring-2 ring-brand-600 lg:ring-0 flex-shrink-0" />
             <span class="hidden lg:inline whitespace-nowrap">${ownTech.name}</span>
-            <span class="hidden lg:inline-flex px-1.5 py-0.5 rounded-full text-[10px] font-condensed font-black bg-brand-600 text-white leading-none">${ownCount} ca</span>
+            <span class="hidden lg:inline-flex px-1.5 py-0.5 rounded-full text-[10px] font-condensed font-black bg-brand-600 text-white leading-none">${ownCount} task</span>
             <span class="lg:hidden absolute -bottom-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-condensed font-bold leading-none flex items-center justify-center bg-brand-600 text-white border border-white shadow-2xs">${ownCount}</span>
           </div>
         `;
@@ -1836,7 +1882,7 @@ const BookingUI = {
 
       html += `
         <button type="button" onclick="BookingUI.selectTech(BookingUI.selectedTechId === '${tech.tech_id}' ? 'all' : '${tech.tech_id}')"
-                aria-label="${tech.name} (${techMonthShifts} ca)"
+                aria-label="${tech.name} (${techMonthShifts} task)"
                 aria-pressed="${isSelected}"
                 class="relative w-10 h-10 lg:w-auto lg:h-9 p-0.5 lg:pl-1.5 lg:pr-3 lg:py-0 rounded-full transition-all flex-shrink-0 inline-flex items-center justify-center lg:justify-start gap-2 cursor-pointer border ${
                   isSelected
@@ -1845,7 +1891,7 @@ const BookingUI = {
                       ? 'bg-white text-slate-600 border-slate-200/80 opacity-50 hover:opacity-90 lg:opacity-100 lg:hover:bg-slate-100'
                       : 'bg-white text-slate-700 hover:bg-slate-100 border-slate-200/90 shadow-2xs'
                 }"
-                title="${tech.name} (${techMonthShifts} ca trong tháng) • Nhấn để lọc">
+                title="${tech.name} (${techMonthShifts} task trong tháng) • Nhấn để lọc">
           <img src="${avatarSrc}" alt="${tech.name}"
                onerror="this.onerror=null;this.src='${fallbackSrc}'"
                class="w-9 h-9 lg:w-6 lg:h-6 rounded-full object-cover flex-shrink-0 ${isSelected ? 'ring-1 ring-white/40' : ''}" />
@@ -2103,10 +2149,25 @@ const BookingUI = {
                 const isFirstCol = dayIdx === 0;
                 const isLastCol = dayIdx === 6;
 
+                const isOff = /off|nghỉ|leave/i.test(b.title || '') || /off|nghỉ|leave/i.test(b.notes || '') || b.type === 'OFF';
+                const isInProgress = b.status === 'IN_PROGRESS';
+                const isOverdue = BookingData.isPendingCompletion(b);
                 let baseBg = 'bg-orange-500 hover:bg-orange-600';
                 let borderColor = 'border-orange-400/60';
                 let statusLabel = 'Chờ duyệt';
-                if (isCompleted) {
+                if (isOff) {
+                  baseBg = 'bg-amber-600 hover:bg-amber-700';
+                  borderColor = 'border-amber-500/70';
+                  statusLabel = 'Nghỉ phép (OFF)';
+                } else if (isOverdue) {
+                  baseBg = 'bg-rose-600 hover:bg-rose-700 animate-pulse';
+                  borderColor = 'border-rose-400';
+                  statusLabel = '⚠️ CẦN HOÀN THÀNH (Quá hạn)';
+                } else if (isInProgress) {
+                  baseBg = 'bg-emerald-600 hover:bg-emerald-700';
+                  borderColor = 'border-emerald-500/70';
+                  statusLabel = '🟢 Đang thực hiện';
+                } else if (isCompleted) {
                   baseBg = 'bg-blue-600 hover:bg-blue-700';
                   borderColor = 'border-blue-500/60';
                   statusLabel = 'Đã hoàn thành';
@@ -2116,6 +2177,8 @@ const BookingUI = {
                   statusLabel = 'Đã duyệt';
                 }
 
+                const overdueIcon = isOverdue ? `<span class="w-3.5 h-3.5 rounded-full bg-white/25 flex items-center justify-center shrink-0 text-white" title="Cần hoàn thành"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg></span>` : '';
+                const liveProgressIcon = isInProgress ? `<span class="relative flex h-2 w-2 shrink-0 mr-1"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-90"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-white"></span></span>` : '';
                 const completedIcon = isCompleted ? `<span class="w-3.5 h-3.5 rounded-full bg-white/25 flex items-center justify-center shrink-0 text-white" title="Đã hoàn thành"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg></span>` : '';
 
                 const extendRight = !isLastCol && !isEnd;
@@ -2128,6 +2191,8 @@ const BookingUI = {
                          class="h-6 sm:h-8 w-full px-1.5 sm:px-2 rounded-lg ${baseBg} border ${borderColor} text-white transition-all flex items-center justify-between gap-1 shadow-2xs ${dragCursorClass}"
                          title="${tech ? tech.name : ''}: ${b.title} (${b.location || 'Văn phòng'}) [${bTime || '08:00 - 17:00'}] • ${statusLabel}${dragHint}">
                       <div class="flex items-center gap-1 min-w-0">
+                        ${overdueIcon}
+                        ${liveProgressIcon}
                         ${completedIcon}
                         ${bTimeBadge}
                         <span class="text-[10px] sm:text-xs font-bold font-condensed tracking-tight text-white truncate leading-none select-none">${techShortName}</span>
@@ -2143,6 +2208,8 @@ const BookingUI = {
                          ${dragAttrs}
                          class="h-6 sm:h-8 ${rightMargin} px-1.5 sm:px-2 rounded-l-lg ${baseBg} border-y border-l ${borderColor} text-white flex items-center gap-1 z-20 shadow-2xs transition-all ${dragCursorClass}"
                          title="${tech ? tech.name : ''}: ${b.title} (${bStart} đến ${bEnd}) [${bTime || '08:00 - 17:00'}] • ${statusLabel}${dragHint}">
+                      ${overdueIcon}
+                      ${liveProgressIcon}
                       ${completedIcon}
                       ${bTimeBadge}
                       <span class="text-[10px] sm:text-xs font-bold font-condensed tracking-tight text-white truncate leading-none select-none">
@@ -2233,7 +2300,7 @@ const BookingUI = {
     if (monthBookings.length === 0) {
       agendaContainer.innerHTML = `
         <div class="py-8 px-4 text-center text-slate-400">
-          <p class="text-xs font-bold text-slate-600">Không có ca trực nào trong tháng ${this.currentMonth + 1}/${this.currentYear}</p>
+          <p class="text-xs font-bold text-slate-600">Không có task nào trong tháng ${this.currentMonth + 1}/${this.currentYear}</p>
           <p class="text-[11px] text-slate-400 mt-0.5">Nhấn vào ô ngày trên lịch hoặc nút Đặt lịch để tạo mới.</p>
         </div>
       `;
@@ -2244,8 +2311,8 @@ const BookingUI = {
 
     agendaContainer.innerHTML = `
       <div class="px-4 py-2.5 bg-slate-50/70 border-b border-slate-100 flex items-center justify-between">
-        <span class="text-[11px] font-bold font-condensed uppercase tracking-wider text-slate-500">Danh sách ca trực tháng ${this.currentMonth + 1}/${this.currentYear}</span>
-        <span class="text-[11px] font-bold font-condensed text-brand-600">${monthBookings.length} ca trực</span>
+        <span class="text-[11px] font-bold font-condensed uppercase tracking-wider text-slate-500">Danh sách task tháng ${this.currentMonth + 1}/${this.currentYear}</span>
+        <span class="text-[11px] font-bold font-condensed text-brand-600">${monthBookings.length} task</span>
       </div>
       <div class="divide-y divide-slate-100">
         ${monthBookings.map(b => {
@@ -2264,7 +2331,11 @@ const BookingUI = {
           let agendaBadgeClass = 'bg-orange-50 text-orange-700 border border-orange-200';
           let agendaStatusText = 'Chờ duyệt';
           let agendaDateBoxClass = 'bg-orange-50 text-orange-800 border border-orange-200/80';
-          if (isCompleted) {
+          if (b.status === 'IN_PROGRESS') {
+            agendaBadgeClass = 'bg-emerald-50 text-emerald-800 border border-emerald-300 font-extrabold';
+            agendaStatusText = '🟢 Đang thực hiện';
+            agendaDateBoxClass = 'bg-emerald-50 text-emerald-800 border border-emerald-300';
+          } else if (isCompleted) {
             agendaBadgeClass = 'bg-blue-50 text-blue-700 border border-blue-200';
             agendaStatusText = 'Hoàn thành';
             agendaDateBoxClass = 'bg-blue-50 text-blue-800 border border-blue-200/80';
@@ -2523,7 +2594,7 @@ const BookingUI = {
     if (list.length === 0) {
       container.innerHTML = `
         <div class="py-10 sm:py-12 px-4 text-center">
-          <p class="text-sm font-semibold text-slate-800">${isApprover ? 'Chưa có lịch cần xử lý.' : (isTechnician ? 'Chưa có ca được phân công.' : 'Chưa có yêu cầu đặt lịch.')}</p>
+          <p class="text-sm font-semibold text-slate-800">${isApprover ? 'Chưa có lịch cần xử lý.' : (isTechnician ? 'Chưa có task được phân công.' : 'Chưa có yêu cầu đặt lịch.')}</p>
         </div>
       `;
       return;
@@ -2547,11 +2618,14 @@ const BookingUI = {
       const dateStr = bStart === bEnd ? this.formatDateDisplay(bStart) : `${this.formatDateDisplay(bStart)} → ${this.formatDateDisplay(bEnd)}`;
       const timeStr = (b.start_time && b.end_time) ? `${b.start_time.slice(0, 5)} - ${b.end_time.slice(0, 5)}` : '08:00 - 17:00';
 
+      const isOverdue = BookingData.isPendingCompletion(b);
       const isAssignedTech = isTechnician && Boolean(techId) && String(b.tech_id) === String(techId);
-      const canCompleteThis = b.status === 'APPROVED' && (isAssignedTech || isSuper || isApprover);
+      const canCompleteThis = (b.status === 'APPROVED' || b.status === 'IN_PROGRESS' || isOverdue) && (isAssignedTech || isSuper || isApprover);
 
       let badge = '';
-      if (b.status === 'COMPLETED') {
+      if (isOverdue) {
+        badge = `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold font-condensed uppercase bg-rose-50 text-rose-700 border border-rose-300 animate-pulse shadow-2xs"><span class="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping"></span>Cần hoàn thành</span>`;
+      } else if (b.status === 'COMPLETED') {
         badge = `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold font-condensed uppercase bg-blue-50 text-blue-700 border border-blue-200">${Lucide.check} Đã hoàn thành</span>`;
       } else if (b.status === 'APPROVED') {
         badge = `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold font-condensed uppercase bg-accent-50 text-accent-800 border border-accent-200">${Lucide.check} Đã duyệt</span>`;
@@ -2616,11 +2690,14 @@ const BookingUI = {
       const reqName = reqUser ? BookingData.cleanUserName(reqUser.full_name) : (b.requester_name || b.requester_email || 'Hệ thống');
       const timeStr = (b.start_time && b.end_time) ? `${b.start_time.slice(0, 5)} - ${b.end_time.slice(0, 5)}` : '08:00 - 17:00';
 
+      const isOverdue = BookingData.isPendingCompletion(b);
       const isAssignedTech = isTechnician && Boolean(techId) && String(b.tech_id) === String(techId);
-      const canCompleteThis = b.status === 'APPROVED' && (isAssignedTech || isSuper || isApprover);
+      const canCompleteThis = (b.status === 'APPROVED' || b.status === 'IN_PROGRESS' || isOverdue) && (isAssignedTech || isSuper || isApprover);
 
       let badge = '';
-      if (b.status === 'COMPLETED') {
+      if (isOverdue) {
+        badge = `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-extrabold font-condensed uppercase bg-rose-50 text-rose-700 border border-rose-300 animate-pulse shadow-2xs"><span class="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping"></span>Cần hoàn thành</span>`;
+      } else if (b.status === 'COMPLETED') {
         badge = `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold font-condensed uppercase bg-blue-50 text-blue-700 border border-blue-200">${Lucide.check} Hoàn thành</span>`;
       } else if (b.status === 'APPROVED') {
         badge = `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold font-condensed uppercase bg-accent-50 text-accent-800 border border-accent-200">${Lucide.check} Đã duyệt</span>`;
@@ -2632,8 +2709,10 @@ const BookingUI = {
         badge = `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold font-condensed uppercase bg-slate-100 text-slate-600 border border-slate-200">Đã hủy</span>`;
       }
 
+      const rowHighlightClass = isOverdue ? 'bg-rose-50/25 hover:bg-rose-50/50 border-l-4 border-l-rose-500' : 'hover:bg-slate-50/70';
+
       return `
-        <tr onclick="BookingUI.openDetailModal('${b.booking_id}')" class="hover:bg-slate-50/70 transition-colors cursor-pointer">
+        <tr onclick="BookingUI.openDetailModal('${b.booking_id}')" class="${rowHighlightClass} transition-colors cursor-pointer">
           <td class="py-3 px-4 font-bold font-condensed text-brand-600 whitespace-nowrap">${b.booking_id}</td>
           <td class="py-3 px-3.5 min-w-[200px]">
             <p class="font-bold text-slate-900 text-sm">${b.title}</p>
@@ -2670,8 +2749,8 @@ const BookingUI = {
             <div class="flex items-center justify-end gap-1.5 flex-wrap">
               <button onclick="BookingUI.openDetailModal('${b.booking_id}')" class="px-2.5 py-1.5 rounded-lg text-slate-600 hover:bg-slate-100 font-medium text-xs transition-colors cursor-pointer">Chi tiết</button>
               ${canCompleteThis ? `
-                <button onclick="BookingUI.handleCompleteBooking('${b.booking_id}')" class="px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition-colors cursor-pointer inline-flex items-center gap-1 shadow-2xs">
-                  ${Lucide.check} <span>Hoàn thành</span>
+                <button onclick="BookingUI.handleCompleteBooking('${b.booking_id}')" class="px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition-colors cursor-pointer inline-flex items-center gap-1 shadow-2xs ${isOverdue ? 'animate-pulse' : ''}">
+                  ${Lucide.check} <span>${isOverdue ? 'Xác nhận hoàn thành' : 'Hoàn thành'}</span>
                 </button>
               ` : ''}
               ${canEditBooking ? `
@@ -2724,7 +2803,7 @@ const BookingUI = {
       return;
     }
     if (editBookingId && !BookingData.isSuperAdmin() && !BookingData.hasPermission('edit_booking')) {
-      Toast.show('Bạn không có quyền chỉnh sửa nội dung ca trực!', 'error', 'Từ chối quyền');
+      Toast.show('Bạn không có quyền chỉnh sửa nội dung task!', 'error', 'Từ chối quyền');
       return;
     }
 
@@ -2745,11 +2824,11 @@ const BookingUI = {
     if (editBookingId) {
       const b = BookingData.bookings.find(item => item.booking_id === editBookingId);
       if (!b) {
-        Toast.show('Không tìm thấy ca trực cần chỉnh sửa!', 'error');
+        Toast.show('Không tìm thấy task cần chỉnh sửa!', 'error');
         return;
       }
-      if (modalTitle) modalTitle.textContent = `Chỉnh Sửa Ca Trực (${b.booking_id})`;
-      if (submitText) submitText.textContent = 'Lưu Thay Đổi Ca Trực';
+      if (modalTitle) modalTitle.textContent = `Chỉnh Sửa Task (${b.booking_id})`;
+      if (submitText) submitText.textContent = 'Lưu Thay Đổi Task';
       if (bookingIdInput) bookingIdInput.value = b.booking_id;
       if (titleInput) titleInput.value = b.title || '';
       if (locationInput) locationInput.value = b.location || '';
@@ -2777,8 +2856,11 @@ const BookingUI = {
         return;
       }
 
-      if (modalTitle) modalTitle.textContent = 'Tạo yêu cầu đặt lịch';
-      if (submitText) submitText.textContent = 'Gửi yêu cầu';
+      const isTech = BookingData.currentUser?.role === 'technician' || Boolean(BookingData.currentUser?.is_technician);
+      const techSelfId = isTech ? (BookingData.currentUser?.tech_id || 'TECH-003') : '';
+      const isAutoApprove = BookingData.isSuperAdmin() || (BookingData.hasPermission('approve_booking') && BookingData.currentUser?.role === 'admin');
+      if (modalTitle) modalTitle.textContent = isAutoApprove ? 'Tạo & Duyệt Trực Tiếp Task' : (isTech ? 'Kỹ Sư Tự Đặt Task' : 'Tạo yêu cầu đặt lịch');
+      if (submitText) submitText.textContent = isAutoApprove ? 'Tạo & Duyệt Ngay' : (isTech ? 'Tạo Task' : 'Gửi yêu cầu');
       if (bookingIdInput) bookingIdInput.value = '';
       if (titleInput) titleInput.value = '';
       if (locationInput) locationInput.value = '';
@@ -2786,7 +2868,7 @@ const BookingUI = {
       if (startTimeInput) startTimeInput.value = '08:00';
       if (endTimeInput) endTimeInput.value = '17:00';
 
-      const defaultTechId = prefillTechId || (BookingData.technicians[0] ? BookingData.technicians[0].tech_id : '');
+      const defaultTechId = prefillTechId || techSelfId || (BookingData.technicians[0] ? BookingData.technicians[0].tech_id : '');
       const techSelect = document.getElementById('modal-tech-id');
       if (techSelect) {
         techSelect.innerHTML = BookingData.technicians.map(t => `
@@ -2800,6 +2882,15 @@ const BookingUI = {
       const startDate = (prefillDate && prefillDate >= todayStr) ? prefillDate : todayStr;
       const endDate = (prefillEndDate && prefillEndDate >= startDate) ? prefillEndDate : startDate;
       this.updateModalDateRangeDisplay(startDate, endDate);
+    }
+
+    const immediateContainer = document.getElementById('booking-modal-immediate-container');
+    const immediateCheck = document.getElementById('modal-start-immediately');
+    if (immediateContainer) {
+      immediateContainer.classList.toggle('hidden', Boolean(editBookingId));
+    }
+    if (immediateCheck) {
+      immediateCheck.checked = false;
     }
 
     const alertBox = document.getElementById('modal-conflict-alert');
@@ -2829,6 +2920,17 @@ const BookingUI = {
       eInput.value = '17:00';
     }
     sInput.dispatchEvent(new Event('change'));
+  },
+
+  setBookingTypeQuick(type) {
+    if (type === 'off') {
+      const titleInput = document.getElementById('modal-title');
+      const locInput = document.getElementById('modal-location');
+      if (titleInput) titleInput.value = '[OFF] Nghỉ phép';
+      if (locInput) locInput.value = 'Nghỉ phép';
+      this.setBookingTimePreset('fullday');
+      if (window.Toast) Toast.show('Đã chuyển mục đích sang "Nghỉ phép (OFF)"', 'info', 'Đăng ký OFF');
+    }
   },
 
   closeBookingModal() {
@@ -2885,12 +2987,13 @@ const BookingUI = {
         Toast.show(res.error, 'error', 'Trùng lịch / Lỗi');
         return;
       }
-      Toast.show(`Đã cập nhật nội dung ca trực ${bookingId} thành công!`, 'success');
+      Toast.show(`Đã cập nhật nội dung task ${bookingId} thành công!`, 'success');
       this.closeBookingModal();
       this.render();
       return;
     }
 
+    const startImmediately = Boolean(document.getElementById('modal-start-immediately')?.checked);
     const res = BookingData.createBooking({
       tech_id: techId,
       booking_date: bDate,
@@ -2899,7 +3002,8 @@ const BookingUI = {
       end_time: endTime,
       title: title,
       location: location,
-      notes: notes
+      notes: notes,
+      status: startImmediately ? 'IN_PROGRESS' : undefined
     });
 
     if (!res.success) {
@@ -2907,28 +3011,34 @@ const BookingUI = {
       return;
     }
 
-    Toast.show(`Đã tạo yêu cầu ${res.booking.booking_id} thành công! Đang chờ duyệt.`, 'success');
+    if (res.booking.status === 'IN_PROGRESS') {
+      Toast.show(`🚀 Đã tạo và bắt đầu task ${res.booking.booking_id} ngay bây giờ!`, 'success', 'Bắt đầu task');
+    } else if (res.booking.status === 'APPROVED') {
+      Toast.show(`🎉 Đã tạo và phê duyệt trực tiếp task ${res.booking.booking_id} thành công!`, 'success', 'Duyệt tự động');
+    } else {
+      Toast.show(`Đã tạo yêu cầu ${res.booking.booking_id} thành công! Đang chờ duyệt.`, 'success');
 
-    // 1. Thông báo cho người phê duyệt / Quản trị viên (Cần quyền approve_booking)
-    BookingData.addNotification({
-      type: 'new_request',
-      title: 'Yêu cầu booking mới cần duyệt',
-      message: `${BookingData.currentUser?.full_name || 'Người dùng'} vừa gửi yêu cầu đặt lịch đơn ${res.booking.booking_id} (${res.booking.title}).`,
-      tab: 'approval',
-      booking_id: res.booking.booking_id,
-      required_perm: 'approve_booking',
-      target_roles: ['admin', 'approver']
-    });
+      // 1. Thông báo cho người phê duyệt / Quản trị viên (Cần quyền approve_booking)
+      BookingData.addNotification({
+        type: 'new_request',
+        title: 'Yêu cầu booking mới cần duyệt',
+        message: `${BookingData.currentUser?.full_name || 'Người dùng'} vừa gửi yêu cầu đặt lịch đơn ${res.booking.booking_id} (${res.booking.title}).`,
+        tab: 'approval',
+        booking_id: res.booking.booking_id,
+        required_perm: 'approve_booking',
+        target_roles: ['admin', 'approver']
+      });
 
-    // 2. Thông báo xác nhận riêng cho người gửi yêu cầu (Requester)
-    BookingData.addNotification({
-      type: 'shift_reminder',
-      title: 'Đã gửi yêu cầu đặt lịch',
-      message: `Đơn ${res.booking.booking_id} (${res.booking.title}) đã được tạo và đang chờ Ban điều phối phê duyệt.`,
-      tab: 'my-bookings',
-      booking_id: res.booking.booking_id,
-      target_user: res.booking.requester_email
-    });
+      // 2. Thông báo xác nhận riêng cho người gửi yêu cầu (Requester)
+      BookingData.addNotification({
+        type: 'shift_reminder',
+        title: 'Đã gửi yêu cầu đặt lịch',
+        message: `Đơn ${res.booking.booking_id} (${res.booking.title}) đã được tạo và đang chờ Ban điều phối phê duyệt.`,
+        tab: 'my-bookings',
+        booking_id: res.booking.booking_id,
+        target_user: res.booking.requester_email
+      });
+    }
 
     this.renderNotifications();
     this.closeBookingModal();
@@ -2937,7 +3047,7 @@ const BookingUI = {
 
   handleApprove(bookingId) {
     if (!BookingData.hasPermission('approve_booking')) {
-      Toast.show('Tài khoản của bạn không có quyền "Phê duyệt ca trực"!', 'error', 'Từ chối quyền');
+      Toast.show('Tài khoản của bạn không có quyền "Phê duyệt task"!', 'error', 'Từ chối quyền');
       return;
     }
     const booking = BookingData.bookings.find(b => b.booking_id === bookingId);
@@ -2953,7 +3063,7 @@ const BookingUI = {
         BookingData.addNotification({
           type: 'approval_success',
           title: 'Booking của bạn đã được phê duyệt',
-          message: `Đơn đặt lịch ${bookingId} (${bTitle}) của bạn đã được phê duyệt thành công. Khung giờ ca trực đã được khóa.`,
+          message: `Đơn đặt lịch ${bookingId} (${bTitle}) của bạn đã được phê duyệt thành công. Khung giờ task đã được khóa.`,
           tab: 'my-bookings',
           booking_id: bookingId,
           target_user: reqEmail
@@ -2963,8 +3073,8 @@ const BookingUI = {
       // 2. Gửi thông báo vận hành cho Ban điều phối / Admin
       BookingData.addNotification({
         type: 'approval_success',
-        title: 'Đã duyệt ca trực',
-        message: `Đơn booking ${bookingId} (${bTitle}) đã được phê duyệt thành công. Khung giờ ca trực đã được khóa bảo vệ.`,
+        title: 'Đã duyệt task',
+        message: `Đơn booking ${bookingId} (${bTitle}) đã được phê duyệt thành công. Khung giờ task đã được khóa bảo vệ.`,
         tab: 'timeline',
         booking_id: bookingId,
         required_perm: 'approve_booking',
@@ -2980,7 +3090,7 @@ const BookingUI = {
 
   handleRejectPrompt(bookingId) {
     if (!BookingData.hasPermission('reject_booking')) {
-      Toast.show('Tài khoản của bạn không có quyền "Từ chối ca trực"!', 'error', 'Từ chối quyền');
+      Toast.show('Tài khoản của bạn không có quyền "Từ chối task"!', 'error', 'Từ chối quyền');
       return;
     }
     this.openRejectModal(bookingId, 'list');
@@ -3015,7 +3125,7 @@ const BookingUI = {
         // 2. Thông báo cho Ban điều phối / Admin
         BookingData.addNotification({
           type: 'conflict_alert',
-          title: 'Ca trực bị hủy',
+          title: 'Task bị hủy',
           message: `Đơn booking ${bookingId} (${bTitle}) đã bị hủy bởi ${BookingData.currentUser?.full_name || 'Người dùng'}. Khung giờ đã được giải phóng.`,
           tab: 'timeline',
           booking_id: bookingId,
@@ -3107,13 +3217,13 @@ const BookingUI = {
     // 🛡️ CHẶN DỜI LỊCH VÀO QUÁ KHỨ
     const todayStr = BookingData.formatDateStr(new Date());
     if (targetDateStr < todayStr) {
-      Toast.show('Không thể dời ca trực vào ngày trong quá khứ! Vui lòng chọn từ hôm nay trở đi.', 'warning', 'Thao tác không hợp lệ');
+      Toast.show('Không thể dời task vào ngày trong quá khứ! Vui lòng chọn từ hôm nay trở đi.', 'warning', 'Thao tác không hợp lệ');
       return;
     }
 
     // Check permission to reschedule
     if (!BookingData.hasPermission('drag_reschedule')) {
-      Toast.show('Bạn không có quyền dời lịch ca trực!', 'error');
+      Toast.show('Bạn không có quyền dời lịch task!', 'error');
       return;
     }
 
@@ -3149,6 +3259,7 @@ const BookingUI = {
   },
 
   openDetailModal(bookingId) {
+    this._currentDetailBookingId = String(bookingId);
     const b = BookingData.bookings.find(item => String(item.booking_id) === String(bookingId));
     if (!b) {
       console.warn('Không tìm thấy booking để mở chi tiết:', bookingId);
@@ -3161,8 +3272,23 @@ const BookingUI = {
     if (!modal || !content || !footer) return;
     const tech = BookingData.technicians.find(t => String(t.tech_id) === String(b.tech_id));
 
+    const isOverdue = BookingData.isPendingCompletion(b);
+
     let statusText = '';
-    if (b.status === 'APPROVED') {
+    if (isOverdue) {
+      statusText = `<span class="inline-flex items-center gap-1.5 whitespace-nowrap text-rose-700 font-extrabold font-condensed bg-rose-50 px-3 py-1 rounded-full border border-rose-300 text-xs tracking-wide shadow-2xs animate-pulse">
+        <svg class="w-3.5 h-3.5 text-rose-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+        CẦN HOÀN THÀNH
+      </span>`;
+    } else if (b.status === 'IN_PROGRESS') {
+      statusText = `<span class="inline-flex items-center gap-1.5 whitespace-nowrap text-emerald-800 font-extrabold font-condensed bg-emerald-50 px-3 py-1 rounded-full border border-emerald-300 text-xs tracking-wide shadow-2xs">
+        <span class="relative flex h-2 w-2 shrink-0">
+          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+          <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+        </span>
+        ĐANG THỰC HIỆN
+      </span>`;
+    } else if (b.status === 'APPROVED') {
       statusText = `<span class="inline-flex items-center gap-1.5 whitespace-nowrap text-accent-800 font-bold font-condensed bg-accent-50 px-3 py-1 rounded-full border border-accent-200 text-xs tracking-wide shadow-2xs">${Lucide.check} ĐÃ DUYỆT</span>`;
     } else if (b.status === 'COMPLETED') {
       statusText = `<span class="inline-flex items-center gap-1.5 whitespace-nowrap text-blue-800 font-bold font-condensed bg-blue-50 px-3 py-1 rounded-full border border-blue-200 text-xs tracking-wide shadow-2xs">${Lucide.check} HOÀN THÀNH</span>`;
@@ -3179,25 +3305,41 @@ const BookingUI = {
     const sTime = (b.start_time || '08:00').slice(0, 5);
     const eTime = (b.end_time || '17:00').slice(0, 5);
     const timeStr = `${sTime} - ${eTime}`;
+    const [initSh, initSm] = sTime.split(':').map(Number);
+    const [initEh, initEm] = eTime.split(':').map(Number);
+    const initHrs = Math.max(0, (initEh + initEm / 60) - (initSh + initSm / 60));
+    const initIsOt = initHrs > 8;
+    const initOtHours = (initHrs - 8).toFixed(1);
     const d1 = new Date(bStart);
     const d2 = new Date(bEnd);
     const diffDays = Math.max(1, Math.round((d2 - d1) / (1000 * 60 * 60 * 24)) + 1);
     const isSingleDay = diffDays === 1;
+    const isSuper = BookingData.isSuperAdmin();
     const canApprove = BookingData.hasPermission('approve_booking');
     const canReject = BookingData.hasPermission('reject_booking');
-    const canEdit = BookingData.hasPermission('edit_booking');
+    const canEdit = isSuper || BookingData.currentUser?.role === 'admin' || BookingData.hasPermission('edit_booking');
     const canCancel = BookingData.hasPermission('cancel_own_booking');
-    const isSuper = BookingData.isSuperAdmin();
     const canEditContent = isSuper || canEdit;
     const isTechUser = BookingData.currentUser?.role === 'technician' || Boolean(BookingData.currentUser?.is_technician);
     const isAssignedTech = isTechUser && String(BookingData.currentUser?.tech_id) === String(b.tech_id);
-    const canComplete = b.status === 'APPROVED' && (isAssignedTech || isSuper || canApprove);
+    const canComplete = (b.status === 'APPROVED' || b.status === 'IN_PROGRESS') && (isAssignedTech || isSuper || canApprove || BookingData.hasPermission('self_checkin'));
+    const canStartShift = (b.status === 'APPROVED') && (isAssignedTech || isSuper || canApprove || BookingData.hasPermission('self_checkin'));
     const curEmailLower = (BookingData.currentUser?.email || '').toLowerCase().trim();
     const isOwner = ((b.requester_email || '').toLowerCase().trim() === curEmailLower) ||
                     ((b.created_by || '').toLowerCase().trim() === curEmailLower);
 
     content.innerHTML = `
       <div class="space-y-3.5">
+        ${isOverdue ? `
+          <div class="p-3.5 rounded-xl bg-rose-50 border border-rose-200 flex items-start gap-3 shadow-2xs animate-pulse">
+            <svg class="w-5 h-5 text-rose-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+            <div class="min-w-0">
+              <h5 class="text-xs font-bold text-rose-900 font-condensed uppercase tracking-wider">Cần Xác Nhận Hoàn Thành Task</h5>
+              <p class="text-[11px] text-rose-700 mt-0.5 leading-relaxed">Task này đã qua hạn thực hiện (${bStart}) nhưng chưa được nhấn Hoàn thành. Kỹ sư phụ trách hoặc Quản lý vui lòng xác nhận kết quả công việc để đóng task.</p>
+            </div>
+          </div>
+        ` : ''}
+
         <!-- Header: ID, Time, Status Pill & Title -->
         <div class="pb-3 border-b border-slate-100 pr-8 space-y-1.5">
           <div class="flex items-center justify-between gap-2">
@@ -3206,6 +3348,7 @@ const BookingUI = {
               <span class="inline-flex items-center gap-1 text-[11px] font-mono font-bold text-slate-700 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-md">
                 ${Lucide.clock} ${timeStr}
               </span>
+              ${initIsOt ? `<span class="inline-flex items-center gap-1 text-[10px] font-extrabold text-amber-800 bg-amber-50 border border-amber-300 px-2 py-0.5 rounded-md">⚡ OT: +${initOtHours}h</span>` : ''}
             </div>
             <div class="flex-shrink-0">${statusText}</div>
           </div>
@@ -3215,58 +3358,57 @@ const BookingUI = {
         <!-- 2 Balanced Information Cards Grid -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
           <!-- Card 1: Technician -->
-          <div class="bg-slate-50/80 rounded-2xl p-3 border border-slate-200/80 flex flex-col justify-between">
-            <div class="flex items-center justify-between mb-2">
-              <span class="text-[10px] font-bold tracking-wider text-slate-400 uppercase">Kỹ sư phụ trách</span>
-              <span class="text-[10px] font-bold text-brand-700 bg-brand-50 px-2 py-0.5 rounded-full border border-brand-200/70">Kỹ thuật</span>
-            </div>
-            <div class="flex items-center gap-3">
-              <img src="${tech ? tech.avatar : ''}" class="w-11 h-11 rounded-full object-cover flex-shrink-0 border-2 border-white shadow-2xs ring-1 ring-slate-200/80">
-              <div class="min-w-0 flex-1">
-                <strong class="text-xs sm:text-sm font-bold text-slate-900 block truncate leading-tight">${tech ? tech.name : b.tech_id}</strong>
-                <a href="tel:${tech ? tech.phone : ''}" class="text-xs text-slate-600 hover:text-brand-600 font-medium inline-flex items-center gap-1.5 mt-1 transition-colors">
-                  <span class="text-slate-400">${Lucide.phone}</span>
-                  <span>${tech ? tech.phone : 'Chưa có SĐT'}</span>
-                </a>
+          <div class="bg-slate-50/80 rounded-2xl p-3 sm:p-3.5 border border-slate-200/80 flex items-center gap-3">
+            <img src="${tech ? tech.avatar : ''}" class="w-12 h-12 rounded-full object-cover flex-shrink-0 border-2 border-white shadow-2xs ring-1 ring-slate-200/80">
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center justify-between gap-1 mb-0.5">
+                <span class="text-[10px] font-bold tracking-wider text-slate-400 uppercase">Kỹ sư phụ trách</span>
+                <span class="text-[10px] font-bold text-brand-700 bg-brand-50 px-2 py-0.5 rounded-full border border-brand-200/70">Kỹ thuật</span>
               </div>
+              <strong class="text-xs sm:text-sm font-bold text-slate-900 block truncate leading-tight">${tech ? tech.name : b.tech_id}</strong>
+              <a href="tel:${tech ? tech.phone : ''}" class="text-xs text-slate-600 hover:text-brand-600 font-medium inline-flex items-center gap-1.5 mt-1 transition-colors">
+                <span class="text-slate-400">${Lucide.phone}</span>
+                <span>${tech ? tech.phone : 'Chưa có SĐT'}</span>
+              </a>
             </div>
           </div>
 
-          <!-- Card 2: Date & Shift Time (Seamlessly Integrated) -->
-          <div class="bg-slate-50/80 rounded-2xl p-3 border border-slate-200/80 flex flex-col justify-between relative" id="detail-daterange-picker-wrapper">
-            <div class="flex items-center justify-between mb-2">
+          <!-- Card 2: Date & Shift Time (Clean & Compact) -->
+          <div class="bg-slate-50/80 rounded-2xl p-3 sm:p-3.5 border border-slate-200/80 flex flex-col justify-between space-y-2 relative" id="detail-daterange-picker-wrapper">
+            <div class="flex items-center justify-between">
               <span class="text-[10px] font-bold tracking-wider text-slate-400 uppercase">Thời gian thực hiện</span>
               <span id="label-detail-duration-tag" class="text-[10px] font-extrabold text-brand-700 bg-brand-50 px-2 py-0.5 rounded-full border border-brand-200/70">
                 ${diffDays} ngày
               </span>
             </div>
 
-            <div class="space-y-1.5">
-              <!-- Date row -->
-              <div class="flex items-center justify-between gap-2">
-                <div class="flex items-center gap-1.5 min-w-0">
-                  <span class="text-brand-600 flex-shrink-0">${Lucide.calendar}</span>
-                  <span id="label-detail-daterange" class="text-xs font-bold text-slate-900 font-condensed tracking-tight truncate">
-                    ${diffDays === 1 ? BookingUI.formatDateDisplay(bStart) : `${BookingUI.formatDateDisplay(bStart)} → ${BookingUI.formatDateDisplay(bEnd)}`}
-                  </span>
-                </div>
-                ${canEdit && (b.status === 'PENDING' || b.status === 'APPROVED') ? `
-                  <button id="btn-detail-daterange" type="button" onclick="BookingUI.openDetailDatePicker('${b.booking_id}')" class="text-[11px] font-bold text-brand-600 hover:text-brand-700 inline-flex items-center gap-1 flex-shrink-0 cursor-pointer transition-colors">
-                    ${Lucide.pencil} Đổi lịch
-                  </button>
-                ` : ''}
-              </div>
-
-              <!-- Time slot row -->
-              <div class="flex items-center justify-between pt-1.5 border-t border-slate-200/70 text-xs">
-                <div class="flex items-center gap-1.5 min-w-0">
-                  <span class="text-brand-600 flex-shrink-0">${Lucide.clock}</span>
-                  <span class="font-mono text-xs font-extrabold text-slate-900 tracking-tight">${timeStr}</span>
-                </div>
-                <span id="sublabel-detail-daterange" class="text-[10px] text-slate-500 font-medium truncate">
-                  ${diffDays === 1 ? 'Ca trong ngày' : `Ca liên ngày (${diffDays}n)`}
+            <div class="flex items-center justify-between gap-2">
+              <div class="flex items-center gap-1.5 min-w-0">
+                <span class="text-brand-600 flex-shrink-0">${Lucide.calendar}</span>
+                <span id="label-detail-daterange" class="text-xs font-bold text-slate-900 font-condensed tracking-tight truncate">
+                  ${diffDays === 1 ? BookingUI.formatDateDisplay(bStart) : `${BookingUI.formatDateDisplay(bStart)} → ${BookingUI.formatDateDisplay(bEnd)}`}
                 </span>
               </div>
+              ${canEdit && (b.status === 'PENDING' || b.status === 'APPROVED' || b.status === 'IN_PROGRESS') ? `
+                <button id="btn-detail-daterange" type="button" onclick="BookingUI.openDetailDatePicker('${b.booking_id}')" class="text-[11px] font-bold text-brand-600 hover:text-brand-700 inline-flex items-center gap-1 flex-shrink-0 cursor-pointer transition-colors">
+                  ${Lucide.pencil} Đổi ngày
+                </button>
+              ` : ''}
+            </div>
+
+            <!-- Time slot row: clean inline editable inputs or view display -->
+            <div class="flex items-center gap-2 pt-1.5 border-t border-slate-200/70 text-xs">
+              <span class="text-brand-600 flex-shrink-0">${Lucide.clock}</span>
+              ${canEdit && (b.status === 'PENDING' || b.status === 'APPROVED' || b.status === 'IN_PROGRESS') ? `
+                <div class="flex items-center gap-1.5 flex-1 min-w-0">
+                  <input type="time" id="detail-edit-start-time" value="${sTime}" class="w-full min-w-0 bg-white border border-slate-200 rounded-lg px-2 py-1 text-xs font-mono font-bold text-slate-800 text-center focus:outline-hidden focus:border-brand-500 focus:ring-1 focus:ring-brand-500 shadow-2xs transition-all">
+                  <span class="text-slate-400 font-bold shrink-0">–</span>
+                  <input type="time" id="detail-edit-end-time" value="${eTime}" class="w-full min-w-0 bg-white border border-slate-200 rounded-lg px-2 py-1 text-xs font-mono font-bold text-slate-800 text-center focus:outline-hidden focus:border-brand-500 focus:ring-1 focus:ring-brand-500 shadow-2xs transition-all">
+                </div>
+              ` : `
+                <span class="font-mono text-xs font-extrabold text-slate-900 tracking-tight">${timeStr}</span>
+              `}
+              <span id="sublabel-detail-daterange" class="hidden"></span>
             </div>
 
             <!-- Hidden inputs maintaining compatibility with handleApproveFromDetail -->
@@ -3294,7 +3436,7 @@ const BookingUI = {
               <!-- Dynamic Instruction Banner -->
               <div id="detail-dp-instruction-banner" class="mt-2 px-2.5 py-1.5 rounded-xl bg-slate-50 border border-slate-200/80 text-[10px] text-slate-600 flex items-center gap-1.5">
                 <span id="detail-dp-instruction-dot" class="w-1.5 h-1.5 rounded-full bg-brand-500 flex-shrink-0 animate-pulse"></span>
-                <span id="detail-dp-instruction-text" class="truncate font-medium">Nhấp 1 ngày để chọn ca 1 ngày. Nhấp ngày thứ 2 để đặt ca liên ngày.</span>
+                <span id="detail-dp-instruction-text" class="truncate font-medium">Nhấp 1 ngày để chọn task 1 ngày. Nhấp ngày thứ 2 để đặt task liên ngày.</span>
               </div>
 
               <!-- Weekdays -->
@@ -3321,7 +3463,7 @@ const BookingUI = {
           </div>
         </div>
 
-        <!-- Detailed Properties Card -->
+        <!-- Detailed Properties Card (Clean & Concise) -->
         <div class="bg-slate-50/60 rounded-2xl border border-slate-200/80 p-3 space-y-2.5 text-xs">
           <!-- Row: Location & Requester -->
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pb-2.5 border-b border-slate-200/60">
@@ -3342,8 +3484,7 @@ const BookingUI = {
                     const reqName = reqUser ? BookingData.cleanUserName(reqUser.full_name) : (b.requester_name || b.requester_email || 'Hệ thống');
                     return `
                       ${this.getUserAvatarHtml(b.requester_email, reqName, 'w-4 h-4', 'text-[8px]')}
-                      <span class="text-xs font-semibold text-slate-900 truncate">${reqName}</span>
-                      <span class="text-[10px] text-slate-400 truncate">(${b.requester_email})</span>
+                      <span class="text-xs font-semibold text-slate-900 truncate" title="${b.requester_email || ''}">${reqName}</span>
                     `;
                   })()}
                 </div>
@@ -3359,11 +3500,10 @@ const BookingUI = {
                 <div class="flex items-center gap-1.5 mt-0.5 min-w-0">
                   ${(() => {
                     const appUser = (BookingData.users || []).find(u => (u.email || '').toLowerCase() === (b.approver_email || '').toLowerCase());
-                    const appName = appUser ? BookingData.cleanUserName(appUser.full_name) : b.approver_email;
+                    const appName = appUser ? BookingData.cleanUserName(appUser.full_name) : (b.approver_email || 'Admin');
                     return `
                       ${this.getUserAvatarHtml(b.approver_email, appName, 'w-4 h-4', 'text-[8px]')}
-                      <span class="text-xs font-semibold text-slate-900 truncate">${appName}</span>
-                      <span class="text-[10px] text-slate-400 truncate">(${b.approver_email})</span>
+                      <span class="text-xs font-semibold text-slate-900 truncate" title="${b.approver_email || ''}">${appName}</span>
                     `;
                   })()}
                 </div>
@@ -3397,15 +3537,8 @@ const BookingUI = {
     // Render Context-Aware Action Footer (Balanced Dual-Zone Layout)
     if (footer) {
       const editBtnHtml = canEditContent ? `
-        <button onclick="BookingUI.openEditBookingModal('${b.booking_id}')" type="button" class="w-full sm:w-auto px-3.5 py-2 rounded-xl text-xs font-semibold bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 shadow-2xs flex items-center justify-center gap-1.5 transition-all cursor-pointer">
-          ${Lucide.pencil} Sửa nội dung
-        </button>
-      ` : '';
-
-      const completeBtnHtml = canComplete ? `
-        <button onclick="BookingUI.handleCompleteBooking('${b.booking_id}')" type="button" class="w-full sm:w-auto px-4 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white shadow-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer">
-          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-          Hoàn thành
+        <button onclick="BookingUI.openEditBookingModal('${b.booking_id}')" type="button" class="px-3.5 py-2 rounded-xl text-xs font-semibold bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 shadow-2xs inline-flex items-center justify-center gap-1.5 transition-all cursor-pointer whitespace-nowrap shrink-0">
+          ${Lucide.pencil} <span>Sửa nội dung</span>
         </button>
       ` : '';
 
@@ -3413,60 +3546,102 @@ const BookingUI = {
         const actionButtons = [];
         if (canReject) {
           actionButtons.push(`
-            <button onclick="BookingUI.openRejectModal('${b.booking_id}', 'detail')" type="button" class="w-full sm:w-auto px-3.5 py-2 rounded-xl text-xs font-semibold bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 shadow-2xs flex items-center justify-center gap-1 transition-all cursor-pointer">
+            <button onclick="BookingUI.openRejectModal('${b.booking_id}', 'detail')" type="button" class="px-3.5 py-2 rounded-xl text-xs font-semibold bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 shadow-2xs inline-flex items-center justify-center gap-1 transition-all cursor-pointer whitespace-nowrap">
               ${Lucide.x} Từ Chối
             </button>
           `);
         } else if (canCancel && isOwner) {
           actionButtons.push(`
-            <button onclick="BookingUI.handleCancelFromDetail('${b.booking_id}')" type="button" class="w-full sm:w-auto px-3.5 py-2 rounded-xl text-xs font-semibold bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 shadow-2xs flex items-center justify-center gap-1 transition-all cursor-pointer">
+            <button onclick="BookingUI.handleCancelFromDetail('${b.booking_id}')" type="button" class="px-3.5 py-2 rounded-xl text-xs font-semibold bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 shadow-2xs inline-flex items-center justify-center gap-1 transition-all cursor-pointer whitespace-nowrap">
               ${Lucide.x} Hủy Đơn
             </button>
           `);
         }
         if (canApprove) {
           actionButtons.push(`
-            <button onclick="BookingUI.handleApproveFromDetail('${b.booking_id}')" type="button" class="w-full sm:w-auto px-4 py-2 rounded-xl text-xs font-bold bg-accent-600 hover:bg-accent-700 active:bg-accent-800 text-white shadow-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer">
+            <button onclick="BookingUI.handleApproveFromDetail('${b.booking_id}')" type="button" class="px-4 py-2 rounded-xl text-xs font-bold bg-accent-600 hover:bg-accent-700 active:bg-accent-800 text-white shadow-xs inline-flex items-center justify-center gap-1.5 transition-all cursor-pointer whitespace-nowrap">
               ${Lucide.check} Duyệt
             </button>
           `);
         }
         footer.innerHTML = `
           <div class="flex flex-col-reverse sm:flex-row sm:items-center justify-between gap-2.5 w-full">
-            <div class="w-full sm:w-auto grid grid-cols-2 sm:flex items-center gap-2">
-              <button onclick="BookingUI.closeDetailModal()" type="button" class="w-full sm:w-auto px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors cursor-pointer text-center">
+            <div class="flex items-center gap-2 shrink-0">
+              <button onclick="BookingUI.closeDetailModal()" type="button" class="px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors cursor-pointer text-center whitespace-nowrap shrink-0">
                 Đóng
               </button>
               ${editBtnHtml}
             </div>
-            <div class="w-full sm:w-auto grid ${actionButtons.length > 1 ? 'grid-cols-2' : 'grid-cols-1'} sm:flex items-center gap-2 sm:justify-end">
+            <div class="flex items-center gap-2 justify-end shrink-0 flex-wrap sm:flex-nowrap">
               ${actionButtons.join('')}
             </div>
           </div>
         `;
       } else if (b.status === 'APPROVED') {
+        const startShiftBtnHtml = canStartShift && !isOverdue ? `
+          <button onclick="BookingUI.handleStartShift('${b.booking_id}')" type="button" class="px-4 py-2 rounded-xl text-xs font-black font-condensed uppercase tracking-wider bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white shadow-xs inline-flex items-center justify-center gap-1.5 transition-all cursor-pointer whitespace-nowrap">
+            <span class="relative flex h-2 w-2 shrink-0">
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+              <span class="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
+            </span>
+            <span>Bắt Đầu Task</span>
+          </button>
+        ` : '';
+
+        const completeOverdueBtnHtml = canComplete ? `
+          <button onclick="BookingUI.handleCompleteBooking('${b.booking_id}')" type="button" class="px-4 py-2 rounded-xl text-xs font-black font-condensed uppercase tracking-wider bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white shadow-xs inline-flex items-center justify-center gap-1.5 transition-all cursor-pointer whitespace-nowrap ${isOverdue ? 'animate-pulse ring-2 ring-emerald-400' : ''}">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+            <span>${isOverdue ? 'Xác Nhận Hoàn Thành Task' : 'Hoàn Thành Task'}</span>
+          </button>
+        ` : '';
+
         footer.innerHTML = `
           <div class="flex flex-col-reverse sm:flex-row sm:items-center justify-between gap-2.5 w-full">
-            <div class="w-full sm:w-auto grid grid-cols-2 sm:flex items-center gap-2">
-              <button onclick="BookingUI.closeDetailModal()" type="button" class="w-full sm:w-auto px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors cursor-pointer text-center">
+            <div class="flex items-center gap-2 shrink-0">
+              <button onclick="BookingUI.closeDetailModal()" type="button" class="px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors cursor-pointer text-center whitespace-nowrap shrink-0">
                 Đóng
               </button>
               ${editBtnHtml}
             </div>
-            <div class="w-full sm:w-auto flex items-center gap-2 sm:justify-end">
+            <div class="flex items-center gap-2 justify-end shrink-0 flex-wrap sm:flex-nowrap">
               ${canEdit ? `
-                <button onclick="BookingUI.handleSaveApprovedDates('${b.booking_id}')" type="button" class="w-full sm:w-auto px-3.5 py-2 rounded-xl text-xs font-bold bg-brand-600 hover:bg-brand-700 text-white shadow-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer">
+                <button onclick="BookingUI.handleSaveApprovedDates('${b.booking_id}')" type="button" class="px-3.5 py-2 rounded-xl text-xs font-bold bg-brand-600 hover:bg-brand-700 text-white shadow-xs inline-flex items-center justify-center gap-1.5 transition-all cursor-pointer whitespace-nowrap">
                   ${Lucide.check} Lưu Đổi Lịch
                 </button>
               ` : ''}
-              ${completeBtnHtml}
+              ${startShiftBtnHtml}
+              ${completeOverdueBtnHtml}
+            </div>
+          </div>
+        `;
+      } else if (b.status === 'IN_PROGRESS') {
+        footer.innerHTML = `
+          <div class="flex flex-col-reverse sm:flex-row sm:items-center justify-between gap-2.5 w-full">
+            <div class="flex items-center gap-2 shrink-0">
+              <button onclick="BookingUI.closeDetailModal()" type="button" class="px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors cursor-pointer text-center whitespace-nowrap shrink-0">
+                Đóng
+              </button>
+              ${editBtnHtml}
+            </div>
+            <div class="flex items-center gap-2 justify-end shrink-0 flex-wrap sm:flex-nowrap">
+              ${canEdit ? `
+                <button onclick="BookingUI.handleSaveApprovedDates('${b.booking_id}')" type="button" class="px-3.5 py-2 rounded-xl text-xs font-bold bg-brand-600 hover:bg-brand-700 text-white shadow-xs inline-flex items-center justify-center gap-1.5 transition-all cursor-pointer whitespace-nowrap">
+                  ${Lucide.check} Lưu Đổi Lịch
+                </button>
+              ` : ''}
+              ${canComplete ? `
+                <button onclick="BookingUI.handleCompleteBooking('${b.booking_id}')" type="button" class="px-4 py-2 rounded-xl text-xs font-black font-condensed uppercase tracking-wider bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white shadow-xs inline-flex items-center justify-center gap-1.5 transition-all cursor-pointer whitespace-nowrap ${isOverdue ? 'animate-pulse ring-2 ring-emerald-400' : ''}">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                  <span>${isOverdue ? 'Xác Nhận Hoàn Thành Task' : 'Hoàn Thành Task'}</span>
+                </button>
+              ` : ''}
             </div>
           </div>
         `;
       } else {
         footer.innerHTML = `
           <div class="flex items-center justify-between gap-2.5 w-full">
-            <button onclick="BookingUI.closeDetailModal()" type="button" class="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors cursor-pointer">
+            <button onclick="BookingUI.closeDetailModal()" type="button" class="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors cursor-pointer whitespace-nowrap">
               Đóng
             </button>
             ${editBtnHtml}
@@ -3544,11 +3719,11 @@ const BookingUI = {
 
     if (diffDays === 1) {
       if (rangeLabel) rangeLabel.textContent = this.formatDateDisplay(sDate);
-      if (rangeSublabel) rangeSublabel.textContent = 'Ca trong ngày';
+      if (rangeSublabel) rangeSublabel.textContent = 'Task trong ngày';
       if (durationTag) durationTag.textContent = '1 ngày';
     } else {
       if (rangeLabel) rangeLabel.textContent = `${this.formatDateDisplay(sDate)} → ${this.formatDateDisplay(eDate)}`;
-      if (rangeSublabel) rangeSublabel.textContent = `Ca liên ngày (${diffDays} ngày)`;
+      if (rangeSublabel) rangeSublabel.textContent = `Task liên ngày (${diffDays} ngày)`;
       if (durationTag) durationTag.textContent = `${diffDays} ngày`;
     }
   },
@@ -3574,12 +3749,12 @@ const BookingUI = {
       if (this.detailRangeStep === 1) {
         badge.textContent = 'Mốc thứ 2';
         badge.className = 'px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-50 text-amber-700 font-condensed border border-amber-200/80';
-        instructionText.textContent = `Đã chọn: ${this.formatDateDisplay(startDateVal)}. Nhấp ngày thứ 2 để đặt ca liên ngày, hoặc nhấp lại để xong.`;
+        instructionText.textContent = `Đã chọn: ${this.formatDateDisplay(startDateVal)}. Nhấp ngày thứ 2 để đặt task liên ngày, hoặc nhấp lại để xong.`;
         if (instructionDot) instructionDot.className = 'w-1.5 h-1.5 rounded-full bg-amber-500 flex-shrink-0 animate-ping';
       } else {
         badge.textContent = '1 Lịch chọn dải ngày';
         badge.className = 'px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-brand-50 text-brand-700 font-condensed border border-brand-100';
-        instructionText.textContent = 'Nhấp 1 ngày để chọn ca 1 ngày. Nhấp ngày thứ 2 để đặt ca liên ngày.';
+        instructionText.textContent = 'Nhấp 1 ngày để chọn task 1 ngày. Nhấp ngày thứ 2 để đặt task liên ngày.';
         if (instructionDot) instructionDot.className = 'w-1.5 h-1.5 rounded-full bg-brand-500 flex-shrink-0 animate-pulse';
       }
     }
@@ -3700,7 +3875,7 @@ const BookingUI = {
         this.detailRangeStart = null;
         this.detailHoverDate = null;
         this.closeDetailDatePicker();
-        Toast.show(`Đã chọn ca 1 ngày: ${this.formatDateDisplay(dateStr)}`, 'info', 'Thời gian');
+        Toast.show(`Đã chọn task 1 ngày: ${this.formatDateDisplay(dateStr)}`, 'info', 'Thời gian');
       } else if (dateStr > currentStart) {
         this.updateDetailDateRangeDisplay(currentStart, dateStr);
         this.detailRangeStep = 0;
@@ -3710,7 +3885,7 @@ const BookingUI = {
         const d1 = new Date(currentStart);
         const d2 = new Date(dateStr);
         const diffDays = Math.max(1, Math.round((d2 - d1) / (1000 * 60 * 60 * 24)) + 1);
-        Toast.show(`Đã chọn ca liên ngày (${diffDays} ngày): ${this.formatDateDisplay(currentStart)} → ${this.formatDateDisplay(dateStr)}`, 'info', 'Thời gian');
+        Toast.show(`Đã chọn task liên ngày (${diffDays} ngày): ${this.formatDateDisplay(currentStart)} → ${this.formatDateDisplay(dateStr)}`, 'info', 'Thời gian');
       } else {
         this.detailRangeStart = dateStr;
         this.updateDetailDateRangeDisplay(dateStr, dateStr);
@@ -3754,41 +3929,95 @@ const BookingUI = {
     this.closeDetailDatePicker();
   },
 
+  onDetailTimeChange() {
+    const sInput = document.getElementById('detail-edit-start-time');
+    const eInput = document.getElementById('detail-edit-end-time');
+    const badge = document.getElementById('detail-time-calc-badge');
+    const otContainer = document.getElementById('detail-ot-reason-container');
+    if (!sInput || !eInput || !badge) return;
+
+    const sVal = sInput.value || '08:00';
+    const eVal = eInput.value || '17:00';
+    const [sh, sm] = sVal.split(':').map(Number);
+    const [eh, em] = eVal.split(':').map(Number);
+    const hrs = Math.max(0, (eh + em / 60) - (sh + sm / 60));
+
+    if (hrs <= 0) {
+      badge.className = 'text-[10px] font-bold text-rose-700 bg-rose-50 px-2 py-0.5 rounded-full border border-rose-200';
+      badge.textContent = 'Giờ kết thúc phải sau giờ bắt đầu!';
+      if (otContainer) otContainer.classList.add('hidden');
+    } else if (hrs > 8) {
+      const otHours = (hrs - 8).toFixed(1);
+      badge.className = 'text-[10px] font-extrabold text-amber-800 bg-amber-50 px-2.5 py-0.5 rounded-full border border-amber-300 flex items-center gap-1 animate-pulse';
+      badge.innerHTML = `<span>⚡ ${hrs.toFixed(1)}h</span> • <span class="text-amber-900 font-black">Tăng ca (+${otHours}h OT)</span>`;
+      if (otContainer) otContainer.classList.remove('hidden');
+    } else {
+      badge.className = 'text-[10px] font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200';
+      badge.textContent = `${hrs.toFixed(1)}h (Task tiêu chuẩn)`;
+      if (otContainer) otContainer.classList.add('hidden');
+    }
+  },
+
+  setDetailTimePreset(sTime, eTime) {
+    const sInput = document.getElementById('detail-edit-start-time');
+    const eInput = document.getElementById('detail-edit-end-time');
+    if (sInput) sInput.value = sTime;
+    if (eInput) eInput.value = eTime;
+    this.onDetailTimeChange();
+  },
+
   handleApproveFromDetail(bookingId) {
     const b = BookingData.bookings.find(item => item.booking_id === bookingId);
     if (!b) return;
 
     const startInput = document.getElementById('detail-edit-start-date');
     const endInput = document.getElementById('detail-edit-end-date');
+    const sTimeInput = document.getElementById('detail-edit-start-time');
+    const eTimeInput = document.getElementById('detail-edit-end-time');
+    const otReasonInput = document.getElementById('detail-edit-ot-reason');
 
-    if (startInput && endInput) {
-      const newStart = startInput.value;
-      const newEnd = endInput.value || newStart;
+    const newStart = startInput ? startInput.value : b.booking_date;
+    const newEnd = endInput ? (endInput.value || newStart) : (b.end_date || b.booking_date);
+    const newStartTime = sTimeInput ? sTimeInput.value : (b.start_time || '08:00').slice(0, 5);
+    const newEndTime = eTimeInput ? eTimeInput.value : (b.end_time || '17:00').slice(0, 5);
+    const otReason = otReasonInput ? otReasonInput.value.trim() : '';
 
-      if (!newStart) {
-        Toast.show('Vui lòng chọn ngày bắt đầu hợp lệ!', 'warning');
-        return;
-      }
-      if (newEnd < newStart) {
-        Toast.show('Ngày kết thúc không được trước ngày bắt đầu!', 'warning');
-        return;
-      }
+    if (!newStart) {
+      Toast.show('Vui lòng chọn ngày bắt đầu hợp lệ!', 'warning');
+      return;
+    }
+    if (newEnd < newStart) {
+      Toast.show('Ngày kết thúc không được trước ngày bắt đầu!', 'warning');
+      return;
+    }
 
-      // If dates were modified
-      if (newStart !== b.booking_date || newEnd !== (b.end_date || b.booking_date)) {
-        // Check conflict for technician
-        const conflict = BookingData.checkConflict(b.tech_id, newStart, newEnd, bookingId);
-        if (conflict.hasConflict) {
-          Toast.show(conflict.message, 'warning', 'Xung đột lịch');
-          return;
-        }
+    const [sh, sm] = newStartTime.split(':').map(Number);
+    const [eh, em] = newEndTime.split(':').map(Number);
+    if (newStart === newEnd && (eh + em / 60) <= (sh + sm / 60)) {
+      Toast.show('Giờ kết thúc phải sau giờ bắt đầu task!', 'warning');
+      return;
+    }
 
-        // Update dates
-        b.booking_date = newStart;
-        b.end_date = newEnd;
-        BookingData.save();
+    // Check conflict
+    const conflict = BookingData.checkConflict(b.tech_id, newStart, newEnd, bookingId, newStartTime, newEndTime);
+    if (conflict.hasConflict) {
+      Toast.show(conflict.message, 'warning', 'Xung đột lịch');
+      return;
+    }
+
+    const hrs = Math.max(0, (eh + em / 60) - (sh + sm / 60));
+    b.booking_date = newStart;
+    b.end_date = newEnd;
+    b.start_time = `${newStartTime}:00`;
+    b.end_time = `${newEndTime}:00`;
+
+    if (hrs > 8 && otReason) {
+      const otTag = `[GIA HẠN / TĂNG CA +${(hrs - 8).toFixed(1)}h: ${otReason}]`;
+      if (!b.notes.includes(otTag)) {
+        b.notes = b.notes ? `${b.notes}\n${otTag}` : otTag;
       }
     }
+    BookingData.save();
 
     this.closeDetailModal();
     this.handleApprove(bookingId);
@@ -3800,14 +4029,19 @@ const BookingUI = {
 
     const startInput = document.getElementById('detail-edit-start-date');
     const endInput = document.getElementById('detail-edit-end-date');
-    if (!startInput || !endInput) return;
+    const sTimeInput = document.getElementById('detail-edit-start-time');
+    const eTimeInput = document.getElementById('detail-edit-end-time');
+    const otReasonInput = document.getElementById('detail-edit-ot-reason');
 
-    const newStart = startInput.value;
-    const newEnd = endInput.value || newStart;
+    const newStart = startInput ? startInput.value : b.booking_date;
+    const newEnd = endInput ? (endInput.value || newStart) : (b.end_date || b.booking_date);
+    const newStartTime = sTimeInput ? sTimeInput.value : (b.start_time || '08:00').slice(0, 5);
+    const newEndTime = eTimeInput ? eTimeInput.value : (b.end_time || '17:00').slice(0, 5);
+    const otReason = otReasonInput ? otReasonInput.value.trim() : '';
 
     const todayStr = BookingData.formatDateStr(new Date());
-    if (newStart < todayStr) {
-      Toast.show('Không thể dời ca trực vào ngày trong quá khứ! Vui lòng chọn từ hôm nay trở đi.', 'warning', 'Thao tác không hợp lệ');
+    if (newStart !== b.booking_date && newStart < todayStr) {
+      Toast.show('Không thể dời task vào ngày trong quá khứ! Vui lòng chọn từ hôm nay trở đi.', 'warning', 'Thao tác không hợp lệ');
       return;
     }
     if (newEnd < newStart) {
@@ -3815,33 +4049,49 @@ const BookingUI = {
       return;
     }
 
-    if (newStart === b.booking_date && newEnd === (b.end_date || b.booking_date)) {
-      this.closeDetailModal();
+    const [sh, sm] = newStartTime.split(':').map(Number);
+    const [eh, em] = newEndTime.split(':').map(Number);
+    if (newStart === newEnd && (eh + em / 60) <= (sh + sm / 60)) {
+      Toast.show('Giờ kết thúc phải sau giờ bắt đầu task!', 'warning');
       return;
     }
 
     // Check conflict
-    const conflict = BookingData.checkConflict(b.tech_id, newStart, newEnd, bookingId);
+    const conflict = BookingData.checkConflict(b.tech_id, newStart, newEnd, bookingId, newStartTime, newEndTime);
     if (conflict.hasConflict) {
       Toast.show(conflict.message, 'warning', 'Xung đột lịch');
       return;
     }
 
-    // Update dates
+    const hrs = Math.max(0, (eh + em / 60) - (sh + sm / 60));
+    const isOt = hrs > 8;
+
+    // Update dates & hours
     b.booking_date = newStart;
     b.end_date = newEnd;
+    b.start_time = `${newStartTime}:00`;
+    b.end_time = `${newEndTime}:00`;
+
+    if (isOt && otReason) {
+      const otTag = `[GIA HẠN / TĂNG CA +${(hrs - 8).toFixed(1)}h: ${otReason}]`;
+      if (!b.notes.includes(otTag)) {
+        b.notes = b.notes ? `${b.notes}\n${otTag}` : otTag;
+      }
+    }
+
     BookingData.save();
 
     const tech = BookingData.technicians.find(t => t.tech_id === b.tech_id);
     const techName = tech ? tech.name : b.tech_id;
+    const timeLabel = `${newStartTime} - ${newEndTime}`;
     const dateLabel = newStart === newEnd ? newStart : `${newStart} → ${newEnd}`;
 
     if (b.requester_email) {
       BookingData.addNotification({
         type: 'shift_reminder',
-        title: 'Ca trực đã được điều chỉnh ngày',
-        message: `Ca trực "${b.title}" của Kỹ sư ${techName} đã được cập nhật sang ngày ${dateLabel}.`,
-        tab: 'my-bookings',
+        title: 'Task đã được điều chỉnh ngày/giờ',
+        message: `Ca trực "${b.title}" (${techName}) đã được cập nhật: ${dateLabel} [${timeLabel}]${isOt ? ` (Tăng ca +${(hrs - 8).toFixed(1)}h)` : ''}.`,
+        tab: 'schedule',
         booking_id: b.booking_id,
         target_user: b.requester_email
       });
@@ -3850,15 +4100,23 @@ const BookingUI = {
 
     const client = window.SupabaseConfig ? window.SupabaseConfig.getClient() : null;
     if (client) {
-      const updateDatesPromise = client.from('bookings').update({ booking_date: newStart, end_date: newEnd }).eq('booking_id', bookingId).then(({ error }) => {
-        if (error) console.warn('Supabase update dates warning:', error);
+      const updateData = {
+        booking_date: newStart,
+        end_date: newEnd,
+        start_time: `${newStartTime}:00`,
+        end_time: `${newEndTime}:00`,
+        notes: b.notes,
+        updated_at: new Date().toISOString()
+      };
+      const updatePromise = client.from('bookings').update(updateData).eq('booking_id', bookingId).then(({ error }) => {
+        if (error) console.warn('Supabase update dates/time warning:', error);
       });
       if (window.SystemLoader) {
-        window.SystemLoader.track(updateDatesPromise, 'Đang cập nhật lịch trực…', 'Đang lưu ngày trực mới lên máy chủ');
+        window.SystemLoader.track(updatePromise, 'Đang cập nhật lịch trực…', 'Đang lưu ngày & giờ trực mới lên máy chủ Supabase');
       }
     }
 
-    Toast.show(`Đã cập nhật lịch ca trực sang ${dateLabel}!`, 'success', 'Cập nhật thành công');
+    Toast.show(`Đã cập nhật task ${bookingId} (${timeLabel}) thành công!${isOt ? ` Ghi nhận Tăng ca: +${(hrs - 8).toFixed(1)}h` : ''}`, 'success', 'Cập nhật thành công');
     this.closeDetailModal();
     this.render();
   },
@@ -3881,12 +4139,37 @@ const BookingUI = {
         Toast.show(res.error || 'Không thể xác nhận hoàn thành.', 'error');
         return;
       }
-      Toast.show(`Đã xác nhận hoàn thành công việc "${booking.title}"!`, 'success', 'Hoàn thành ca trực');
+      Toast.show(`Đã xác nhận hoàn thành công việc "${booking.title}"!`, 'success', 'Hoàn thành task');
       this.closeDetailModal();
       this.render();
     } catch (err) {
       console.error(err);
       Toast.show('Đã có lỗi xảy ra khi xác nhận hoàn thành.', 'error');
+    } finally {
+      if (window.SystemLoader) window.SystemLoader.hide();
+    }
+  },
+
+  async handleStartShift(bookingId) {
+    const booking = BookingData.bookings.find(b => String(b.booking_id) === String(bookingId));
+    if (!booking) return;
+
+    if (window.SystemLoader) {
+      window.SystemLoader.show('Bắt đầu task…', 'Đang chuyển trạng thái sang Đang thực hiện…');
+    }
+
+    try {
+      const res = BookingData.startShift(bookingId);
+      if (!res.success) {
+        Toast.show(res.error || 'Không thể bắt đầu task.', 'error');
+        return;
+      }
+      Toast.show(`🟢 Đã bắt đầu task "${booking.title}"! Giờ làm việc đang được tính.`, 'success', 'Bắt đầu task');
+      this.closeDetailModal();
+      this.render();
+    } catch (err) {
+      console.error(err);
+      Toast.show('Đã có lỗi xảy ra khi bắt đầu task.', 'error');
     } finally {
       if (window.SystemLoader) window.SystemLoader.hide();
     }
@@ -3924,8 +4207,8 @@ const BookingUI = {
         <div>
           <label class="block text-xs font-semibold text-slate-700 mb-1.5">Gợi ý lý do nhanh:</label>
           <div class="flex flex-wrap gap-1.5">
-            <button type="button" onclick="BookingUI.selectRejectReason('Kỹ sư bận ca ưu tiên')" class="px-2.5 py-1 text-xs rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 font-medium transition-colors shadow-2xs">
-              Kỹ sư bận ca ưu tiên
+            <button type="button" onclick="BookingUI.selectRejectReason('Kỹ sư bận task ưu tiên')" class="px-2.5 py-1 text-xs rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 font-medium transition-colors shadow-2xs">
+              Kỹ sư bận task ưu tiên
             </button>
             <button type="button" onclick="BookingUI.selectRejectReason('Trùng lịch bảo trì định kỳ')" class="px-2.5 py-1 text-xs rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 font-medium transition-colors shadow-2xs">
               Trùng lịch bảo trì
@@ -4011,7 +4294,7 @@ const BookingUI = {
       // 2. Thông báo cho Ban điều phối / Admin
       BookingData.addNotification({
         type: 'conflict_alert',
-        title: 'Đã từ chối ca trực',
+        title: 'Đã từ chối task',
         message: `Đơn booking ${bookingId} (${bTitle}) đã bị từ chối bởi ${BookingData.currentUser?.full_name || 'Người vận hành'}. Lý do: "${reason}".`,
         tab: 'approval',
         booking_id: bookingId,
@@ -4036,6 +4319,7 @@ const BookingUI = {
   },
 
   closeDetailModal() {
+    this._currentDetailBookingId = null;
     const modal = document.getElementById('detail-modal');
     if (modal) {
       modal.classList.add('hidden');
@@ -4140,7 +4424,7 @@ const BookingUI = {
                     </a>
                     <span class="text-slate-300">•</span>
                   ` : ''}
-                  <span class="font-bold font-condensed text-brand-700">${assignedCount} ca trực</span>
+                  <span class="font-bold font-condensed text-brand-700">${assignedCount} task</span>
                 </div>
               </div>
             </div>
@@ -4163,8 +4447,12 @@ const BookingUI = {
                 <span class="px-2 py-0.5 rounded-md text-[10px] font-medium bg-slate-100 text-slate-700">${s}</span>
               `).join('') : '<span class="text-[11px] text-slate-400">Đa nhiệm</span>'}
             </div>
-            ${canManageTechs ? `
-              <div class="flex items-center gap-1.5 flex-shrink-0">
+            <div class="flex items-center gap-1.5 flex-shrink-0">
+              <a href="template-report.html?tech=${t.tech_id}" target="_blank" class="h-8 px-2.5 rounded-lg border border-brand-200 bg-brand-50 hover:bg-brand-100 text-brand-700 font-semibold text-xs transition-colors flex items-center gap-1 shadow-2xs" title="Xem & xuất báo cáo 16:9">
+                <svg class="w-3.5 h-3.5 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                <span>Báo cáo 16:9</span>
+              </a>
+              ${canManageTechs ? `
                 <button type="button" onclick="BookingUI.openTechModal('${t.tech_id}')" class="h-8 px-2.5 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold text-xs transition-colors flex items-center gap-1 cursor-pointer">
                   <svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
                   <span>Sửa</span>
@@ -4172,8 +4460,8 @@ const BookingUI = {
                 <button type="button" onclick="BookingUI.deleteTech('${t.tech_id}')" class="h-8 px-2.5 rounded-lg border border-rose-200 hover:bg-rose-50 text-rose-600 font-semibold text-xs transition-colors flex items-center gap-1 cursor-pointer">
                   <span>Xóa</span>
                 </button>
-              </div>
-            ` : ''}
+              ` : ''}
+            </div>
           </div>
         </div>
       `;
@@ -4210,7 +4498,7 @@ const BookingUI = {
           </td>
           <td class="py-3 px-3.5 whitespace-nowrap">
             <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-bold font-condensed bg-brand-50 text-brand-700 border border-brand-100">
-              ${assignedCount} ca trực
+              ${assignedCount} task
             </span>
           </td>
           <td class="py-3 px-3.5 whitespace-nowrap">
@@ -4226,18 +4514,22 @@ const BookingUI = {
               </span>
             `}
           </td>
-          ${canManageTechs ? `
-            <td class="py-3 px-4 text-right whitespace-nowrap">
-              <div class="flex items-center justify-end gap-1.5">
+          <td class="py-3 px-4 text-right whitespace-nowrap">
+            <div class="flex items-center justify-end gap-1.5">
+              <a href="template-report.html?tech=${t.tech_id}" target="_blank" class="px-2.5 py-1.5 rounded-lg border border-brand-200 bg-brand-50 hover:bg-brand-100 text-brand-700 font-semibold text-xs transition-colors inline-flex items-center gap-1 shadow-2xs" title="Xem & xuất báo cáo 16:9">
+                <svg class="w-3.5 h-3.5 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                <span>Báo cáo 16:9</span>
+              </a>
+              ${canManageTechs ? `
                 <button type="button" onclick="BookingUI.openTechModal('${t.tech_id}')" class="p-1.5 rounded-lg text-slate-600 hover:text-brand-600 hover:bg-brand-50 transition-colors cursor-pointer" title="Sửa thông tin">
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
                 </button>
                 <button type="button" onclick="BookingUI.deleteTech('${t.tech_id}')" class="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer" title="Xóa kỹ sư">
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                 </button>
-              </div>
-            </td>
-          ` : ''}
+              ` : ''}
+            </div>
+          </td>
         </tr>
       `;
     }).join('');
@@ -4256,9 +4548,9 @@ const BookingUI = {
               <th class="py-3 px-4">Kỹ Sư</th>
               <th class="py-3 px-3.5">Liên Hệ</th>
               <th class="py-3 px-3.5">Chuyên Môn & Năng Lực</th>
-              <th class="py-3 px-3.5">Khối Lượng Ca</th>
+              <th class="py-3 px-3.5">Khối Lượng Task</th>
               <th class="py-3 px-3.5">Trạng Thái</th>
-              ${canManageTechs ? '<th class="py-3 px-4 text-right">Thao Tác</th>' : ''}
+              <th class="py-3 px-4 text-right">Báo Cáo & Thao Tác</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-100">
@@ -5447,7 +5739,7 @@ const BookingUI = {
       tbody.innerHTML = `
         <tr>
           <td colspan="6" class="py-8 text-center text-slate-400 text-xs">
-            Tài khoản mới chưa có lịch sử ca trực nào.
+            Tài khoản mới chưa có lịch sử task nào.
           </td>
         </tr>
       `;
@@ -5471,7 +5763,7 @@ const BookingUI = {
               <div class="w-10 h-10 rounded-xl bg-slate-100 text-slate-400 flex items-center justify-center">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
               </div>
-              <p class="text-xs font-semibold text-slate-700">Chưa có ca trực nào do người dùng này tạo</p>
+              <p class="text-xs font-semibold text-slate-700">Chưa có task nào do người dùng này tạo</p>
               <p class="text-[11px] text-slate-400">Tài khoản này chưa phát sinh yêu cầu booking hoặc điều phối kỹ thuật nào trên hệ thống.</p>
             </div>
           </td>
@@ -5500,7 +5792,7 @@ const BookingUI = {
             <span class="font-bold text-slate-900 font-condensed tracking-wide text-xs bg-slate-100 group-hover:bg-brand-50 group-hover:text-brand-700 px-2 py-0.5 rounded-md border border-slate-200/60 transition-colors">${bId}</span>
           </td>
           <td class="py-2.5 px-3">
-            <div class="font-bold text-slate-900 text-xs">${b.title || 'Ca trực kỹ thuật'}</div>
+            <div class="font-bold text-slate-900 text-xs">${b.title || 'Task kỹ thuật'}</div>
             ${b.location ? `<div class="text-[10px] text-slate-400 flex items-center gap-1 mt-0.5"><svg class="w-3 h-3 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg><span class="truncate">${b.location}</span></div>` : ''}
           </td>
           <td class="py-2.5 px-3">
@@ -5797,7 +6089,7 @@ const BookingUI = {
     const connect = document.getElementById('google-calendar-connect-button');
     const disconnect = document.getElementById('google-calendar-disconnect-button');
     if (error || data?.error) { if (status) status.textContent = data?.error || 'Không tải được trạng thái kết nối.'; return; }
-    if (status) status.textContent = data.connected ? `Đã kết nối ${data.email || 'Google Calendar'}. Ca đã duyệt sẽ được đồng bộ.` : 'Kết nối lịch cá nhân để tự đồng bộ ca đã duyệt.';
+    if (status) status.textContent = data.connected ? `Đã kết nối ${data.email || 'Google Calendar'}. Task đã duyệt sẽ được đồng bộ.` : 'Kết nối lịch cá nhân để tự đồng bộ task đã duyệt.';
     connect?.classList.toggle('hidden', !!data.connected);
     disconnect?.classList.toggle('hidden', !data.connected);
   },
@@ -6390,8 +6682,8 @@ const BookingUI = {
 
     const tplNames = {
       tech_invite: 'Lời mời lịch cho kỹ sư (.ics)',
-      requester_approved: 'Thông báo Duyệt Ca Trực gửi PM',
-      requester_rejected: 'Thông báo Từ Chối Ca Trực gửi PM'
+      requester_approved: 'Thông báo Duyệt Task gửi PM',
+      requester_rejected: 'Thông báo Từ Chối Task gửi PM'
     };
 
     if (window.SystemLoader) {
@@ -6406,12 +6698,12 @@ const BookingUI = {
   downloadIcs(bookingId) {
     const b = BookingData.bookings.find(item => item.booking_id === bookingId);
     if (!b) {
-      Toast.show('Không tìm thấy dữ liệu ca trực để xuất file .ics!', 'error');
+      Toast.show('Không tìm thấy dữ liệu task để xuất file .ics!', 'error');
       return;
     }
 
     if (window.SystemLoader) {
-      window.SystemLoader.show('Đang xuất dữ liệu lịch (.ics)…', `Đang trích xuất ca trực ${b.booking_id} chuẩn RFC 5545…`);
+      window.SystemLoader.show('Đang xuất dữ liệu lịch (.ics)…', `Đang trích xuất task ${b.booking_id} chuẩn RFC 5545…`);
     }
 
     try {

@@ -5,6 +5,7 @@ const BookingData = {
     { key: 'view_schedule', label: 'Xem lịch kỹ sư', group: 'Lịch & Timeline', desc: 'Xem bảng lịch ca trực' },
     { key: 'drag_reschedule', label: 'Kéo thả dời lịch', group: 'Lịch & Timeline', desc: 'Kéo thả đổi ngày trực tiếp trên lịch' },
     { key: 'create_booking', label: 'Đặt lịch mới', group: 'Đặt Lịch', desc: 'Gửi yêu cầu ca trực mới' },
+    { key: 'self_checkin', label: 'Tự check-in việc gấp', group: 'Đặt Lịch', desc: 'Cho phép kỹ sư tự book ca khẩn cấp và bắt đầu ca trực ngay' },
     { key: 'cancel_own_booking', label: 'Hủy đơn của mình', group: 'Đặt Lịch', desc: 'Chủ động hủy yêu cầu do mình tạo' },
     { key: 'edit_booking', label: 'Chỉnh sửa ca trực', group: 'Đặt Lịch', desc: 'Sửa ngày hoặc nội dung ca trực' },
     { key: 'view_approval_queue', label: 'Xem danh sách duyệt', group: 'Phê Duyệt', desc: 'Xem danh sách ca chờ duyệt' },
@@ -20,15 +21,15 @@ const BookingData = {
 
   // 3-Tier Default Role Permissions Presets + Technician
   ROLE_PERMISSIONS: {
-    technician: ['view_schedule'],
+    technician: ['view_schedule', 'create_booking'],
     requester: ['view_schedule', 'create_booking', 'cancel_own_booking'],
     approver: [
-      'view_schedule', 'drag_reschedule', 'create_booking', 'cancel_own_booking',
+      'view_schedule', 'drag_reschedule', 'create_booking', 'self_checkin', 'cancel_own_booking',
       'edit_booking', 'view_approval_queue', 'approve_booking', 'reject_booking',
       'view_technicians', 'manage_technicians'
     ],
     admin: [
-      'view_schedule', 'drag_reschedule', 'create_booking', 'cancel_own_booking',
+      'view_schedule', 'drag_reschedule', 'create_booking', 'self_checkin', 'cancel_own_booking',
       'edit_booking', 'view_approval_queue', 'approve_booking', 'reject_booking',
       'view_technicians', 'manage_technicians', 'view_users', 'manage_users', 'manage_permissions',
       'debug_role_switcher'
@@ -39,6 +40,7 @@ const BookingData = {
   STATUS_LABELS: {
     PENDING: 'Chờ duyệt',
     APPROVED: 'Đã duyệt',
+    IN_PROGRESS: 'Đang thực hiện',
     COMPLETED: 'Hoàn thành',
     REJECTED: 'Từ chối',
     CANCELLED: 'Đã hủy'
@@ -46,6 +48,7 @@ const BookingData = {
   STATUS_CLASSES: {
     PENDING: 'bg-amber-50 text-amber-800 border border-amber-200',
     APPROVED: 'bg-accent-50 text-accent-700 border border-accent-200',
+    IN_PROGRESS: 'bg-emerald-50 text-emerald-800 border border-emerald-300',
     COMPLETED: 'bg-blue-50 text-blue-700 border border-blue-200',
     REJECTED: 'bg-rose-50 text-rose-700 border border-rose-200',
     CANCELLED: 'bg-slate-100 text-slate-600 border border-slate-200'
@@ -123,6 +126,81 @@ const BookingData = {
   // System Notifications with Dynamic Real-World Scoping
   notifications: [],
 
+  getTodayISO() {
+    const now = new Date();
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+  },
+
+  isPendingCompletion(b) {
+    if (!b) return false;
+    // Completed, rejected, cancelled tasks are already resolved
+    if (b.status === 'COMPLETED' || b.status === 'REJECTED' || b.status === 'CANCELLED') return false;
+    
+    // Only active tasks (IN_PROGRESS or APPROVED) need to be completed
+    if (b.status !== 'IN_PROGRESS' && b.status !== 'APPROVED') return false;
+
+    const todayStr = this.getTodayISO();
+    const endDate = String(b.end_date || b.booking_date || '').slice(0, 10);
+    if (!endDate) return false;
+
+    // Past date (qua ngày sau): task was scheduled before today but not completed!
+    if (endDate < todayStr) return true;
+
+    // Today, but after work/scheduled hours
+    if (endDate === todayStr) {
+      const now = new Date();
+      const pad = (n) => String(n).padStart(2, '0');
+      const curTime = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+      const endTime = (b.end_time || '18:00').slice(0, 5);
+      if (curTime > endTime) return true;
+    }
+
+    return false;
+  },
+
+  getOverdueTasks(techId = null) {
+    const list = (this.bookings || []).filter(b => this.isPendingCompletion(b));
+    if (techId && techId !== 'all') {
+      return list.filter(b => String(b.tech_id) === String(techId));
+    }
+    return list;
+  },
+
+  syncOverdueNotifications() {
+    const overdueTasks = this.getOverdueTasks();
+    if (!overdueTasks.length) return;
+
+    if (!Array.isArray(this.notifications)) this.notifications = [];
+    let hasNew = false;
+    overdueTasks.forEach(b => {
+      const notifId = `notif-overdue-${b.booking_id}`;
+      const exists = this.notifications.some(n => n.id === notifId);
+      if (!exists) {
+        const tech = (this.technicians || []).find(t => String(t.tech_id) === String(b.tech_id));
+        const techName = tech ? tech.name : (b.tech_id || 'Kỹ sư');
+        this.notifications.unshift({
+          id: notifId,
+          type: 'task_overdue',
+          title: `⚠️ Cần hoàn thành: Task #${b.booking_id}`,
+          message: `Task "${b.title}" của Kỹ sư ${techName} (${b.booking_date}) đã qua hạn thực hiện nhưng chưa được nhấn Hoàn thành. Vui lòng bấm để cập nhật ngay.`,
+          time: 'Cần xử lý',
+          read: false,
+          tab: 'my-bookings',
+          booking_id: b.booking_id,
+          tech_id: b.tech_id,
+          target_user: b.requester_email,
+          target_roles: ['admin', 'approver', 'requester', 'technician']
+        });
+        hasNew = true;
+      }
+    });
+
+    if (hasNew) {
+      this.saveNotificationsData();
+    }
+  },
+
   // Load notifications from local storage if available, or dynamically generate from actual bookings
   initNotificationsData() {
     try {
@@ -131,6 +209,7 @@ const BookingData = {
         const parsed = JSON.parse(stored);
         if (Array.isArray(parsed) && parsed.length > 0) {
           this.notifications = parsed;
+          this.syncOverdueNotifications();
           return;
         }
       }
@@ -140,6 +219,7 @@ const BookingData = {
 
     // Generate authentic notifications dynamically from existing real bookings
     this.notifications = this.generateLiveNotificationsFromBookings();
+    this.syncOverdueNotifications();
     this.saveNotificationsData();
   },
 
@@ -151,11 +231,28 @@ const BookingData = {
       const tech = this.technicians.find(t => t.tech_id === b.tech_id);
       const techName = tech ? tech.name : b.tech_id;
 
+      // 1. Task overdue / pending completion alert
+      if (this.isPendingCompletion(b)) {
+        list.push({
+          id: `notif-overdue-${b.booking_id}`,
+          type: 'task_overdue',
+          title: `⚠️ Cần hoàn thành: Task #${b.booking_id}`,
+          message: `Task "${b.title}" của Kỹ sư ${techName} (${b.booking_date}) đã qua ngày trực nhưng chưa được bấm Hoàn thành. Nhấn để đóng task.`,
+          time: 'Cần xử lý',
+          read: false,
+          tab: 'my-bookings',
+          booking_id: b.booking_id,
+          tech_id: b.tech_id,
+          target_user: b.requester_email,
+          target_roles: ['admin', 'approver', 'requester', 'technician']
+        });
+      }
+
       if (b.status === 'PENDING') {
         list.push({
           id: `notif-pending-${b.booking_id}`,
           type: 'new_request',
-          title: 'Yêu cầu booking ca trực cần duyệt',
+          title: 'Yêu cầu điều phối task cần duyệt',
           message: `${b.requester_name || 'Quản lý dự án'} yêu cầu điều phối Kỹ sư ${techName} cho "${b.title}" (${b.booking_date}).`,
           time: 'Gần đây',
           read: false,
@@ -165,12 +262,12 @@ const BookingData = {
           required_perm: 'approve_booking',
           target_roles: ['admin', 'approver']
         });
-      } else if (b.status === 'APPROVED') {
+      } else if (b.status === 'APPROVED' && !this.isPendingCompletion(b)) {
         list.push({
           id: `notif-approved-${b.booking_id}`,
           type: 'approval_success',
-          title: 'Ca trực đã được phê duyệt',
-          message: `Ca trực "${b.title}" của Kỹ sư ${techName} (${b.booking_date}) đã được duyệt thành công.`,
+          title: 'Task đã được phê duyệt',
+          message: `Task "${b.title}" của Kỹ sư ${techName} (${b.booking_date}) đã được duyệt thành công.`,
           time: 'Hôm nay',
           read: idx > 0,
           tab: 'my-bookings',
@@ -553,49 +650,12 @@ const BookingData = {
       // 3. Fetch Bookings from Supabase Cloud
       const { data: remoteBookings, error: bkError } = await client.from('bookings').select('*').order('created_at', { ascending: false });
       if (!bkError && Array.isArray(remoteBookings)) {
-        this.bookings = remoteBookings.map(b => {
-          const reqEmail = (b.requester_email || b.created_by || '').trim().toLowerCase();
-          const userObj = this.users.find(u => (u.email || '').toLowerCase() === reqEmail);
-          const reqName = userObj ? this.cleanUserName(userObj.full_name) : this.cleanUserName(b.requester_name || reqEmail || 'Người dùng');
-          return {
-            ...b,
-            booking_date: b.booking_date || b.date,
-            end_date: b.end_date || b.booking_date || b.date,
-            tech_id: b.tech_id || b.technician_id,
-            booking_id: b.booking_id || b.id,
-            requester_email: reqEmail,
-            requester_name: reqName
-          };
-        });
-        this.save();
-        if (window.BookingUI) {
-          if (typeof BookingUI.render === 'function') BookingUI.render();
-          if (typeof BookingUI.renderUsers === 'function') BookingUI.renderUsers();
-          if (typeof BookingUI.renderTechnicians === 'function') BookingUI.renderTechnicians();
-        }
-        if (window.App && typeof App.updateStats === 'function') {
-          App.updateStats();
-        }
+        this.bookings = remoteBookings.map(b => this._mapBookingRecord(b));
+        this.refreshAllUI();
       }
 
       // 4. Setup Realtime Listener for All Core Tables (Bookings, Technicians, Users)
-      if (!this.supabaseRealtimeChannel) {
-        this.supabaseRealtimeChannel = client
-          .channel('public:system_changes')
-          .on('postgres_changes', { event: '*', schema: 'public', table: 'bookings' }, (payload) => {
-            console.log('⚡ Realtime sync [bookings]:', payload);
-            this.syncWithSupabase({ silent: true });
-          })
-          .on('postgres_changes', { event: '*', schema: 'public', table: 'technicians' }, (payload) => {
-            console.log('⚡ Realtime sync [technicians]:', payload);
-            this.syncWithSupabase({ silent: true });
-          })
-          .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, (payload) => {
-            console.log('⚡ Realtime sync [users]:', payload);
-            this.syncWithSupabase({ silent: true });
-          })
-          .subscribe();
-      }
+      this.setupRealtimeListener();
 
       this._initialSyncCompleted = true;
       this.updateCloudStatus(true);
@@ -608,6 +668,171 @@ const BookingData = {
         window.SystemLoader.hide();
       }
     }
+  },
+
+  _mapBookingRecord(b) {
+    if (!b) return null;
+    const reqEmail = (b.requester_email || b.created_by || '').trim().toLowerCase();
+    const userObj = (this.users || []).find(u => (u.email || '').toLowerCase() === reqEmail);
+    const reqName = userObj ? this.cleanUserName(userObj.full_name) : this.cleanUserName(b.requester_name || reqEmail || 'Người dùng');
+    return {
+      ...b,
+      booking_date: b.booking_date || b.date,
+      end_date: b.end_date || b.booking_date || b.date,
+      tech_id: b.tech_id || b.technician_id,
+      booking_id: b.booking_id || b.id,
+      requester_email: reqEmail,
+      requester_name: reqName
+    };
+  },
+
+  refreshAllUI() {
+    this.save();
+    if (window.BookingUI) {
+      if (typeof BookingUI.render === 'function') BookingUI.render();
+      if (typeof BookingUI.renderUsers === 'function' && BookingUI.activeTab === 'users') {
+        BookingUI.renderUsers();
+      }
+      if (typeof BookingUI.renderTechnicians === 'function' && BookingUI.activeTab === 'technicians') {
+        BookingUI.renderTechnicians();
+      }
+      if (typeof BookingUI.renderApprovalBoard === 'function' && BookingUI.activeTab === 'approval') {
+        BookingUI.renderApprovalBoard();
+      }
+      if (typeof BookingUI.renderMyBookings === 'function' && BookingUI.activeTab === 'my-bookings') {
+        BookingUI.renderMyBookings();
+      }
+
+      // Live update detail modal if currently open
+      const detailModal = document.getElementById('detail-modal');
+      if (detailModal && !detailModal.classList.contains('hidden') && BookingUI._currentDetailBookingId) {
+        BookingUI.openDetailModal(BookingUI._currentDetailBookingId);
+      }
+
+      // Sync and render live overdue notifications
+      this.syncOverdueNotifications();
+      if (typeof BookingUI.renderNotifications === 'function') {
+        BookingUI.renderNotifications();
+      }
+    }
+    if (window.App && typeof App.updateStats === 'function') {
+      App.updateStats();
+    }
+  },
+
+  _realtimeDebounceTimer: null,
+
+  handleRealtimeEvent(table, payload) {
+    console.log(`⚡ Supabase Realtime [${table}]:`, payload?.eventType, payload?.new || payload?.old);
+
+    try {
+      if (table === 'bookings') {
+        const { eventType, new: newRec, old: oldRec } = payload;
+        if (eventType === 'INSERT' && newRec) {
+          const mapped = this._mapBookingRecord(newRec);
+          const exists = this.bookings.some(b => String(b.booking_id) === String(mapped.booking_id));
+          if (!exists) {
+            this.bookings.unshift(mapped);
+          }
+        } else if (eventType === 'UPDATE' && newRec) {
+          const mapped = this._mapBookingRecord(newRec);
+          const idx = this.bookings.findIndex(b => String(b.booking_id) === String(mapped.booking_id));
+          if (idx !== -1) {
+            this.bookings[idx] = { ...this.bookings[idx], ...mapped };
+          } else {
+            this.bookings.unshift(mapped);
+          }
+        } else if (eventType === 'DELETE' && oldRec) {
+          const delId = oldRec.booking_id || oldRec.id;
+          this.bookings = this.bookings.filter(b => String(b.booking_id) !== String(delId));
+        }
+      } else if (table === 'technicians') {
+        const { eventType, new: newRec, old: oldRec } = payload;
+        if (eventType === 'INSERT' && newRec) {
+          if (!this.technicians.some(t => String(t.tech_id) === String(newRec.tech_id))) {
+            this.technicians.push(newRec);
+          }
+        } else if (eventType === 'UPDATE' && newRec) {
+          const idx = this.technicians.findIndex(t => String(t.tech_id) === String(newRec.tech_id));
+          if (idx !== -1) {
+            this.technicians[idx] = { ...this.technicians[idx], ...newRec };
+          }
+        } else if (eventType === 'DELETE' && oldRec) {
+          const delId = oldRec.tech_id || oldRec.id;
+          this.technicians = this.technicians.filter(t => String(t.tech_id) !== String(delId));
+        }
+      } else if (table === 'users') {
+        const { eventType, new: newRec, old: oldRec } = payload;
+        if (eventType === 'INSERT' && newRec) {
+          const email = (newRec.email || '').toLowerCase();
+          if (!this.users.some(u => (u.email || '').toLowerCase() === email)) {
+            this.users.push(newRec);
+          }
+        } else if (eventType === 'UPDATE' && newRec) {
+          const email = (newRec.email || '').toLowerCase();
+          const idx = this.users.findIndex(u => (u.email || '').toLowerCase() === email);
+          if (idx !== -1) {
+            this.users[idx] = { ...this.users[idx], ...newRec };
+          }
+        } else if (eventType === 'DELETE' && oldRec) {
+          const email = (oldRec.email || '').toLowerCase();
+          this.users = this.users.filter(u => (u.email || '').toLowerCase() !== email);
+        }
+      }
+    } catch (e) {
+      console.warn('Realtime quick-patch error:', e);
+    }
+
+    // 0ms UI update across all active components
+    this.refreshAllUI();
+
+    // Broadcast across windows/tabs
+    try {
+      localStorage.setItem('kcoffee_realtime_ping', String(Date.now()));
+    } catch (_) {}
+    window.dispatchEvent(new CustomEvent('kcoffee:realtime-change', { detail: { table, payload } }));
+
+    // Debounced reconcile with Supabase Cloud
+    clearTimeout(this._realtimeDebounceTimer);
+    this._realtimeDebounceTimer = setTimeout(() => {
+      this.syncWithSupabase({ silent: true });
+    }, 300);
+  },
+
+  setupRealtimeListener() {
+    const client = window.SupabaseConfig ? window.SupabaseConfig.getClient() : null;
+    if (!client) {
+      console.warn('⚠️ Supabase client not ready for Realtime subscription.');
+      return;
+    }
+
+    if (this.supabaseRealtimeChannel) {
+      return; // Already actively listening
+    }
+
+    // Keep realtime authenticated if session exists
+    if (client.auth && client.realtime) {
+      client.auth.getSession().then(({ data: { session } = {} }) => {
+        if (session?.access_token) {
+          client.realtime.setAuth(session.access_token);
+        }
+      }).catch(() => {});
+    }
+
+    this.supabaseRealtimeChannel = client
+      .channel('k-workspace-realtime-v3')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'bookings' }, (payload) => {
+        this.handleRealtimeEvent('bookings', payload);
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'technicians' }, (payload) => {
+        this.handleRealtimeEvent('technicians', payload);
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, (payload) => {
+        this.handleRealtimeEvent('users', payload);
+      })
+      .subscribe((status, err) => {
+        console.log(`📡 Realtime subscription status: ${status}`, err || '');
+      });
   },
 
   save() {
@@ -648,6 +873,7 @@ const BookingData = {
       const bEnd = b.end_date || b.booking_date;
       const bStartTime = (b.start_time || '08:00').slice(0, 5);
       const bEndTime = (b.end_time || '17:00').slice(0, 5);
+      const timeText = `${bStartTime} - ${bEndTime}`;
 
       const existStartIso = `${bStart}T${bStartTime}:00`;
       const existEndIso = `${bEnd}T${bEndTime}:00`;
@@ -657,11 +883,13 @@ const BookingData = {
         const tech = this.technicians.find(t => t.tech_id === tech_id);
         const statusLabel = b.status === 'APPROVED' ? 'Đã duyệt' : 'Đang chờ duyệt';
         const dateRangeText = bStart === bEnd ? bStart : `${bStart} đến ${bEnd}`;
-        const timeText = `${bStartTime} - ${bEndTime}`;
+        const isExistOff = /off|nghỉ|leave/i.test(b.title || '');
         return {
           hasConflict: true,
           conflictingBooking: b,
-          message: `Kỹ sư ${tech ? tech.name : tech_id} đã có lịch [${dateRangeText} lúc ${timeText}] (${statusLabel}) cho nhiệm vụ "${b.title}". Vui lòng chọn khung giờ khác hoặc kỹ sư khác!`
+          message: isExistOff
+            ? `Kỹ sư ${tech ? tech.name : tech_id} đang có LỊCH NGHỈ PHÉP (OFF) [${dateRangeText} lúc ${timeText}]. Vui lòng chọn kỹ sư khác!`
+            : `Kỹ sư ${tech ? tech.name : tech_id} đã có lịch [${dateRangeText} lúc ${timeText}] (${statusLabel}) cho nhiệm vụ "${b.title}". Vui lòng chọn khung giờ khác hoặc kỹ sư khác!`
         };
       }
     }
@@ -671,25 +899,31 @@ const BookingData = {
 
   createBooking(data) {
     if (!this.isAuthenticated()) return { success: false, error: 'Vui lòng đăng nhập để đặt lịch.' };
-    if (!this.hasPermission('create_booking')) return { success: false, error: 'Tài khoản kỹ sư chỉ được xem ca trực được phân công, không có quyền đặt lịch.' };
+    if (!this.hasPermission('create_booking')) return { success: false, error: 'Tài khoản của bạn không có quyền đặt lịch.' };
     const startDate = data.booking_date;
     const endDate = data.end_date || data.booking_date;
     const startTime = (data.start_time || '08:00').slice(0, 5);
     const endTime = (data.end_time || '17:00').slice(0, 5);
+    const assignedTechId = data.tech_id || (this.currentUser?.role === 'technician' ? (this.currentUser.tech_id || 'TECH-003') : data.tech_id);
 
     const todayStr = this.formatDateStr(new Date());
     if (startDate < todayStr) {
       return { success: false, error: 'Không thể đặt lịch cho ngày trong quá khứ! Vui lòng chọn từ hôm nay trở đi.' };
     }
 
-    const conflict = this.checkConflict(data.tech_id, startDate, endDate, null, startTime, endTime);
+    const conflict = this.checkConflict(assignedTechId, startDate, endDate, null, startTime, endTime);
     if (conflict.hasConflict) {
       return { success: false, error: conflict.message };
     }
 
+    // Auto-approve for High-level Admin or users with approve_booking authority or if explicitly started
+    const isAutoApprove = this.isSuperAdmin() || this.currentUser?.role === 'admin' || this.hasPermission('approve_booking');
+    const initialStatus = data.status || (isAutoApprove ? 'APPROVED' : 'PENDING');
+    const approverEmail = isAutoApprove ? (this.currentUser?.email || 'admin') : '';
+
     const newBooking = {
       booking_id: `BK-${Date.now().toString().slice(-6)}`,
-      tech_id: data.tech_id,
+      tech_id: assignedTechId,
       requester_email: this.currentUser.email,
       requester_name: this.cleanUserName(this.currentUser.full_name),
       title: data.title,
@@ -698,8 +932,8 @@ const BookingData = {
       end_date: endDate,
       start_time: `${startTime}:00`,
       end_time: `${endTime}:00`,
-      status: 'PENDING',
-      approver_email: '',
+      status: initialStatus,
+      approver_email: approverEmail,
       reject_reason: '',
       notes: data.notes || '',
       created_at: new Date().toISOString()
@@ -708,17 +942,29 @@ const BookingData = {
     this.bookings.unshift(newBooking);
     this.save();
 
-    // Live Notification for approvers & admins
-    this.addNotification({
-      type: 'new_request',
-      title: 'Yêu cầu booking ca trực mới',
-      message: `${newBooking.requester_name} đã gửi yêu cầu: "${newBooking.title}" (${newBooking.booking_date} lúc ${startTime}-${endTime}).`,
-      tab: 'approval',
-      booking_id: newBooking.booking_id,
-      tech_id: newBooking.tech_id,
-      required_perm: 'approve_booking',
-      target_roles: ['admin', 'approver']
-    });
+    if (isAutoApprove) {
+      // Direct notification: approved immediately without queue
+      this.addNotification({
+        type: 'shift_reminder',
+        title: 'Ca trực đã được phê duyệt tự động',
+        message: `Admin ${newBooking.requester_name} đã setup và duyệt trực tiếp ca trực "${newBooking.title}" cho Kỹ sư (${newBooking.booking_date} lúc ${startTime}-${endTime}).`,
+        tab: 'schedule',
+        booking_id: newBooking.booking_id,
+        tech_id: newBooking.tech_id
+      });
+    } else {
+      // Live Notification for approvers & admins
+      this.addNotification({
+        type: 'new_request',
+        title: 'Yêu cầu booking ca trực mới',
+        message: `${newBooking.requester_name} đã gửi yêu cầu: "${newBooking.title}" (${newBooking.booking_date} lúc ${startTime}-${endTime}).`,
+        tab: 'approval',
+        booking_id: newBooking.booking_id,
+        tech_id: newBooking.tech_id,
+        required_perm: 'approve_booking',
+        target_roles: ['admin', 'approver']
+      });
+    }
 
     // Push to Supabase with SystemLoader action lock
     const client = window.SupabaseConfig ? window.SupabaseConfig.getClient() : null;
@@ -737,7 +983,7 @@ const BookingData = {
   updateBooking(booking_id, updatedData) {
     if (!this.isAuthenticated()) return { success: false, error: 'Vui lòng đăng nhập.' };
     const booking = this.bookings.find(b => b.booking_id === booking_id);
-    if (!booking) return { success: false, error: 'Không tìm thấy ca trực.' };
+    if (!booking) return { success: false, error: 'Không tìm thấy task.' };
 
     const isAdmin = this.isSuperAdmin();
     const canEdit = this.hasPermission('edit_booking');
@@ -794,26 +1040,109 @@ const BookingData = {
     return { success: true, booking };
   },
 
-  completeBooking(booking_id) {
+  startShift(booking_id) {
     if (!this.isAuthenticated()) return { success: false, error: 'Vui lòng đăng nhập.' };
-    const booking = this.bookings.find(b => b.booking_id === booking_id);
-    if (!booking) return { success: false, error: 'Không tìm thấy ca trực.' };
+    const booking = this.bookings.find(b => String(b.booking_id) === String(booking_id));
+    if (!booking) return { success: false, error: 'Không tìm thấy task.' };
 
     const user = this.currentUser;
     const isTech = user?.role === 'technician' || Boolean(user?.is_technician);
     const isAssignedTech = isTech && String(user?.tech_id) === String(booking.tech_id);
     const isAdmin = this.isSuperAdmin();
     const canApprove = this.hasPermission('approve_booking');
+    const canCheckin = this.hasPermission('self_checkin');
 
-    if (!isAssignedTech && !isAdmin && !canApprove) {
-      return { success: false, error: 'Chỉ kỹ sư phụ trách ca trực hoặc Quản trị viên mới có thể đánh dấu hoàn thành công việc.' };
+    if (!isAssignedTech && !isAdmin && !canApprove && !canCheckin) {
+      return { success: false, error: 'Chỉ kỹ sư phụ trách ca trực hoặc Quản trị viên mới có thể bắt đầu ca trực này.' };
     }
 
-    booking.status = 'COMPLETED';
-    booking.updated_at = new Date().toISOString();
+    const now = new Date();
+    const pad = n => String(n).padStart(2, '0');
+    const nowTime = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+
+    booking.status = 'IN_PROGRESS';
+    booking.started_at = now.toISOString();
+    if (!booking.start_time) {
+      booking.start_time = nowTime;
+    }
+    booking.updated_at = now.toISOString();
     this.save();
 
-    const tech = this.technicians.find(t => t.tech_id === booking.tech_id);
+    const tech = this.technicians.find(t => String(t.tech_id) === String(booking.tech_id));
+    const techName = tech ? tech.name : (user?.full_name || booking.tech_id);
+
+    this.addNotification({
+      type: 'shift_started',
+      title: '🟢 Kỹ sư đã bắt đầu thực hiện ca trực',
+      message: `Kỹ sư ${techName} vừa bắt đầu thực hiện: "${booking.title}" lúc ${nowTime}.`,
+      tab: 'timeline',
+      booking_id: booking.booking_id,
+      tech_id: booking.tech_id,
+      target_roles: ['admin', 'approver', 'requester']
+    });
+
+    const client = window.SupabaseConfig ? window.SupabaseConfig.getClient() : null;
+    if (client) {
+      const p = client.from('bookings').update({
+        status: 'IN_PROGRESS',
+        start_time: booking.start_time,
+        updated_at: booking.updated_at
+      }).eq('booking_id', booking.booking_id).then(({ error }) => {
+        if (error) console.warn('Supabase start shift warning:', error);
+      });
+      if (window.SystemLoader) {
+        window.SystemLoader.track(p, 'Đang bắt đầu ca trực…', 'Đang cập nhật trạng thái Đang thực hiện');
+      }
+    }
+
+    return { success: true, booking };
+  },
+
+  completeBooking(booking_id, actualEndTime, actualNotes) {
+    if (!this.isAuthenticated()) return { success: false, error: 'Vui lòng đăng nhập.' };
+    const booking = this.bookings.find(b => String(b.booking_id) === String(booking_id));
+    if (!booking) return { success: false, error: 'Không tìm thấy task.' };
+
+    const user = this.currentUser;
+    const isTech = user?.role === 'technician' || Boolean(user?.is_technician);
+    const isAssignedTech = isTech && String(user?.tech_id) === String(booking.tech_id);
+    const isAdmin = this.isSuperAdmin();
+    const canApprove = this.hasPermission('approve_booking');
+    const canCheckin = this.hasPermission('self_checkin');
+
+    if (!isAssignedTech && !isAdmin && !canApprove && !canCheckin) {
+      return { success: false, error: 'Chỉ kỹ sư phụ trách task hoặc Quản trị viên mới có thể đánh dấu hoàn thành công việc.' };
+    }
+
+    const now = new Date();
+    const pad = n => String(n).padStart(2, '0');
+    const nowTime = actualEndTime || `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+
+    booking.status = 'COMPLETED';
+    booking.end_time = nowTime;
+    booking.completed_at = now.toISOString();
+    booking.updated_at = now.toISOString();
+
+    if (actualNotes && actualNotes.trim()) {
+      booking.notes = booking.notes ? `${booking.notes}\n• [Nghiệm thu hoàn tất]: ${actualNotes.trim()}` : `• [Nghiệm thu hoàn tất]: ${actualNotes.trim()}`;
+    }
+
+    // Tự động kiểm tra thời lượng thực tế và tính giờ tăng ca OT (>8h)
+    const sTime = (booking.start_time || '08:00').slice(0, 5);
+    const [sh, sm] = sTime.split(':').map(Number);
+    const [eh, em] = nowTime.split(':').map(Number);
+    const actualHrs = Math.max(0, (eh + em / 60) - (sh + sm / 60));
+    if (actualHrs > 8) {
+      const otHours = (actualHrs - 8).toFixed(1);
+      const otTag = `[TĂNG CA / OT THỰC TẾ: +${otHours}h]`;
+      if (!booking.notes || !booking.notes.includes('TĂNG CA / OT')) {
+        booking.notes = booking.notes ? `${booking.notes}\n• ${otTag}` : otTag;
+      }
+    }
+
+    this.save();
+
+    const tech = this.technicians.find(t => String(t.tech_id) === String(booking.tech_id));
     const techName = tech ? tech.name : (user?.full_name || 'Kỹ sư');
 
     // Notify requester
@@ -821,11 +1150,12 @@ const BookingData = {
       this.addNotification({
         type: 'shift_reminder',
         title: 'Công việc đã được hoàn thành',
-        message: `Kỹ sư ${techName} đã hoàn thành nhiệm vụ "${booking.title}" (${booking.booking_date}).`,
+        message: `Kỹ sư ${techName} đã hoàn thành nhiệm vụ "${booking.title}" (${actualHrs.toFixed(1)}h).`,
         tab: 'my-bookings',
         booking_id: booking.booking_id,
         tech_id: booking.tech_id,
-        target_user: booking.requester_email
+        target_user: booking.requester_email,
+        target_roles: ['admin', 'approver', 'requester']
       });
     }
 
@@ -833,12 +1163,111 @@ const BookingData = {
     if (client) {
       const completePromise = client.from('bookings').update({
         status: 'COMPLETED',
+        end_time: booking.end_time,
+        notes: booking.notes,
         updated_at: booking.updated_at
-      }).eq('booking_id', booking_id).then(({ error }) => {
+      }).eq('booking_id', booking.booking_id).then(({ error }) => {
         if (error) console.warn('Supabase complete booking warning:', error);
       });
       if (window.SystemLoader) {
-        window.SystemLoader.track(completePromise, 'Đang cập nhật hoàn thành…', 'Đang lưu trạng thái hoàn thành ca trực');
+        window.SystemLoader.track(completePromise, 'Đang cập nhật hoàn thành…', 'Đang lưu trạng thái hoàn thành task và chốt giờ thực tế');
+      }
+    }
+
+    return { success: true, booking, actualHrs };
+  },
+
+  createEmergencyBooking(data) {
+    if (!this.isAuthenticated()) return { success: false, error: 'Vui lòng đăng nhập.' };
+
+    const now = new Date();
+    const pad = n => String(n).padStart(2, '0');
+    const todayStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+    const nowTime = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+
+    const user = this.currentUser;
+    const isTech = user?.role === 'technician' || Boolean(user?.is_technician);
+
+    let techId = data.tech_id;
+    if (isTech && user?.tech_id) {
+      techId = user.tech_id;
+    }
+    if (!techId) {
+      const activeTech = this.technicians.find(t => t.is_active !== false) || this.technicians[0];
+      techId = activeTech ? activeTech.tech_id : 'TECH-001';
+    }
+
+    const tech = this.technicians.find(t => String(t.tech_id) === String(techId));
+    const techName = tech ? tech.name : techId;
+
+    const bookingId = 'EMG-' + Date.now().toString().slice(-6);
+    const title = (data.title || '').trim() || 'Xử lý công việc phát sinh khẩn cấp';
+    const commander = (data.commander || '').trim() || 'Lệnh trực tiếp từ cấp trên';
+    const location = (data.location || '').trim();
+
+    let notes = `[TASK ĐỘT XUẤT - TỰ CHECK-IN]\n• Người chỉ đạo: ${commander}`;
+    if (location) notes += `\n• Địa điểm: ${location}`;
+    if (data.notes && data.notes.trim()) notes += `\n• Ghi chú: ${data.notes.trim()}`;
+
+    // Ước tính giờ kết thúc mặc định: +4 tiếng hoặc 17:30
+    let defaultEndTime = data.end_time;
+    if (!defaultEndTime) {
+      const endHour = Math.min(23, now.getHours() + 4);
+      defaultEndTime = `${pad(endHour)}:${pad(now.getMinutes())}`;
+    }
+
+    const booking = {
+      booking_id: bookingId,
+      tech_id: techId,
+      title: title,
+      booking_date: data.booking_date || todayStr,
+      end_date: data.end_date || data.booking_date || todayStr,
+      start_time: data.start_time || nowTime,
+      end_time: defaultEndTime,
+      status: 'IN_PROGRESS', // Kích hoạt ca ngay tức thì!
+      requester_email: user?.email || 'tech@kcoffee.vn',
+      requester_name: user?.full_name || techName,
+      approver_email: commander,
+      notes: notes,
+      created_at: now.toISOString(),
+      updated_at: now.toISOString(),
+      started_at: now.toISOString()
+    };
+
+    this.bookings.unshift(booking);
+    this.save();
+
+    // Thông báo cho Admin & Approver để Hậu kiểm
+    this.addNotification({
+      type: 'emergency_checkin',
+      title: '🚨 Kỹ sư tự check-in việc gấp',
+      message: `Kỹ sư ${techName} vừa tự tạo task và bắt đầu làm: "${title}" (Chỉ đạo: ${commander}). Vui lòng hậu kiểm.`,
+      tab: 'timeline',
+      booking_id: booking.booking_id,
+      tech_id: booking.tech_id,
+      target_roles: ['admin', 'approver']
+    });
+
+    const client = window.SupabaseConfig ? window.SupabaseConfig.getClient() : null;
+    if (client) {
+      const p = client.from('bookings').insert([{
+        booking_id: booking.booking_id,
+        tech_id: booking.tech_id,
+        title: booking.title,
+        booking_date: booking.booking_date,
+        end_date: booking.end_date,
+        start_time: booking.start_time,
+        end_time: booking.end_time,
+        status: 'IN_PROGRESS',
+        requester_email: booking.requester_email,
+        notes: booking.notes,
+        created_at: booking.created_at,
+        updated_at: booking.updated_at
+      }]).then(({ error }) => {
+        if (error) console.warn('Supabase emergency booking insert warning:', error);
+      });
+      if (window.SystemLoader) {
+        window.SystemLoader.track(p, 'Đang check-in nhận việc gấp…', 'Đang kích hoạt task trực tiếp');
       }
     }
 
@@ -861,8 +1290,8 @@ const BookingData = {
     // Live Notification for requester & assigned technician
     this.addNotification({
       type: 'approval_success',
-      title: 'Ca trực đã được phê duyệt',
-      message: `Ca trực "${booking.title}" của Kỹ sư ${techName} (${booking.booking_date}) đã được duyệt thành công.`,
+      title: 'Task đã được phê duyệt',
+      message: `Task "${booking.title}" của Kỹ sư ${techName} (${booking.booking_date}) đã được duyệt thành công.`,
       tab: 'my-bookings',
       booking_id: booking.booking_id,
       tech_id: booking.tech_id,
@@ -876,7 +1305,7 @@ const BookingData = {
         if (error) console.warn('Supabase approve warning:', error); else this.syncGoogleCalendarBooking(booking_id);
       });
       if (window.SystemLoader) {
-        window.SystemLoader.track(approvePromise, 'Đang phê duyệt ca trực…', 'Đang khóa khung giờ và đồng bộ lịch máy chủ');
+        window.SystemLoader.track(approvePromise, 'Đang phê duyệt task…', 'Đang khóa khung giờ và đồng bộ lịch máy chủ');
       }
     }
 
@@ -930,7 +1359,7 @@ const BookingData = {
     this.addNotification({
       type: 'shift_reminder',
       title: 'Yêu cầu booking đã được hủy',
-      message: `Ca trực "${booking.title}" (${booking.booking_date}) đã được hủy bởi người yêu cầu.`,
+      message: `Task "${booking.title}" (${booking.booking_date}) đã được hủy bởi người yêu cầu.`,
       tab: 'timeline',
       booking_id: booking.booking_id,
       tech_id: booking.tech_id,
@@ -959,13 +1388,13 @@ const BookingData = {
     if (!booking) return { success: false, error: 'Không tìm thấy booking!' };
 
     if (booking.status === 'CANCELLED' || booking.status === 'REJECTED') {
-      return { success: false, error: 'Không thể kéo thả ca đã hủy hoặc đã từ chối!' };
+      return { success: false, error: 'Không thể kéo thả task đã hủy hoặc đã từ chối!' };
     }
 
     // 🛡️ CHẶN DỜI LỊCH VÀO QUÁ KHỨ
     const todayStr = this.formatDateStr(new Date());
     if (new_start_date < todayStr) {
-      return { success: false, error: 'Không thể dời ca trực vào ngày trong quá khứ! Vui lòng chọn từ hôm nay trở đi.' };
+      return { success: false, error: 'Không thể dời task vào ngày trong quá khứ! Vui lòng chọn từ hôm nay trở đi.' };
     }
 
     // Calculate duration in days safely without UTC offset issues
@@ -1007,8 +1436,8 @@ const BookingData = {
     if (booking.requester_email || booking.tech_id) {
       this.addNotification({
         type: 'shift_reminder',
-        title: 'Lịch ca trực đã được dời ngày',
-        message: `Ca trực "${booking.title}" của Kỹ sư ${techName} đã được dời sang ngày ${dateRangeLabel}.`,
+        title: 'Lịch task đã được dời ngày',
+        message: `Task "${booking.title}" của Kỹ sư ${techName} đã được dời sang ngày ${dateRangeLabel}.`,
         tab: 'my-bookings',
         booking_id: booking.booking_id,
         tech_id: booking.tech_id,
@@ -1051,18 +1480,19 @@ const BookingData = {
     }
 
     const isRoot = this.currentUser.auth_role === 'admin' || !!this.originalAdminEmail;
-    const effectiveRole = ['admin', 'approver', 'requester'].includes(role) ? role : 'admin';
+    const effectiveRole = ['admin', 'approver', 'requester', 'technician'].includes(role) ? role : 'admin';
     const isTestMode = effectiveRole !== (this.originalUserSession?.role || 'admin');
 
     if (isRoot && !this.originalAdminEmail) {
       this.originalAdminEmail = this.currentUser.email;
     }
 
-    const baseEmail = this.originalUserSession?.email || this.currentUser.email;
+    const isTech = effectiveRole === 'technician';
+    const baseEmail = isTech ? 'hoangtan5816@gmail.com' : (this.originalUserSession?.email || this.currentUser.email);
     const baseUser = this.users.find(u => (u.email || '').toLowerCase() === baseEmail.toLowerCase());
-    const baseName = this.cleanUserName(baseUser?.full_name || this.currentUser.full_name);
-    const baseAvatar = baseUser?.avatar || this.currentUser.avatar || '';
-    const baseInitials = baseUser?.avatar_text || this.currentUser.avatar_text || baseName.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+    const baseName = isTech ? 'Hoàng Trần Trọng Tân' : this.cleanUserName(baseUser?.full_name || this.currentUser.full_name);
+    const baseAvatar = isTech ? 'https://kcoffee.vn/images/logos/Frame%20278.jpg' : (baseUser?.avatar || this.currentUser.avatar || '');
+    const baseInitials = isTech ? 'TT' : (baseUser?.avatar_text || this.currentUser.avatar_text || baseName.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase());
 
     // Default permissions for target role
     let nextPerms = this.ROLE_PERMISSIONS[effectiveRole] ? [...this.ROLE_PERMISSIONS[effectiveRole]] : [...this.ROLE_PERMISSIONS.admin];
@@ -1079,6 +1509,7 @@ const BookingData = {
       avatar: baseAvatar,
       avatar_text: baseInitials,
       role: effectiveRole,
+      tech_id: isTech ? 'TECH-003' : (this.currentUser.tech_id || ''),
       test_mode: isTestMode,
       role_label: this.getRoleLabel(effectiveRole),
       permissions: nextPerms
@@ -1706,12 +2137,45 @@ const BookingData = {
   },
 
   initSession() {
-    // Authentication is restored only from the Supabase Auth session at app startup.
+    const isLoggedOut = localStorage.getItem('k_workspace_logged_out') === 'true';
+    if (isLoggedOut) {
+      this.currentUser = null;
+      this.originalAdminEmail = null;
+      return;
+    }
+
+    try {
+      const raw = localStorage.getItem('k_workspace_session');
+      if (raw) {
+        const s = JSON.parse(raw);
+        if (s && s.email) {
+          this.currentUser = {
+            tech_id: s.tech_id || null,
+            is_technician: !!s.is_technician,
+            email: s.email,
+            full_name: s.full_name || s.email,
+            role: s.role || 'requester',
+            auth_role: s.auth_role || s.role || 'requester',
+            role_label: s.role_label || this.getRoleLabel(s.role || 'requester'),
+            avatar: s.avatar || '',
+            avatar_text: s.avatar_text || '',
+            phone: s.phone || '',
+            department: s.department || '',
+            referrer_email: s.referrer_email || '',
+            permissions: Array.isArray(s.permissions) ? s.permissions : (this.ROLE_PERMISSIONS[s.role] || []),
+            auth_verified: true,
+            test_mode: !!s.test_mode
+          };
+          this.originalAdminEmail = s.originalAdminEmail || (this.currentUser.auth_role === 'admin' ? s.email : null);
+          return;
+        }
+      }
+    } catch (e) {
+      console.warn('BookingData.initSession restore error:', e);
+    }
+
     this.currentUser = null;
     this.originalAdminEmail = null;
-    localStorage.removeItem('k_workspace_session');
-    localStorage.removeItem('kcoffee_current_role');
-    localStorage.removeItem('kcoffee_current_email');
   },
 
   persistSession(user) {
@@ -1779,6 +2243,9 @@ const BookingData = {
     const client = window.SupabaseConfig ? window.SupabaseConfig.getClient() : null;
     if (!client?.auth) return { success: false, message: 'Không kết nối được Supabase Auth.' };
     const { data: { session } = {} } = await client.auth.getSession();
+    if (session?.access_token && client.realtime) {
+      try { client.realtime.setAuth(session.access_token); } catch (_) {}
+    }
     if (!session?.user?.id || session.user.id !== authUser.id || session.user.email?.toLowerCase() !== email) {
       return { success: false, message: 'Phiên đăng nhập Supabase không hợp lệ.' };
     }
@@ -1834,6 +2301,9 @@ const BookingData = {
     if (!client?.auth) return { success: false, message: 'Dịch vụ đăng nhập hiện không khả dụng.' };
     const { data, error } = await client.auth.signInWithPassword({ email: cleanEmail, password: cleanPass });
     if (error || !data?.user) return { success: false, error: 'wrong_password', message: 'Đăng nhập thất bại. Kiểm tra email và mật khẩu.' };
+    if (data.session?.access_token && client.realtime) {
+      try { await client.realtime.setAuth(data.session.access_token); } catch (_) {}
+    }
     const result = await this.establishAuthenticatedUser(data.user);
     if (!result.success) await client.auth.signOut();
     return result;
@@ -1862,17 +2332,17 @@ const BookingData = {
       tech_invite: {
         title: 'Lời mời Google Calendar gửi Kỹ Sư',
         subject: '[Lịch Trực Kỹ Thuật] #{booking_id} - {title}',
-        body: 'Xin chào {tech_name},\n\nBạn vừa được phân công ca trực kỹ thuật mới từ Hệ thống Điều phối K-Coffee:\n\n• Mã ca trực: {booking_id}\n• Nhiệm vụ: {title}\n• Thời gian: {date_range}\n• Địa điểm: {location}\n• Người tạo yêu cầu: {requester_name} ({requester_email})\n• Ghi chú: {notes}\n\n👉 Vui lòng nhấn [CÓ / YES] trên email lời mời Google Calendar này để ca trực được tự động đưa vào ứng dụng Lịch trên điện thoại và nhận chuông báo thức trước 1 giờ.'
+        body: 'Xin chào {tech_name},\n\nBạn vừa được phân công task kỹ thuật mới từ Hệ thống Điều phối K-Coffee:\n\n• Mã task: {booking_id}\n• Nhiệm vụ: {title}\n• Thời gian: {date_range}\n• Địa điểm: {location}\n• Người tạo yêu cầu: {requester_name} ({requester_email})\n• Ghi chú: {notes}\n\n👉 Vui lòng nhấn [CÓ / YES] trên email lời mời Google Calendar này để task được tự động đưa vào ứng dụng Lịch trên điện thoại và nhận chuông báo thức trước 1 giờ.'
       },
       requester_approved: {
-        title: 'Email duyệt ca trực gửi Người Đặt (PM)',
-        subject: '[Duyệt Ca Trực] #{booking_id} - Đơn của bạn đã được phê duyệt',
+        title: 'Email duyệt task gửi Người Đặt (PM)',
+        subject: '[Duyệt Task] #{booking_id} - Đơn của bạn đã được phê duyệt',
         body: 'Xin chào {requester_name},\n\nYêu cầu điều phối kỹ thuật "#{booking_id} - {title}" của bạn đã được Lead vận hành phê duyệt thành công.\n\n• Kỹ sư phụ trách: {tech_name} (SĐT: {tech_phone})\n• Thời gian: {date_range}\n• Địa điểm: {location}\n• Người duyệt đơn: {approver_name}\n\nKỹ sư sẽ chủ động liên hệ và có mặt đúng giờ theo lịch hẹn.'
       },
       requester_rejected: {
-        title: 'Email từ chối ca trực gửi Người Đặt (PM)',
+        title: 'Email từ chối task gửi Người Đặt (PM)',
         subject: '[Thông Báo] #{booking_id} - Yêu cầu chưa thể phê duyệt',
-        body: 'Xin chào {requester_name},\n\nRất tiếc, yêu cầu điều phối "#{booking_id} - {title}" (Dự kiến ngày {date_range}) hiện chưa thể phê duyệt do lý do sau:\n\n👉 Lý do: {reject_reason}\n\nBạn vui lòng điều chỉnh ngày giờ hoặc liên hệ trực tiếp với Lead kỹ thuật để được hỗ trợ sắp xếp ca phù hợp.'
+        body: 'Xin chào {requester_name},\n\nRất tiếc, yêu cầu điều phối "#{booking_id} - {title}" (Dự kiến ngày {date_range}) hiện chưa thể phê duyệt do lý do sau:\n\n👉 Lý do: {reject_reason}\n\nBạn vui lòng điều chỉnh ngày giờ hoặc liên hệ trực tiếp với Lead kỹ thuật để được hỗ trợ sắp xếp task phù hợp.'
       }
     }
   },
@@ -1931,7 +2401,7 @@ const BookingData = {
     const endStr = `${y}${m}${d}`;
 
     const nowUtc = new Date().toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
-    const cleanNotes = (booking.notes || 'Ca trực điều phối kỹ thuật K-Coffee').replace(/\n/g, '\\n');
+    const cleanNotes = (booking.notes || 'Task điều phối kỹ thuật K-Coffee').replace(/\n/g, '\\n');
     const cleanLocation = (booking.location || 'Tại công trình').replace(/\n/g, ', ');
 
     return [
@@ -1945,7 +2415,7 @@ const BookingData = {
       `DTSTAMP:${nowUtc}`,
       `DTSTART;VALUE=DATE:${startStr}`,
       `DTEND;VALUE=DATE:${endStr}`,
-      `SUMMARY:[Ca Trực Kỹ Thuật] ${booking.title || 'Ca trực'} (${bId})`,
+      `SUMMARY:[Task Kỹ Thuật] ${booking.title || 'Ca trực'} (${bId})`,
       `DESCRIPTION:${cleanNotes}\\nKỹ sư: ${techName} (${tech?.phone || 'Chưa có SĐT'})\\nNgười đặt: ${booking.requester_name || 'PM'}`,
       `LOCATION:${cleanLocation}`,
       'STATUS:CONFIRMED',
@@ -1953,7 +2423,7 @@ const BookingData = {
       `ATTENDEE;ROLE=REQ-PARTICIPANT;PARTSTAT=ACCEPTED;CN=${techName}:mailto:${techEmail}`,
       'BEGIN:VALARM',
       'ACTION:DISPLAY',
-      'DESCRIPTION:Nhắc lịch ca trực kỹ thuật K-Coffee (Trước 1 giờ)',
+      'DESCRIPTION:Nhắc lịch task kỹ thuật K-Coffee (Trước 1 giờ)',
       'TRIGGER:-PT60M',
       'END:VALARM',
       'END:VEVENT',
@@ -1977,8 +2447,8 @@ const BookingData = {
     const d = String(endDateObj.getDate()).padStart(2, '0');
     const endStr = `${y}${m}${d}`;
 
-    const title = `[Ca Trực] ${booking.title || 'Ca trực'} (${booking.booking_id || ''})`;
-    const details = `Mã ca: ${booking.booking_id || ''}\nKỹ sư: ${techName} (${tech?.phone || ''})\nNgười đặt: ${booking.requester_name || ''}\nGhi chú: ${booking.notes || ''}`;
+    const title = `[Task] ${booking.title || 'Ca trực'} (${booking.booking_id || ''})`;
+    const details = `Mã task: ${booking.booking_id || ''}\nKỹ sư: ${techName} (${tech?.phone || ''})\nNgười đặt: ${booking.requester_name || ''}\nGhi chú: ${booking.notes || ''}`;
     const location = booking.location || '';
 
     const params = new URLSearchParams({

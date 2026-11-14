@@ -1,0 +1,1212 @@
+<!DOCTYPE html>
+<html lang="vi" class="h-full bg-slate-100 font-sans">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Báo Cáo Vận Hành Kỹ Sư 16:9 - Template</title>
+
+  <!-- Google Fonts: Inter (font-sans) & Roboto Condensed (font-condensed) theo chuẩn design.md -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Roboto+Condensed:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+  <!-- Centralized Design System Engine -->
+  <script src="assets/js/core/design-system.js"></script>
+
+  <!-- Supabase JS SDK (Official Client) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+            condensed: ['"Roboto Condensed"', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#f0f4fb',
+              100: '#dbe5f5',
+              200: '#bed0ee',
+              500: '#396bb2',
+              600: '#213664', // Corporate Navy
+              700: '#192b52',
+              800: '#132140',
+              900: '#0d172e',
+            },
+            accent: {
+              50: '#f2f8ef',
+              100: '#e0f0da',
+              200: '#c4e3b9',
+              500: '#569c43', // Nature Botanical Green
+              600: '#39772a',
+              700: '#2b5c1f',
+            },
+            burgundy: {
+              50: '#fdf2f4',
+              100: '#fbe6e9',
+              800: '#800020',
+            }
+          },
+          borderRadius: {
+            'btn': '0.75rem',
+            'card': '1rem',
+            'modal': '1.25rem',
+          }
+        }
+      }
+    };
+  </script>
+
+  <!-- Modern SVG-based canvas & image export engines -->
+  <script src="https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+
+  <style>
+    /* Fixed 16:9 Canvas Dimensions (1920 x 1080 Full HD) */
+    #report-canvas {
+      width: 1920px;
+      height: 1080px;
+      min-width: 1920px;
+      min-height: 1080px;
+      max-width: 1920px;
+      max-height: 1080px;
+      aspect-ratio: 16 / 9;
+      box-sizing: border-box;
+      overflow: hidden;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      text-rendering: optimizeLegibility;
+    }
+    .font-condensed {
+      font-family: 'Roboto Condensed', 'Inter', system-ui, -apple-system, sans-serif !important;
+      font-variant-numeric: tabular-nums;
+    }
+    /* Chống méo chữ, chống cắt chân chữ tiếng Việt có dấu khi xuất ảnh 16:9 */
+    #report-canvas * {
+      letter-spacing: normal;
+    }
+    #report-canvas [class*="truncate"] {
+      overflow: visible !important;
+      text-overflow: clip !important;
+    }
+    #report-canvas h1,
+    #report-canvas h2,
+    #report-canvas h3,
+    #report-canvas h4,
+    #report-canvas p {
+      line-height: 1.3;
+    }
+  </style>
+</head>
+<body class="min-h-full bg-slate-100 text-slate-800 antialiased flex flex-col font-sans">
+
+  <!-- ======================================================== -->
+  <!-- 🎛️ TOP CONTROL BAR (Không xuất hiện trong ảnh chụp 16:9) -->
+  <!-- ======================================================== -->
+  <header data-html2canvas-ignore="true" class="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-slate-200 px-4 py-3 text-slate-800 flex flex-wrap items-center justify-between gap-3 shadow-xs">
+    <div class="flex items-center gap-3">
+      <a href="index.html" class="px-3 py-2 rounded-btn bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 transition-colors flex items-center gap-1.5 text-xs font-semibold" title="Quay lại ứng dụng chính">
+        <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+        <span>Dashboard</span>
+      </a>
+      <div class="h-4 w-px bg-slate-200 hidden sm:block"></div>
+      <div>
+        <h1 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+          <span class="w-2.5 h-2.5 rounded-full bg-brand-600"></span>
+          <span>Báo Cáo Vận Hành Kỹ Sư 16:9 (Bản Tinh Gọn Chữ To)</span>
+        </h1>
+        <p class="text-[11px] text-slate-500">Tỉ lệ 1920×1080 • Chữ to rõ ràng • Chỉ hiện Tên & Số task • Có trạng thái khi không có lịch</p>
+      </div>
+    </div>
+
+    <!-- Filters & Actions -->
+    <div class="flex items-center gap-2 flex-wrap">
+      <!-- Select Kỹ Sư -->
+      <div class="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-btn px-2.5 py-1.5">
+        <label for="tech-select" class="text-[11px] font-bold text-slate-500 uppercase tracking-wider font-condensed">Kỹ sư:</label>
+        <select id="tech-select" onchange="ReportApp.onTechChange(this.value)" class="bg-transparent text-xs font-bold text-slate-900 focus:outline-hidden cursor-pointer">
+          <!-- Populated dynamically via JS -->
+        </select>
+      </div>
+
+      <!-- Date Range: Từ ngày -> Đến ngày -->
+      <div class="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-btn px-2.5 py-1.5">
+        <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider font-condensed">Từ:</span>
+        <input type="date" id="start-date-input" onchange="ReportApp.onDateRangeChange()" class="bg-transparent text-xs font-bold text-slate-900 focus:outline-hidden cursor-pointer font-mono">
+        <span class="text-slate-300">→</span>
+        <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider font-condensed">Đến:</span>
+        <input type="date" id="end-date-input" onchange="ReportApp.onDateRangeChange()" class="bg-transparent text-xs font-bold text-slate-900 focus:outline-hidden cursor-pointer font-mono">
+      </div>
+
+      <!-- Quick Shortcuts -->
+      <div class="flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-btn p-1">
+        <button type="button" onclick="ReportApp.setQuickRange('this_month')" class="px-2 py-1 rounded-md text-[11px] font-bold text-slate-600 hover:text-brand-600 hover:bg-white transition-colors cursor-pointer">Tháng này</button>
+        <button type="button" onclick="ReportApp.setQuickRange('last_month')" class="px-2 py-1 rounded-md text-[11px] font-bold text-slate-600 hover:text-brand-600 hover:bg-white transition-colors cursor-pointer">Tháng trước</button>
+        <button type="button" onclick="ReportApp.setQuickRange('last_14days')" class="px-2 py-1 rounded-md text-[11px] font-bold text-slate-600 hover:text-brand-600 hover:bg-white transition-colors cursor-pointer">14 ngày qua</button>
+        <button type="button" onclick="ReportApp.setQuickRange('last_30days')" class="px-2 py-1 rounded-md text-[11px] font-bold text-slate-600 hover:text-brand-600 hover:bg-white transition-colors cursor-pointer">30 ngày qua</button>
+      </div>
+
+      <!-- Zoom Toggle (Fit screen vs 100%) -->
+      <button type="button" onclick="ReportApp.toggleFitMode()" id="btn-fit-toggle" class="px-3 py-2 rounded-btn bg-slate-100 hover:bg-slate-200 border border-slate-200 text-xs font-semibold text-slate-700 transition-colors flex items-center gap-1.5 cursor-pointer" title="Chuyển đổi kích thước hiển thị">
+        <svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>
+        <span id="fit-toggle-label">Vừa màn hình</span>
+      </button>
+
+      <!-- Nút Sao Chép Ảnh (Clipboard) -->
+      <button type="button" onclick="ReportApp.exportImage('copy')" class="px-3.5 py-2 rounded-btn bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs shadow-xs flex items-center gap-1.5 transition-all cursor-pointer">
+        <svg class="w-3.5 h-3.5 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/></svg>
+        <span>Copy ảnh (Ctrl+V)</span>
+      </button>
+
+      <!-- Nút Tải Ảnh PNG HD -->
+      <button type="button" onclick="ReportApp.exportImage('download')" id="btn-export-download" class="px-4 py-2 rounded-btn bg-brand-600 hover:bg-brand-700 active:bg-brand-800 text-white font-extrabold text-xs shadow-md shadow-brand-900/10 flex items-center gap-1.5 transition-all cursor-pointer" style="background-color: #213664;">
+        <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+        <span>Tải ảnh HD 16:9</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ======================================================== -->
+  <!-- 🖼️ CANVAS VIEWPORT WRAPPER (Auto Scale to Fit Viewport)  -->
+  <!-- ======================================================== -->
+  <main class="flex-1 flex items-start justify-center p-3 sm:p-6 overflow-auto">
+    <div id="canvas-scaler" class="transition-transform duration-200 origin-top">
+
+      <!-- ======================================================== -->
+      <!-- ⭐ 16:9 REPORT CANVAS (BẢN TINH GỌN CHỮ TO - 1920×1080)    -->
+      <!-- BỐ CỤC 2 CỘT CÂN ĐỐI, CHỮ TO RÕ RÀNG, EMPTY STATE CHUYÊN NGHIỆP -->
+      <!-- ======================================================== -->
+      <div id="report-canvas" class="bg-white text-slate-800 p-8 flex flex-col justify-between shadow-2xl relative border border-slate-200 font-sans">
+
+        <!-- ====================================================== -->
+        <!-- 1. CANVAS HEADER (80px): BRAND & KỲ BÁO CÁO (NO BORDER)  -->
+        <!-- ====================================================== -->
+        <div class="flex items-center justify-between pb-2 h-[80px] shrink-0">
+          <div>
+            <div class="text-base font-extrabold uppercase text-brand-600 font-condensed tracking-wider">
+              Phúc Sinh Group • K-Workspace
+            </div>
+            <h2 class="text-4xl font-black font-condensed text-slate-900 mt-0.5 uppercase tracking-tight">
+              Báo Cáo Vận Hành Kỹ Sư
+            </h2>
+          </div>
+
+          <!-- Dynamic Period -->
+          <div class="text-right">
+            <span class="text-base font-bold text-slate-600 uppercase block font-condensed tracking-wider">Kỳ báo cáo</span>
+            <div id="canvas-period-label" class="text-3xl font-black font-condensed text-slate-900 mt-0.5 font-mono">
+              01/11/2026 → 30/11/2026
+            </div>
+          </div>
+        </div>
+
+        <!-- ====================================================== -->
+        <!-- 2. MAIN 2-COLUMN SPLIT COMPOSITION (848px)            -->
+        <!-- CỘT TRÁI (35%): HỒ SƠ & KPI | CỘT PHẢI (65%): DANH SÁCH -->
+        <!-- ====================================================== -->
+        <div class="grid grid-cols-12 gap-8 my-3 h-[848px] max-h-[848px] items-stretch flex-1">
+
+          <!-- ◀ CỘT TRÁI (4.2 / 12 ~ 35%): HỒ SƠ KỸ SƯ + 4 CHỈ SỐ KPI -->
+          <div class="col-span-4 flex flex-col justify-between space-y-4">
+
+            <!-- A. HỒ SƠ KỸ SƯ (CHỮ TO RÕ RÀNG, AVATAR CHUẨN, KHÔNG RƯỜM RÀ) -->
+            <div class="bg-slate-50/80 rounded-2xl p-5 border border-slate-200 shadow-xs shrink-0">
+              <div class="text-base font-black text-slate-600 uppercase font-condensed mb-3">
+                <span class="tracking-wider">Kỹ Sư Phụ Trách</span>
+              </div>
+
+              <div class="flex items-center gap-4">
+                <img id="canvas-tech-avatar" crossorigin="anonymous" src="https://kcoffee.vn/images/logos/Frame%20278.jpg" alt="Avatar" class="w-20 h-20 rounded-full object-cover border-2 border-white shadow-md ring-2 ring-brand-200/80 shrink-0">
+                <div class="flex-1 min-w-0">
+                  <div class="mb-1">
+                    <span id="canvas-tech-role" class="text-sm font-bold text-slate-600 font-condensed uppercase tracking-wider">Kỹ Sư Kỹ Thuật</span>
+                  </div>
+                  <h3 id="canvas-tech-name" class="text-3xl font-black text-slate-900 leading-normal tracking-tight font-sans pb-0.5">Hoàng Trần Trọng Tân</h3>
+                  <div class="mt-1 flex items-center gap-2">
+                    <span id="canvas-tech-skills" class="px-3 py-1 rounded-lg text-sm font-bold bg-white text-slate-800 border border-slate-200 shadow-2xs leading-none">Network</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- B. BỘ 4 CHỈ SỐ VÀNG VẬN HÀNH (CHUẨN HỆ THỐNG MÀU DESIGN SYSTEM) -->
+            <div class="grid grid-cols-1 gap-3 flex-1">
+              
+              <!-- Metric 1: Ca hoàn thành (Brand Navy #213664) -->
+              <div class="bg-gradient-to-r from-brand-50/70 to-white rounded-2xl px-6 py-4 border border-brand-100/90 shadow-2xs flex items-center justify-between">
+                <div class="flex items-center gap-4 min-w-0">
+                  <div class="w-14 h-14 rounded-2xl bg-brand-50 text-brand-600 flex items-center justify-center border border-brand-200/60 shrink-0">
+                    <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                  </div>
+                  <div class="min-w-0">
+                    <span class="text-base font-black text-slate-700 uppercase font-condensed tracking-wider block">Task Hoàn Thành</span>
+                  </div>
+                </div>
+                <div id="stat-completed-count" class="text-4xl font-black font-condensed text-brand-600 tracking-tight shrink-0 font-mono">0 task</div>
+              </div>
+
+              <!-- Metric 2: Giờ trực thực tế (Brand Corporate Navy #213664 & Slate-900) -->
+              <div class="bg-gradient-to-r from-slate-50/80 to-white rounded-2xl px-6 py-4 border border-slate-200/80 shadow-2xs flex items-center justify-between">
+                <div class="flex items-center gap-4 min-w-0">
+                  <div class="w-14 h-14 rounded-2xl bg-brand-50 text-brand-600 flex items-center justify-center border border-brand-200/60 shrink-0" style="color: #213664;">
+                    <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                  </div>
+                  <div class="min-w-0">
+                    <span class="text-base font-black text-slate-700 uppercase font-condensed tracking-wider block">Giờ Trực Thực Tế</span>
+                  </div>
+                </div>
+                <div class="text-right shrink-0">
+                  <div id="stat-total-hours" class="text-4xl font-black font-condensed text-slate-900 tracking-tight font-mono">0h</div>
+                  <span id="stat-ot-subtext" class="text-sm font-black font-condensed text-amber-600 hidden block mt-0.5">⚡ +0h tăng giờ OT</span>
+                </div>
+              </div>
+
+              <!-- Metric 3: Lịch Nghỉ Phép (OFF) (Amber Palette) -->
+              <div class="bg-gradient-to-r from-amber-50/70 to-white rounded-2xl px-6 py-4 border border-amber-100/90 shadow-2xs flex items-center justify-between">
+                <div class="flex items-center gap-4 min-w-0">
+                  <div class="w-14 h-14 rounded-2xl bg-amber-100/80 text-amber-700 flex items-center justify-center border border-amber-200/60 shrink-0">
+                    <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>
+                  </div>
+                  <div class="min-w-0">
+                    <span class="text-base font-black text-slate-700 uppercase font-condensed tracking-wider block">Nghỉ Phép (OFF)</span>
+                  </div>
+                </div>
+                <div id="stat-off-count" class="text-4xl font-black font-condensed text-amber-700 tracking-tight shrink-0 font-mono">0 ngày</div>
+              </div>
+
+              <!-- Metric 4: Tỉ lệ hoàn tất (Botanical Green Accent #2b5c1f) -->
+              <div class="bg-gradient-to-r from-accent-50/70 to-white rounded-2xl px-6 py-4 border border-accent-100/90 shadow-2xs flex items-center justify-between">
+                <div class="flex items-center gap-4 min-w-0">
+                  <div class="w-14 h-14 rounded-2xl bg-accent-50 text-accent-600 flex items-center justify-center border border-accent-200/60 shrink-0">
+                    <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+                  </div>
+                  <div class="min-w-0">
+                    <span class="text-base font-black text-slate-700 uppercase font-condensed tracking-wider block">Tỉ Lệ Hoàn Tất</span>
+                  </div>
+                </div>
+                <div id="stat-completion-rate" class="text-4xl font-black font-condensed text-accent-700 tracking-tight shrink-0 font-mono">0%</div>
+              </div>
+
+            </div>
+
+            <!-- C. TÓM TẮT VẬN HÀNH KỲ NÀY (CHỮ RÕ NÉT, TINH GỌN, SỐ LIỆU ĐẬM) -->
+            <div class="p-4 rounded-2xl bg-slate-50/90 border border-slate-200 text-base text-slate-800 space-y-2 shrink-0">
+              <div class="flex items-center justify-between">
+                <span class="font-bold text-slate-600">Tần suất làm việc:</span>
+                <span id="summary-work-days" class="font-condensed font-black text-lg text-brand-700">0 / 0 ngày (0%)</span>
+              </div>
+              <div class="flex items-center justify-between">
+                <span class="font-bold text-slate-600">Thời lượng trung bình:</span>
+                <span id="summary-avg-hours" class="font-condensed font-black text-lg text-slate-900">0.0 giờ / task</span>
+              </div>
+              <div class="flex items-center justify-between">
+                <span class="font-bold text-slate-600">Ngoài giờ làm việc:</span>
+                <span id="summary-ot-status" class="font-condensed font-black text-lg text-rose-700">0 task</span>
+              </div>
+              <div class="flex items-center justify-between">
+                <span class="font-bold text-slate-600">Tình trạng nghỉ phép:</span>
+                <span id="summary-off-status" class="font-condensed font-black text-lg text-amber-700">0 ngày</span>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- ▶ CỘT PHẢI (8 / 12 ~ 65%): LỊCH THEO THỨ & NGÀY TRONG KỲ -->
+          <div class="col-span-8 bg-slate-50/80 rounded-2xl p-5 border border-slate-200 shadow-xs flex flex-col justify-between">
+            
+            <!-- List Header -->
+            <div class="flex items-center justify-between pb-3 border-b border-slate-200/80 shrink-0 gap-4">
+              <div class="flex items-center gap-3 min-w-0">
+                <span class="w-4 h-4 rounded-full bg-brand-600 shrink-0" style="background-color: #213664;"></span>
+                <h4 class="text-2xl font-black font-condensed text-slate-900 uppercase leading-normal">
+                  Lịch Vận Hành Theo Thứ & Ngày
+                </h4>
+              </div>
+            </div>
+
+            <!-- 7-Column Weekday Header (Thứ 2 -> Chủ Nhật, CN màu Đỏ Đô #800020 theo design.md) -->
+            <div class="grid grid-cols-7 gap-2 text-center py-2.5 text-base font-black uppercase text-slate-700 font-condensed border-b border-slate-200/80 mt-1 shrink-0 tracking-wider">
+              <div>Thứ Hai</div>
+              <div>Thứ Ba</div>
+              <div>Thứ Tư</div>
+              <div>Thứ Năm</div>
+              <div>Thứ Sáu</div>
+              <div>Thứ Bảy</div>
+              <div class="text-burgundy-800" style="color: #800020;">Chủ Nhật</div>
+            </div>
+
+            <!-- Smart Adaptive Grid Container (100% full height stretch - zero empty whitespace) -->
+            <div id="calendar-grid-container" class="grid grid-cols-7 gap-2 flex-1 my-2 items-stretch h-full">
+              <!-- Injected dynamically by ReportApp.renderCalendar() -->
+            </div>
+
+            <!-- Professional Summary Footnote (Chữ to rõ, bỏ text giải thích thừa) -->
+            <div class="pt-3 border-t border-slate-200/80 flex items-center justify-between text-base font-condensed shrink-0">
+              <span class="text-base font-bold text-slate-600 uppercase tracking-wider">Tổng kết kỳ:</span>
+              <span id="schedule-count-label" class="font-condensed text-slate-900 font-black text-lg">30 ngày trong kỳ • 4 ngày có task • 0 ngày OFF • 26 ngày rảnh</span>
+            </div>
+
+          </div>
+
+        </div>
+
+        <!-- ====================================================== -->
+        <!-- 3. CANVAS FOOTER (48px): DẤU MỘC & BẢO MẬT (NO BORDER) -->
+        <!-- ====================================================== -->
+        <div class="flex items-center justify-between pt-2 text-base text-slate-600 h-[48px] shrink-0 font-condensed">
+          <div class="flex items-center gap-3">
+            <span class="font-black text-slate-900 tracking-wider uppercase text-base">Hệ Thống Vận Hành K-Workspace</span>
+            <span class="text-slate-300 font-bold">•</span>
+            <span class="text-slate-700 font-bold text-base">Báo Cáo Điều Phối & Hiệu Suất Kỹ Thuật</span>
+          </div>
+          <div id="canvas-footer-timestamp" class="font-condensed text-slate-700 font-black font-mono text-base">
+            Xuất lúc: 10/11/2026 11:20:00
+          </div>
+        </div>
+
+      </div>
+      <!-- END REPORT CANVAS -->
+
+    </div>
+  </main>
+
+  <!-- Core Scripts -->
+  <script src="assets/js/core/supabase.js"></script>
+  <script src="assets/js/modules/booking/booking.data.js"></script>
+
+  <!-- Controller Logic -->
+  <script>
+    const ReportApp = {
+      selectedTechId: null,
+      startDate: null,
+      endDate: null,
+      fitMode: true,
+      liveTechs: null,
+      liveBookings: null,
+
+      // Fallback data aligned 100% with Supabase public.technicians schema
+      sampleTechs: [
+        {
+          tech_id: 'TECH-003',
+          name: 'Hoàng Trần Trọng Tân',
+          skills: ['Network'],
+          phone: '0398831645',
+          avatar: 'https://kcoffee.vn/images/logos/Frame%20278.jpg',
+          role: 'Kỹ sư kỹ thuật'
+        }
+      ],
+
+      async init() {
+        // Read URL query params: ?tech=TECH-003&start=2026-11-01&end=2026-11-30
+        const urlParams = new URLSearchParams(window.location.search);
+        const paramTech = urlParams.get('tech');
+        const paramStart = urlParams.get('start');
+        const paramEnd = urlParams.get('end');
+
+        // Set default date range: Current month (1st to last day)
+        const now = new Date();
+        const y = now.getFullYear();
+        const m = now.getMonth();
+        const firstDay = new Date(y, m, 1);
+        const lastDay = new Date(y, m + 1, 0);
+
+        const pad = (n) => String(n).padStart(2, '0');
+        const defaultStart = `${y}-${pad(m + 1)}-01`;
+        const defaultEnd = `${y}-${pad(m + 1)}-${pad(lastDay.getDate())}`;
+
+        this.startDate = paramStart || defaultStart;
+        this.endDate = paramEnd || defaultEnd;
+
+        const sInput = document.getElementById('start-date-input');
+        const eInput = document.getElementById('end-date-input');
+        if (sInput) sInput.value = this.startDate;
+        if (eInput) eInput.value = this.endDate;
+
+        // 1. RENDER NGAY LẬP TỨC (0ms) với dữ liệu đệm cục bộ / localStorage / BookingData
+        this.populateTechDropdown(paramTech);
+        this.renderAll();
+        this.applyViewportScale();
+
+        window.addEventListener('resize', () => {
+          if (this.fitMode) this.applyViewportScale();
+        });
+
+        // 2. Đồng bộ ngầm với Supabase để cập nhật dữ liệu mới nhất
+        try {
+          if (window.SupabaseConfig) {
+            SupabaseConfig.init();
+          }
+          const client = window.SupabaseConfig ? window.SupabaseConfig.getClient() : null;
+          if (client) {
+            // Fetch live technicians
+            const { data: remoteTechs } = await client
+              .from('technicians')
+              .select('tech_id, name, skills, avatar, phone, is_active')
+              .order('tech_id', { ascending: true });
+            if (Array.isArray(remoteTechs) && remoteTechs.length > 0) {
+              this.liveTechs = remoteTechs.filter(t => t.is_active !== false);
+              if (window.BookingData) BookingData.technicians = this.liveTechs;
+            }
+
+            // Fetch live bookings
+            const { data: remoteBookings } = await client
+              .from('bookings')
+              .select('*')
+              .order('booking_date', { ascending: true });
+            if (Array.isArray(remoteBookings)) {
+              this.liveBookings = remoteBookings.map(b => ({
+                ...b,
+                booking_date: b.booking_date || b.date,
+                end_date: b.end_date || b.booking_date || b.date,
+                tech_id: b.tech_id || b.technician_id,
+                booking_id: b.booking_id || b.id
+              }));
+              if (window.BookingData) BookingData.bookings = this.liveBookings;
+            }
+
+            // Re-render với dữ liệu thực từ Cloud
+            this.populateTechDropdown(this.selectedTechId || paramTech);
+            this.renderAll();
+
+            // Kích hoạt Realtime subscription thông qua BookingData nếu có
+            if (window.BookingData && typeof BookingData.setupRealtimeListener === 'function') {
+              BookingData.setupRealtimeListener();
+            }
+          }
+        } catch (e) {
+          console.warn('Supabase live sync error, using local fallback:', e);
+        }
+
+        // 3. Lắng nghe cập nhật Realtime đa tab & trực tiếp từ Supabase
+        window.addEventListener('kcoffee:realtime-change', () => {
+          if (window.BookingData) {
+            if (Array.isArray(BookingData.technicians) && BookingData.technicians.length > 0) {
+              this.liveTechs = BookingData.technicians.filter(t => t.is_active !== false);
+            }
+            if (Array.isArray(BookingData.bookings)) {
+              this.liveBookings = BookingData.bookings;
+            }
+            this.populateTechDropdown(this.selectedTechId);
+            this.renderAll();
+          }
+        });
+
+        window.addEventListener('storage', (e) => {
+          if (e.key === 'kcoffee_realtime_ping') {
+            if (window.BookingData && typeof BookingData.syncWithSupabase === 'function') {
+              BookingData.syncWithSupabase({ silent: true }).then(() => {
+                if (Array.isArray(BookingData.technicians) && BookingData.technicians.length > 0) {
+                  this.liveTechs = BookingData.technicians.filter(t => t.is_active !== false);
+                }
+                if (Array.isArray(BookingData.bookings)) {
+                  this.liveBookings = BookingData.bookings;
+                }
+                this.populateTechDropdown(this.selectedTechId);
+                this.renderAll();
+              });
+            }
+          }
+        });
+      },
+
+      getTechnicians() {
+        if (Array.isArray(this.liveTechs) && this.liveTechs.length > 0) {
+          return this.liveTechs;
+        }
+        if (window.BookingData && Array.isArray(BookingData.technicians) && BookingData.technicians.length > 0) {
+          return BookingData.technicians;
+        }
+        return this.sampleTechs;
+      },
+
+      getBookings() {
+        if (Array.isArray(this.liveBookings)) {
+          return this.liveBookings;
+        }
+        if (window.BookingData && Array.isArray(BookingData.bookings)) {
+          return BookingData.bookings;
+        }
+        return [];
+      },
+
+      populateTechDropdown(preferTechId) {
+        const select = document.getElementById('tech-select');
+        if (!select) return;
+        const techs = this.getTechnicians();
+        select.innerHTML = techs.map(t => `
+          <option value="${t.tech_id}" ${t.tech_id === preferTechId ? 'selected' : ''}>
+            ${t.name} (${t.tech_id})
+          </option>
+        `).join('');
+
+        this.selectedTechId = select.value || (techs[0] ? techs[0].tech_id : null);
+      },
+
+      onTechChange(techId) {
+        this.selectedTechId = techId;
+        this.renderAll();
+      },
+
+      onDateRangeChange() {
+        const s = document.getElementById('start-date-input')?.value;
+        const e = document.getElementById('end-date-input')?.value;
+        if (!s || !e) return;
+        if (e < s) {
+          alert('Ngày kết thúc không được nhỏ hơn ngày bắt đầu!');
+          return;
+        }
+        this.startDate = s;
+        this.endDate = e;
+        this.renderAll();
+      },
+
+      setQuickRange(type) {
+        const now = new Date();
+        const pad = (n) => String(n).padStart(2, '0');
+        const formatD = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+
+        let sDate, eDate;
+
+        if (type === 'this_month') {
+          const y = now.getFullYear();
+          const m = now.getMonth();
+          sDate = formatD(new Date(y, m, 1));
+          eDate = formatD(new Date(y, m + 1, 0));
+        } else if (type === 'last_month') {
+          const y = now.getFullYear();
+          const m = now.getMonth() - 1;
+          sDate = formatD(new Date(y, m, 1));
+          eDate = formatD(new Date(y, m + 1, 0));
+        } else if (type === 'last_14days') {
+          eDate = formatD(now);
+          const past = new Date(now);
+          past.setDate(past.getDate() - 13);
+          sDate = formatD(past);
+        } else if (type === 'last_30days') {
+          eDate = formatD(now);
+          const past = new Date(now);
+          past.setDate(past.getDate() - 29);
+          sDate = formatD(past);
+        }
+
+        this.startDate = sDate;
+        this.endDate = eDate;
+        document.getElementById('start-date-input').value = sDate;
+        document.getElementById('end-date-input').value = eDate;
+        this.renderAll();
+      },
+
+      renderAll() {
+        const techs = this.getTechnicians();
+        const tech = techs.find(t => t.tech_id === this.selectedTechId) || techs[0];
+        if (!tech) return;
+
+        // 1. Calculate Duration in Days
+        const d1 = new Date(this.startDate);
+        const d2 = new Date(this.endDate);
+        const diffDays = Math.max(1, Math.round((d2 - d1) / (1000 * 60 * 60 * 24)) + 1);
+
+        const pad = (n) => String(n).padStart(2, '0');
+        const formatVn = (iso) => {
+          if (!iso) return '';
+          const [y, m, d] = iso.split('-');
+          return `${d}/${m}/${y}`;
+        };
+
+        // Render Header Period Label
+        const periodEl = document.getElementById('canvas-period-label');
+        if (periodEl) periodEl.textContent = `${formatVn(this.startDate)} → ${formatVn(this.endDate)}`;
+
+        const durationBadge = document.getElementById('canvas-duration-badge');
+        if (durationBadge) durationBadge.textContent = `${diffDays} ngày`;
+
+        // 2. Render Profile (Strictly NO phone, NO email)
+        const nameEl = document.getElementById('canvas-tech-name');
+        const idBadgeEl = document.getElementById('canvas-tech-id-badge');
+        const avatarEl = document.getElementById('canvas-tech-avatar');
+        const skillsEl = document.getElementById('canvas-tech-skills');
+
+        if (nameEl) nameEl.textContent = tech.name;
+        if (idBadgeEl) idBadgeEl.textContent = tech.tech_id;
+        if (avatarEl) {
+          avatarEl.src = tech.avatar || 'https://kcoffee.vn/images/logos/Frame%20278.jpg';
+          avatarEl.onerror = () => {
+            avatarEl.onerror = null;
+            avatarEl.src = 'images/symbol.png';
+          };
+        }
+        if (skillsEl) {
+          const s = Array.isArray(tech.skills) ? tech.skills.join(', ') : (tech.skills || 'Kỹ thuật vận hành');
+          skillsEl.textContent = s;
+        }
+
+        // 3. Filter Bookings within Date Range
+        const allBookings = this.getBookings();
+        const techBookings = allBookings.filter(b => {
+          if (b.tech_id !== tech.tech_id) return false;
+          if (b.status === 'CANCELLED' || b.status === 'REJECTED') return false;
+          const bDate = b.booking_date || b.date;
+          return bDate && bDate >= this.startDate && bDate <= this.endDate;
+        });
+
+        // 4. Calculate Stats: Completed, Hours, OT, OFF, Completion Rate
+        let completedCount = 0;
+        let totalHours = 0;
+        let totalOtHours = 0;
+        let outOfHoursTaskCount = 0;
+        let offDaysCount = 0;
+        let approvedCount = 0;
+
+        // Group by date to count unique days worked & multi-shifts
+        const dateToShifts = new Map();
+
+        // Calculate Standard Working Capacity (Công chuẩn):
+        // Thứ 2 - Thứ 6: 1.0 công (8h)
+        // Thứ 7: 0.5 công (4h sáng: 08:00 - 12:00)
+        // Chủ Nhật: 0.0 công (Nghỉ tuần theo quy định)
+        const [sY, sM, sD] = this.startDate.split('-').map(Number);
+        const [eY, eM, eD] = this.endDate.split('-').map(Number);
+        const startD = new Date(sY, sM - 1, sD);
+        const endD = new Date(eY, eM - 1, eD);
+
+        let standardWorkDays = 0;
+        let countSundaysInPeriod = 0;
+        let countSaturdaysInPeriod = 0;
+        let countWeekdaysInPeriod = 0;
+
+        const scanD = new Date(startD);
+        while (scanD <= endD) {
+          const dOfWeek = (scanD.getDay() + 6) % 7; // 0: Mon ... 5: Sat, 6: Sun
+          if (dOfWeek === 6) {
+            countSundaysInPeriod++;
+          } else if (dOfWeek === 5) {
+            countSaturdaysInPeriod++;
+            standardWorkDays += 0.5;
+          } else {
+            countWeekdaysInPeriod++;
+            standardWorkDays += 1.0;
+          }
+          scanD.setDate(scanD.getDate() + 1);
+        }
+
+        techBookings.forEach(b => {
+          const bDate = b.booking_date || b.date;
+          if (!dateToShifts.has(bDate)) dateToShifts.set(bDate, []);
+          dateToShifts.get(bDate).push(b);
+
+          const titleLower = (b.title || '').toLowerCase();
+          const notesLower = (b.notes || '').toLowerCase();
+          const isOff = titleLower.includes('off') || titleLower.includes('nghỉ') ||
+                        notesLower.includes('off') || notesLower.includes('nghỉ') ||
+                        b.type === 'OFF';
+
+          if (isOff) {
+            offDaysCount++;
+          } else if (b.status === 'COMPLETED' || b.status === 'APPROVED' || b.status === 'IN_PROGRESS') {
+            if (b.status === 'COMPLETED') completedCount++;
+            if (b.status === 'APPROVED' || b.status === 'IN_PROGRESS') approvedCount++;
+
+            const sTime = b.start_time ? b.start_time.slice(0, 5) : '08:00';
+            const eTime = b.end_time ? b.end_time.slice(0, 5) : '17:00';
+            const [sh, sm] = sTime.split(':').map(Number);
+            const [eh, em] = eTime.split(':').map(Number);
+            const startH = sh + sm / 60;
+            const endH = eh + em / 60;
+            const hrs = Math.max(0, endH - startH);
+
+            // Determine if task falls outside standard working hours:
+            // - Sunday: 100% out of hours (OT Chủ Nhật)
+            // - Saturday: Standard is 08:00 - 12:00 (max 4h). Afternoon or >4h is out of hours
+            // - Weekday: >8h or after 17:30 is overtime
+            const bDateObj = new Date(bDate + 'T00:00:00');
+            const dOfWeek = (bDateObj.getDay() + 6) % 7;
+            const isSunday = dOfWeek === 6;
+            const isSaturday = dOfWeek === 5;
+
+            let taskOtHours = 0;
+            let taskIsOutOfHours = false;
+
+            if (isSunday) {
+              taskIsOutOfHours = true;
+              taskOtHours = hrs;
+            } else if (isSaturday) {
+              if (startH >= 12) {
+                taskIsOutOfHours = true;
+                taskOtHours = hrs;
+              } else if (endH > 12) {
+                taskIsOutOfHours = true;
+                taskOtHours = endH - 12;
+              } else if (hrs > 4) {
+                taskIsOutOfHours = true;
+                taskOtHours = hrs - 4;
+              }
+            } else {
+              if (hrs > 8) {
+                taskIsOutOfHours = true;
+                taskOtHours = hrs - 8;
+              } else if (endH > 17.5) {
+                taskIsOutOfHours = true;
+                taskOtHours = endH - 17.5;
+              }
+            }
+
+            b._isOutOfHours = taskIsOutOfHours;
+            b._otHours = taskOtHours;
+            b._isSunday = isSunday;
+            b._isSaturday = isSaturday;
+
+            if (taskIsOutOfHours) {
+              outOfHoursTaskCount++;
+            }
+
+            if (b.status === 'COMPLETED' || b.status === 'IN_PROGRESS') {
+              totalHours += Math.round(hrs * 10) / 10;
+              totalOtHours += Math.round(taskOtHours * 10) / 10;
+            }
+          }
+        });
+
+        const totalActive = completedCount + approvedCount;
+        const completionRate = totalActive > 0 ? `${Math.round((completedCount / totalActive) * 100)}%` : '0%';
+
+        const statCompletedEl = document.getElementById('stat-completed-count');
+        const statHoursEl = document.getElementById('stat-total-hours');
+        const statOffEl = document.getElementById('stat-off-count');
+        const statRateEl = document.getElementById('stat-completion-rate');
+        const statOtEl = document.getElementById('stat-ot-subtext');
+
+        if (statCompletedEl) statCompletedEl.textContent = `${completedCount} task`;
+        if (statHoursEl) statHoursEl.textContent = `${Math.round(totalHours)}h`;
+        if (statOffEl) statOffEl.textContent = `${offDaysCount} ngày`;
+        if (statRateEl) statRateEl.textContent = completionRate;
+
+        // Display Out-of-hours badge if there are tasks on Sunday, Saturday afternoon or OT
+        if (statOtEl) {
+          if (totalOtHours > 0 || outOfHoursTaskCount > 0) {
+            statOtEl.textContent = `⚡ Gồm +${totalOtHours.toFixed(1)}h ngoài giờ (T7, CN, OT)`;
+            statOtEl.classList.remove('hidden');
+          } else {
+            statOtEl.classList.add('hidden');
+          }
+        }
+
+        // Summary box
+        const workDaysEl = document.getElementById('summary-work-days');
+        const avgHoursEl = document.getElementById('summary-avg-hours');
+        const otStatusEl = document.getElementById('summary-ot-status');
+        const offStatusEl = document.getElementById('summary-off-status');
+
+        if (workDaysEl) {
+          const uniqueWorkDays = Array.from(dateToShifts.keys()).length;
+          const pct = Math.round((uniqueWorkDays / diffDays) * 100);
+          workDaysEl.textContent = `${uniqueWorkDays} / ${diffDays} ngày (${pct}%)`;
+        }
+        if (avgHoursEl) {
+          const avg = completedCount > 0 ? (totalHours / completedCount).toFixed(1) : '0.0';
+          avgHoursEl.textContent = `${avg} giờ / task`;
+        }
+        if (otStatusEl) {
+          otStatusEl.textContent = outOfHoursTaskCount > 0 ? `${outOfHoursTaskCount} task (${totalOtHours.toFixed(1)}h)` : '0 task';
+        }
+        if (offStatusEl) {
+          offStatusEl.textContent = `${offDaysCount} ngày`;
+        }
+
+        const rangeSubtext = document.getElementById('calendar-range-subtext');
+        if (rangeSubtext) {
+          rangeSubtext.textContent = `Khoảng ngày chọn: ${formatVn(this.startDate)} → ${formatVn(this.endDate)} (${diffDays} ngày)`;
+        }
+
+        // 5. Render Calendar Matrix (Adaptive 7-column grid by Weekday & Date)
+        this.renderCalendar(dateToShifts, diffDays, outOfHoursTaskCount);
+
+        // 6. Update Timestamp
+        const now = new Date();
+        const timeStr = `${pad(now.getDate())}/${pad(now.getMonth() + 1)}/${now.getFullYear()} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+        const footerTimeEl = document.getElementById('canvas-footer-timestamp');
+        if (footerTimeEl) footerTimeEl.textContent = `Xuất lúc: ${timeStr}`;
+      },
+
+      renderCalendar(dateToShifts, diffDays, outOfHoursTaskCount) {
+        const container = document.getElementById('calendar-grid-container');
+        const countLabel = document.getElementById('schedule-count-label');
+        if (!container) return;
+
+        const pad = (n) => String(n).padStart(2, '0');
+        const formatIso = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+
+        // Parse start and end date safely
+        const [sY, sM, sD] = this.startDate.split('-').map(Number);
+        const [eY, eM, eD] = this.endDate.split('-').map(Number);
+
+        const startD = new Date(sY, sM - 1, sD);
+        const endD = new Date(eY, eM - 1, eD);
+
+        // Calculate Monday of the start week (0: Sun, 1: Mon ... 6: Sat)
+        const startDayOfWeek = (startD.getDay() + 6) % 7; // 0: Mon, 1: Tue ... 6: Sun
+        const firstGridDate = new Date(startD);
+        firstGridDate.setDate(startD.getDate() - startDayOfWeek);
+
+        // Calculate Sunday of the end week
+        const endDayOfWeek = (endD.getDay() + 6) % 7;
+        const lastGridDate = new Date(endD);
+        lastGridDate.setDate(endD.getDate() + (6 - endDayOfWeek));
+
+        // Calculate number of weeks
+        const totalDays = Math.round((lastGridDate - firstGridDate) / (1000 * 60 * 60 * 24)) + 1;
+        const numWeeks = Math.max(1, Math.ceil(totalDays / 7));
+
+        // Dynamic row distribution so the calendar fits perfectly without overflow
+        container.style.gridTemplateRows = `repeat(${numWeeks}, minmax(0, 1fr))`;
+
+        let cellsHtml = '';
+        const curr = new Date(firstGridDate);
+
+        let activeWorkDays = 0;
+        let activeOffDays = 0;
+        let activeEmptyDays = 0;
+
+        while (curr <= lastGridDate) {
+          const iso = formatIso(curr);
+          const dayNum = pad(curr.getDate());
+          const monthNum = pad(curr.getMonth() + 1);
+          const dayOfWeek = (curr.getDay() + 6) % 7; // 0..6 (5 is Sat, 6 is Sun)
+          const isSunday = dayOfWeek === 6;
+          const isSaturday = dayOfWeek === 5;
+
+          const inRange = (iso >= this.startDate && iso <= this.endDate);
+
+          if (!inRange) {
+            // Out of user-selected range: clean, muted slot
+            cellsHtml += `
+              <div class="bg-slate-100/30 border border-dashed border-slate-200/60 rounded-xl p-3 flex flex-col justify-between opacity-30 select-none h-full">
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-condensed font-bold text-slate-400">${dayNum}</span>
+                  <span class="text-[10px] text-slate-300 font-condensed">${monthNum}</span>
+                </div>
+                <div class="my-auto text-center">
+                  <span class="text-xs font-condensed text-slate-300">—</span>
+                </div>
+              </div>
+            `;
+          } else {
+            // In range: check shift data
+            const shifts = dateToShifts.get(iso) || [];
+            const shiftCount = shifts.length;
+
+            const hasOff = shifts.some(b => {
+              const titleLower = (b.title || '').toLowerCase();
+              const notesLower = (b.notes || '').toLowerCase();
+              return titleLower.includes('off') || titleLower.includes('nghỉ') ||
+                     notesLower.includes('off') || notesLower.includes('nghỉ') ||
+                     b.type === 'OFF';
+            });
+
+            let cellBg = 'bg-white';
+            let cellBorder = 'border-slate-200 hover:border-slate-300';
+            const hasInProgress = shifts.some(b => b.status === 'IN_PROGRESS');
+            const hasOverdue = shifts.some(b => {
+              if (b.status === 'COMPLETED' || b.status === 'REJECTED' || b.status === 'CANCELLED') return false;
+              const todayStr = (new Date()).toISOString().slice(0, 10);
+              return iso < todayStr;
+            });
+            let shiftDisplayHtml = '';
+
+            if (hasOff) {
+              activeOffDays++;
+              cellBg = 'bg-amber-50/50';
+              cellBorder = 'border border-amber-200';
+              shiftDisplayHtml = `
+                <span class="text-3xl font-black font-condensed text-amber-600 uppercase tracking-tight leading-none">
+                  OFF
+                </span>
+              `;
+            } else if (hasOverdue) {
+              activeWorkDays++;
+              cellBg = 'bg-rose-50/60';
+              cellBorder = 'border border-rose-300';
+              shiftDisplayHtml = `
+                <div class="flex flex-col items-center justify-center leading-none text-center">
+                  <span class="text-4xl font-black font-condensed text-rose-600 tracking-tight font-mono leading-none flex items-baseline gap-1">
+                    ${shiftCount} <span class="text-xl font-black uppercase text-rose-600/80 font-condensed">task</span>
+                  </span>
+                  <span class="mt-1 text-[10px] font-black uppercase tracking-wider font-condensed text-rose-600">Cần xong</span>
+                </div>
+              `;
+            } else if (hasInProgress) {
+              activeWorkDays++;
+              cellBg = 'bg-accent-50/60';
+              cellBorder = 'border border-accent-300';
+              shiftDisplayHtml = `
+                <div class="flex items-center gap-2 text-accent-700 leading-none">
+                  <span class="w-3 h-3 rounded-full bg-accent-500 animate-pulse shrink-0"></span>
+                  <span class="text-3xl font-black font-condensed tracking-tight">Trực</span>
+                </div>
+              `;
+            } else if (isSunday && shiftCount > 0) {
+              // ========================================================
+              // ⭐ CHỦ NHẬT CÓ TASK: 100% NGOÀI PHẠM VI GIỜ LÀM VIỆC (OT)
+              // ========================================================
+              activeWorkDays++;
+              cellBg = 'bg-rose-50/80';
+              cellBorder = 'border-2 border-rose-300 shadow-2xs';
+              shiftDisplayHtml = `
+                <div class="flex flex-col items-center justify-center leading-none text-center">
+                  <span class="text-4xl font-black font-condensed text-rose-700 tracking-tight font-mono leading-none flex items-baseline gap-1">
+                    ${shiftCount} <span class="text-lg font-black uppercase text-rose-600 font-condensed">task</span>
+                  </span>
+                  <span class="mt-1.5 px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider font-condensed bg-rose-100 text-rose-800 border border-rose-300 flex items-center gap-1 shadow-2xs">
+                    <span class="text-rose-600 font-bold">⚡</span> Ngoài Giờ
+                  </span>
+                </div>
+              `;
+            } else if (isSaturday && shiftCount > 0) {
+              // ========================================================
+              // ⭐ THỨ BẢY CÓ TASK: NẾU LÀM CHIỀU THÌ BÁO NGOÀI GIỜ
+              // ========================================================
+              activeWorkDays++;
+              const satHasOt = shifts.some(b => b._isOutOfHours);
+              if (satHasOt) {
+                cellBg = 'bg-amber-50/80';
+                cellBorder = 'border-2 border-amber-300 shadow-2xs';
+                shiftDisplayHtml = `
+                  <div class="flex flex-col items-center justify-center leading-none text-center">
+                    <span class="text-4xl font-black font-condensed text-amber-800 tracking-tight font-mono leading-none flex items-baseline gap-1">
+                      ${shiftCount} <span class="text-lg font-black uppercase text-amber-800 font-condensed">task</span>
+                    </span>
+                    <span class="mt-1.5 px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider font-condensed bg-amber-100 text-amber-900 border border-amber-300 flex items-center gap-1 shadow-2xs">
+                      <span class="text-amber-600 font-bold">⚡</span> Ngoài Giờ
+                    </span>
+                  </div>
+                `;
+              } else {
+                cellBg = 'bg-brand-50/50';
+                cellBorder = 'border border-brand-200';
+                shiftDisplayHtml = `
+                  <span class="text-4xl font-black font-condensed text-brand-600 tracking-tight font-mono leading-none flex items-baseline gap-1">
+                    ${shiftCount} <span class="text-xl font-black uppercase text-brand-600/80 font-condensed">task</span>
+                  </span>
+                `;
+              }
+            } else if (shiftCount > 0) {
+              // ========================================================
+              // THỨ 2 - THỨ 6: NGÀY LÀM VIỆC TIÊU CHUẨN
+              // ========================================================
+              activeWorkDays++;
+              const weekdayHasOt = shifts.some(b => b._isOutOfHours);
+              if (weekdayHasOt) {
+                cellBg = 'bg-brand-50/60';
+                cellBorder = 'border border-amber-300';
+                shiftDisplayHtml = `
+                  <div class="flex flex-col items-center justify-center leading-none text-center">
+                    <span class="text-4xl font-black font-condensed text-brand-700 tracking-tight font-mono leading-none flex items-baseline gap-1">
+                      ${shiftCount} <span class="text-lg font-black uppercase text-brand-700 font-condensed">task</span>
+                    </span>
+                    <span class="mt-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider font-condensed bg-amber-100 text-amber-800 border border-amber-200 flex items-center gap-1">
+                      <span>⚡</span> Có giờ OT
+                    </span>
+                  </div>
+                `;
+              } else if (shiftCount > 1) {
+                cellBg = 'bg-brand-50/40';
+                cellBorder = 'border border-brand-200';
+                shiftDisplayHtml = `
+                  <span class="text-4xl font-black font-condensed text-brand-600 tracking-tight font-mono leading-none flex items-baseline gap-1">
+                    ${shiftCount} <span class="text-xl font-black uppercase text-brand-600/80 font-condensed">task</span>
+                  </span>
+                `;
+              } else {
+                cellBg = 'bg-accent-50/40';
+                cellBorder = 'border border-accent-200';
+                shiftDisplayHtml = `
+                  <span class="text-4xl font-black font-condensed text-accent-700 tracking-tight font-mono leading-none flex items-baseline gap-1">
+                    1 <span class="text-xl font-black uppercase text-accent-700/80 font-condensed">task</span>
+                  </span>
+                `;
+              }
+            } else {
+              // ========================================================
+              // 0 TASK TRONG NGÀY: SẠCH SẼ, KHÔNG HIỆN TEXT RỐI MẮT
+              // ========================================================
+              activeEmptyDays++;
+              cellBg = isSunday ? 'bg-burgundy-50/20' : (isSaturday ? 'bg-slate-50/40' : 'bg-white');
+              cellBorder = 'border border-slate-200/70';
+              shiftDisplayHtml = '';
+            }
+
+            const isFirstDayOfMonth = curr.getDate() === 1;
+            const monthTag = isFirstDayOfMonth ? `<span class="text-xs font-bold text-slate-400 font-condensed uppercase tracking-wider">Thg ${monthNum}</span>` : '';
+
+            cellsHtml += `
+              <div class="${cellBg} ${cellBorder} rounded-xl p-3 flex flex-col justify-between shadow-2xs transition-all h-full">
+                <div class="flex items-center justify-between">
+                  <span class="text-sm font-extrabold font-condensed leading-none ${isSunday ? 'text-burgundy-800' : 'text-slate-500'}">${dayNum}</span>
+                  ${monthTag}
+                </div>
+                <div class="my-auto py-1 flex items-center justify-center">
+                  ${shiftDisplayHtml}
+                </div>
+              </div>
+            `;
+          }
+
+          curr.setDate(curr.getDate() + 1);
+        }
+
+        container.innerHTML = cellsHtml;
+
+        if (countLabel) {
+          countLabel.textContent = `Tổng ${diffDays} ngày trong kỳ • ${activeWorkDays} ngày có task${outOfHoursTaskCount > 0 ? ` (${outOfHoursTaskCount} task ngoài giờ)` : ''} • ${activeOffDays} ngày nghỉ phép • ${activeEmptyDays} ngày sẵn sàng`;
+        }
+      },
+
+      applyViewportScale() {
+        const scaler = document.getElementById('canvas-scaler');
+        if (!scaler) return;
+
+        if (!this.fitMode) {
+          scaler.style.transform = 'scale(1)';
+          scaler.style.marginBottom = '0px';
+          return;
+        }
+
+        // Available viewport width & height (subtracting header & margins)
+        const availWidth = window.innerWidth - 48;
+        const availHeight = window.innerHeight - 100;
+
+        const targetWidth = 1920;
+        const targetHeight = 1080;
+
+        const scaleX = availWidth / targetWidth;
+        const scaleY = availHeight / targetHeight;
+        const scale = Math.min(scaleX, scaleY, 1);
+
+        scaler.style.transform = `scale(${scale})`;
+        scaler.style.marginBottom = `-${targetHeight * (1 - scale)}px`;
+      },
+
+      toggleFitMode() {
+        this.fitMode = !this.fitMode;
+        const label = document.getElementById('fit-toggle-label');
+        if (label) label.textContent = this.fitMode ? 'Vừa màn hình' : 'Kích thước 100%';
+        this.applyViewportScale();
+      },
+
+      async exportImage(mode = 'download') {
+        const canvasEl = document.getElementById('report-canvas');
+        if (!canvasEl) return;
+
+        const btnDownload = document.getElementById('btn-export-download');
+        const origText = btnDownload ? btnDownload.innerHTML : '';
+        if (btnDownload) {
+          btnDownload.disabled = true;
+          btnDownload.innerHTML = `<svg class="w-4 h-4 animate-spin text-white inline-block mr-1" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg><span>Đang xuất ảnh 16:9…</span>`;
+        }
+
+        const scaler = document.getElementById('canvas-scaler');
+        const origTransform = scaler ? scaler.style.transform : '';
+        const origMarginBottom = scaler ? scaler.style.marginBottom : '';
+
+        try {
+          // 1. Chờ font tải hoàn tất
+          if (document.fonts && document.fonts.ready) {
+            await document.fonts.ready;
+          }
+
+          // 2. Tạm thời unscale scaler để canvasEl đạt kích thước thực 100% (1920x1080)
+          if (scaler) {
+            scaler.style.transform = 'none';
+            scaler.style.marginBottom = '0px';
+          }
+
+          // Chờ 2 frames để layout engine tính toán kích thước thực
+          await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+          // 3. Render trực tiếp canvasEl bằng html2canvas với onclone bảo vệ không bao giờ bị cắt chữ
+          const renderedCanvas = await html2canvas(canvasEl, {
+            scale: 2, // Siêu nét 3840x2160 Ultra HD
+            useCORS: true,
+            allowTaint: false,
+            letterRendering: false,
+            backgroundColor: '#ffffff',
+            logging: false,
+            width: 1920,
+            height: 1080,
+            onclone: (clonedDoc) => {
+              const el = clonedDoc.getElementById('report-canvas');
+              if (el) {
+                el.style.transform = 'none';
+                const allNodes = el.querySelectorAll('*');
+                allNodes.forEach(node => {
+                  if (node.style) {
+                    node.style.overflow = 'visible';
+                    node.style.textOverflow = 'clip';
+                  }
+                });
+              }
+            }
+          });
+
+          const dataUrl = renderedCanvas.toDataURL('image/png', 1.0);
+
+          if (!dataUrl || dataUrl === 'data:,') {
+            throw new Error('Không thể khởi tạo ảnh từ canvas');
+          }
+
+          const techName = (document.getElementById('canvas-tech-name')?.textContent || 'KySu').replace(/\s+/g, '_');
+          const fileName = `BaoCao_${techName}_${this.startDate}_den_${this.endDate}.png`;
+
+          if (mode === 'download') {
+            const a = document.createElement('a');
+            a.download = fileName;
+            a.href = dataUrl;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+          } else if (mode === 'copy') {
+            const res = await fetch(dataUrl);
+            const blob = await res.blob();
+            try {
+              await navigator.clipboard.write([
+                new ClipboardItem({ 'image/png': blob })
+              ]);
+              alert('🎉 Đã sao chép ảnh 16:9 vào Clipboard!\nBạn có thể mở Zalo, Teams, hoặc Telegram và nhấn Ctrl + V để dán ảnh ngay.');
+            } catch (clipErr) {
+              console.warn('Clipboard write failed, fallback to download:', clipErr);
+              const a = document.createElement('a');
+              a.download = fileName;
+              a.href = dataUrl;
+              document.body.appendChild(a);
+              a.click();
+              document.body.removeChild(a);
+              alert('Trình duyệt không cho phép ghi trực tiếp vào clipboard, đã tự động tải file ảnh về máy cho bạn!');
+            }
+          }
+        } catch (err) {
+          console.error('Lỗi khi xuất ảnh 16:9:', err);
+          alert('Có lỗi xảy ra khi tạo ảnh: ' + (err.message || err));
+        } finally {
+          // Khôi phục tỉ lệ hiển thị viewport cho người dùng
+          if (scaler) {
+            scaler.style.transform = origTransform;
+            scaler.style.marginBottom = origMarginBottom;
+          }
+          if (btnDownload) {
+            btnDownload.disabled = false;
+            btnDownload.innerHTML = origText;
+          }
+        }
+      }
+    };
+
+    // Auto initialize when DOM is loaded
+    document.addEventListener('DOMContentLoaded', () => {
+      ReportApp.init();
+    });
+  </script>
+</body>
+</html>

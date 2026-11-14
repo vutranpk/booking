@@ -9,8 +9,8 @@ const SupabaseConfig = {
   init() {
     if (typeof window.supabase !== 'undefined' && window.supabase.createClient) {
       try {
-        // Prefer publishable key, gracefully fall back to anon JWT key if needed
-        const activeKey = this.publishableKey || this.anonKey;
+        // Standard JWT anonKey is required for Supabase Realtime WebSocket authentication
+        const activeKey = this.anonKey || this.publishableKey;
         this.client = window.supabase.createClient(this.url, activeKey, {
           auth: {
             persistSession: true,
@@ -24,8 +24,22 @@ const SupabaseConfig = {
         });
         this.isLive = true;
         console.log('✅ Supabase Production Client initialized successfully.');
+
+        // Keep Realtime socket synchronized with authenticated user token
+        if (this.client.auth && this.client.realtime) {
+          this.client.auth.onAuthStateChange((event, session) => {
+            if (session?.access_token) {
+              this.client.realtime.setAuth(session.access_token);
+            }
+          });
+          this.client.auth.getSession().then(({ data: { session } = {} }) => {
+            if (session?.access_token) {
+              this.client.realtime.setAuth(session.access_token);
+            }
+          }).catch(() => {});
+        }
       } catch (err) {
-        console.warn('⚠️ Primary Supabase init failed, attempting anonKey fallback:', err);
+        console.warn('⚠️ Primary Supabase init failed, attempting fallback:', err);
         try {
           this.client = window.supabase.createClient(this.url, this.anonKey);
           this.isLive = true;
@@ -37,6 +51,17 @@ const SupabaseConfig = {
       console.warn('⚠️ Supabase JS SDK not detected on window.');
     }
     return this.client;
+  },
+
+  async setRealtimeAuth(token) {
+    const client = this.getClient();
+    if (!client || !client.realtime || !token) return;
+    try {
+      await client.realtime.setAuth(token);
+      console.log('⚡ Realtime auth token synchronized.');
+    } catch (e) {
+      console.warn('Realtime setAuth warning:', e);
+    }
   },
 
   getClient() {

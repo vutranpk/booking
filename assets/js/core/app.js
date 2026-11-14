@@ -4,6 +4,9 @@ const App = {
 
   async init() {
     this.bindGlobalEvents();
+    if (window.BookingData && typeof BookingData.initSession === 'function' && !BookingData.currentUser) {
+      BookingData.initSession();
+    }
     await this.checkSupabaseAuthCallback();
     this.checkAuthGate();
     this.startClock();
@@ -277,6 +280,8 @@ const App = {
         roleLabel = 'Admin';
       } else if (isApprover) {
         roleLabel = 'Test: Vận hành';
+      } else if (isTechnician) {
+        roleLabel = 'Test: Kỹ sư';
       } else {
         roleLabel = 'Test: User PM';
       }
@@ -313,7 +318,7 @@ const App = {
 
     if (roleEl) {
       if (isTestMode) {
-        roleEl.textContent = isApprover ? 'Test: Người vận hành' : 'Test: User bình thường';
+        roleEl.textContent = isApprover ? 'Test: Người vận hành' : (isTechnician ? 'Test: Kỹ sư' : 'Test: User bình thường');
         roleEl.className = 'text-[10px] font-extrabold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full inline-block mt-0.5 border border-amber-300 animate-pulse';
       } else if (isAdmin) {
         roleEl.textContent = 'Admin cấp cao';
@@ -373,14 +378,16 @@ const App = {
     // Sync Floating Bubble Active Role Name & Checkmarks
     const bubbleActiveRole = document.getElementById('bubble-active-role-name');
     if (bubbleActiveRole) {
-      bubbleActiveRole.textContent = isAdmin ? 'Admin' : (isApprover ? 'Vận hành' : 'User PM');
+      bubbleActiveRole.textContent = isAdmin ? 'Admin' : (isApprover ? 'Vận hành' : (isTechnician ? 'Kỹ sư' : 'User PM'));
     }
     const bubbleCheckAdmin = document.getElementById('bubble-check-admin');
     const bubbleCheckApp = document.getElementById('bubble-check-approver');
     const bubbleCheckReq = document.getElementById('bubble-check-requester');
+    const bubbleCheckTech = document.getElementById('bubble-check-technician');
     if (bubbleCheckAdmin) bubbleCheckAdmin.classList.toggle('hidden', !isAdmin);
     if (bubbleCheckApp) bubbleCheckApp.classList.toggle('hidden', !isApprover);
-    if (bubbleCheckReq) bubbleCheckReq.classList.toggle('hidden', isAdmin || isApprover);
+    if (bubbleCheckReq) bubbleCheckReq.classList.toggle('hidden', isAdmin || isApprover || isTechnician);
+    if (bubbleCheckTech) bubbleCheckTech.classList.toggle('hidden', !isTechnician);
 
     // Update Top Menu Flyout User Card
     const topMenuAvatar = document.getElementById('top-menu-user-avatar');
