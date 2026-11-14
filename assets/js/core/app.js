@@ -8,6 +8,20 @@ const App = {
       BookingData.initSession();
     }
     await this.checkSupabaseAuthCallback();
+
+    // Khôi phục phiên Supabase Auth ngầm nếu chưa có dữ liệu user cục bộ
+    if (window.BookingData && !BookingData.isAuthenticated() && window.SupabaseConfig) {
+      const client = SupabaseConfig.getClient();
+      if (client?.auth) {
+        try {
+          const { data: { session } } = await client.auth.getSession();
+          if (session?.user) {
+            await BookingData.establishAuthenticatedUser(session.user);
+          }
+        } catch (_) {}
+      }
+    }
+
     this.checkAuthGate();
     this.startClock();
 
@@ -61,24 +75,35 @@ const App = {
     const client = window.SupabaseConfig ? window.SupabaseConfig.getClient() : null;
     if (client && client.auth) {
       try {
+        const hash = window.location.hash || '';
+        const search = window.location.search || '';
+        const hasAuthParams = hash.includes('access_token=') || hash.includes('type=recovery') || search.includes('code=');
+
         const { data: { session }, error } = await client.auth.getSession();
         if (session && session.user && session.user.email) {
-          const recoveryFromUrl = new URLSearchParams(window.location.hash.slice(1)).get('type') === 'recovery';
+          const recoveryFromUrl = new URLSearchParams(hash.slice(1)).get('type') === 'recovery';
           BookingData.passwordRecoverySession = recoveryFromUrl || sessionStorage.getItem('k_password_recovery') === '1';
           sessionStorage.removeItem('k_password_recovery');
+
+          // Nếu đã đăng nhập với đúng tài khoản này rồi thì không cần gọi re-login lại tránh lỗi mạng làm mất phiên
+          if (BookingData.currentUser && BookingData.currentUser.email?.toLowerCase() === session.user.email.toLowerCase()) {
+            return;
+          }
+
           const googleEmail = session.user.email;
-          const googleName = session.user.user_metadata?.full_name || session.user.email.split('@')[0];
-          // STRICT CHECK against database:
           const result = await BookingData.loginWithGoogle(googleEmail);
           if (!result.success) {
-            await client.auth.signOut();
-            const gateErrBox = document.getElementById('gatekeeper-error-box');
-            const gateErrMsg = document.getElementById('gatekeeper-error-msg');
-            if (gateErrBox && gateErrMsg) {
-              gateErrMsg.textContent = result.message;
-              gateErrBox.classList.remove('hidden');
+            // Chỉ sign out nếu đây là luồng OAuth callback đang cố đăng nhập thất bại
+            if (hasAuthParams) {
+              await client.auth.signOut();
+              const gateErrBox = document.getElementById('gatekeeper-error-box');
+              const gateErrMsg = document.getElementById('gatekeeper-error-msg');
+              if (gateErrBox && gateErrMsg) {
+                gateErrMsg.textContent = result.message;
+                gateErrBox.classList.remove('hidden');
+              }
+              if (window.Toast) Toast.show(result.message, 'error', 'Từ Chối Truy Cập');
             }
-            if (window.Toast) Toast.show(result.message, 'error', 'Từ Chối Truy Cập');
           } else {
             if (window.history && window.history.replaceState) {
               window.history.replaceState(null, '', window.location.pathname);

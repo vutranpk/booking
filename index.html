@@ -8,23 +8,46 @@
   <title>K-Workspace | Hệ thống điều phối kỹ sư</title>
   <link rel="icon" type="image/png" href="images/favicon.png">
 
-  <!-- 🛡️ INSTANT AUTH GUARD (Eliminates FOUC / Flashing Dashboard on initial load) -->
+  <!-- 🛡️ INSTANT AUTH GUARD (Eliminates FOUC while preserving active sessions) -->
   <script>
     (function() {
       try {
         var isLoggedOut = localStorage.getItem('k_workspace_logged_out');
+        if (isLoggedOut === 'true') {
+          window.location.replace('login.html');
+          return;
+        }
+
         var session = localStorage.getItem('k_workspace_session');
-        if (isLoggedOut === 'true' || !session) {
-          window.location.replace('login.html');
+        if (session) {
+          var parsed = JSON.parse(session);
+          if (parsed && parsed.email) {
+            return; // Phiên đăng nhập hợp lệ
+          }
+        }
+
+        // Kiểm tra xem trình duyệt có lưu token phiên của Supabase Auth không
+        var hasSbToken = false;
+        for (var i = 0; i < localStorage.length; i++) {
+          var k = localStorage.key(i);
+          if (k && k.indexOf('sb-') === 0 && k.indexOf('-auth-token') !== -1) {
+            var val = localStorage.getItem(k);
+            if (val && val.indexOf('access_token') !== -1) {
+              hasSbToken = true;
+              break;
+            }
+          }
+        }
+
+        // Nếu có token Supabase, không chuyển trang mà để SDK tự động khôi phục ngầm
+        if (hasSbToken) {
           return;
         }
-        var parsed = JSON.parse(session);
-        if (!parsed || !parsed.email) {
-          window.location.replace('login.html');
-          return;
-        }
-      } catch (e) {
+
+        // Hoàn toàn không có phiên mới chuyển về login
         window.location.replace('login.html');
+      } catch (e) {
+        // Lỗi parse thì để app.js xử lý tiếp
       }
     })();
   </script>
