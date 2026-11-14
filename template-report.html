@@ -788,9 +788,32 @@
         const offStatusEl = document.getElementById('summary-off-status');
 
         if (workDaysEl) {
-          const uniqueWorkDays = Array.from(dateToShifts.keys()).length;
-          const pct = Math.round((uniqueWorkDays / diffDays) * 100);
-          workDaysEl.textContent = `${uniqueWorkDays} / ${diffDays} ngày (${pct}%)`;
+          // Tính số ngày có ca/task làm việc thực tế (loại trừ ngày xin nghỉ phép OFF)
+          const actualWorkDates = new Set();
+          dateToShifts.forEach((shifts, dateStr) => {
+            const hasActiveWork = shifts.some(b => {
+              const titleLower = (b.title || '').toLowerCase();
+              const notesLower = (b.notes || '').toLowerCase();
+              const isOff = titleLower.includes('off') || titleLower.includes('nghỉ') ||
+                            notesLower.includes('off') || notesLower.includes('nghỉ') ||
+                            b.type === 'OFF';
+              return !isOff && (b.status === 'COMPLETED' || b.status === 'APPROVED' || b.status === 'IN_PROGRESS');
+            });
+            if (hasActiveWork) actualWorkDates.add(dateStr);
+          });
+          const uniqueWorkDays = actualWorkDates.size;
+
+          // Số ngày làm việc tiêu chuẩn = Công chuẩn (đã trừ Chủ Nhật & 0.5 ngày Thứ 7) - Số ngày nghỉ phép hợp lệ
+          let effectiveStandardDays = standardWorkDays - offDaysCount;
+          if (effectiveStandardDays <= 0) {
+            effectiveStandardDays = standardWorkDays > 0 ? standardWorkDays : diffDays;
+          }
+          const displayStandardDays = Number.isInteger(effectiveStandardDays)
+            ? effectiveStandardDays
+            : effectiveStandardDays.toFixed(1);
+
+          const pct = Math.round((uniqueWorkDays / effectiveStandardDays) * 100);
+          workDaysEl.textContent = `${uniqueWorkDays} / ${displayStandardDays} ngày (${pct}%)`;
         }
         if (avgHoursEl) {
           const avg = completedCount > 0 ? (totalHours / completedCount).toFixed(1) : '0.0';
