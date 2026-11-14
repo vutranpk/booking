@@ -878,7 +878,7 @@
 
         let activeWorkDays = 0;
         let activeOffDays = 0;
-        let activeEmptyDays = 0;
+        let readyDays = 0;
 
         while (curr <= lastGridDate) {
           const iso = formatIso(curr);
@@ -1042,7 +1042,13 @@
               // ========================================================
               // 0 TASK TRONG NGÀY: SẠCH SẼ, KHÔNG HIỆN TEXT RỐI MẮT
               // ========================================================
-              activeEmptyDays++;
+              // Tính ngày sẵn sàng trong thời gian làm việc quy định:
+              // - Chủ Nhật: ngày nghỉ tuần theo luật -> 0 ngày sẵn sàng
+              // - Thứ Bảy: làm việc nửa ngày sáng -> 0.5 ngày sẵn sàng
+              // - Thứ 2 -> Thứ 6: ngày làm việc cả ngày -> 1.0 ngày sẵn sàng
+              if (!isSunday) {
+                readyDays += isSaturday ? 0.5 : 1.0;
+              }
               cellBg = isSunday ? 'bg-burgundy-50/20' : (isSaturday ? 'bg-slate-50/40' : 'bg-white');
               cellBorder = 'border border-slate-200/70';
               shiftDisplayHtml = '';
@@ -1070,7 +1076,8 @@
         container.innerHTML = cellsHtml;
 
         if (countLabel) {
-          countLabel.textContent = `Tổng ${diffDays} ngày trong kỳ • ${activeWorkDays} ngày có task${outOfHoursTaskCount > 0 ? ` (${outOfHoursTaskCount} task ngoài giờ)` : ''} • ${activeOffDays} ngày nghỉ phép • ${activeEmptyDays} ngày sẵn sàng`;
+          const readyDaysDisplay = Number.isInteger(readyDays) ? readyDays : readyDays.toFixed(1);
+          countLabel.textContent = `Tổng ${diffDays} ngày trong kỳ • ${activeWorkDays} ngày có task${outOfHoursTaskCount > 0 ? ` (${outOfHoursTaskCount} task ngoài giờ)` : ''} • ${activeOffDays} ngày nghỉ phép • ${readyDaysDisplay} ngày sẵn sàng`;
         }
       },
 
