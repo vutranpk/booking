@@ -551,7 +551,22 @@ const App = {
     const roleSelector = document.getElementById('role-select-input');
     if (roleSelector) {
       roleSelector.value = role;
-      roleSelector.dispatchEvent(new Event('change'));
+    }
+
+    if (window.BookingData) {
+      BookingData.switchRole(role);
+      this.updateUserBadge();
+      this.updateStats();
+      Toast.show(`Đã chuyển vai trò sang: ${BookingData.currentUser.role_label}`, 'info');
+
+      // Apply role permissions to tabs and views, and re-render calendar with new permissions!
+      if (window.BookingUI) {
+        BookingUI.applyRolePermissions();
+        BookingUI.switchTab(BookingUI.activeTab);
+        BookingUI.render();
+        BookingUI.renderOverview();
+        BookingUI.renderNotifications();
+      }
     }
 
     const menu = document.getElementById('role-custom-menu');

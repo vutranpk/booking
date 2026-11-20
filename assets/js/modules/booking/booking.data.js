@@ -21,7 +21,7 @@ const BookingData = {
 
   // 3-Tier Default Role Permissions Presets + Technician
   ROLE_PERMISSIONS: {
-    technician: ['view_schedule', 'create_booking'],
+    technician: ['view_schedule', 'create_booking', 'self_checkin', 'cancel_own_booking', 'edit_booking'],
     requester: ['view_schedule', 'create_booking', 'cancel_own_booking'],
     approver: [
       'view_schedule', 'drag_reschedule', 'create_booking', 'self_checkin', 'cancel_own_booking',
@@ -547,6 +547,9 @@ const BookingData = {
             this.currentUser.avatar = matchedTech.avatar || this.currentUser.avatar || '';
             this.currentUser.phone = matchedTech.phone || this.currentUser.phone || '';
             this.currentUser.skills = matchedTech.skills || [];
+            if (!this.currentUser.permissions || !this.currentUser.permissions.includes('create_booking')) {
+              this.currentUser.permissions = Array.from(new Set([...(this.currentUser.permissions || []), ...this.ROLE_PERMISSIONS.technician]));
+            }
             this.persistSession(this.currentUser);
             if (window.App && typeof App.updateUserBadge === 'function') {
               App.updateUserBadge();
@@ -1482,9 +1485,10 @@ const BookingData = {
 
     const isTech = effectiveRole === 'technician';
     const baseEmail = isTech ? 'hoangtan5816@gmail.com' : (this.originalUserSession?.email || this.currentUser.email);
+    const tech = isTech ? this.technicians.find(t => t.tech_id === 'TECH-003' || (t.email && t.email.toLowerCase() === baseEmail.toLowerCase())) : null;
     const baseUser = this.users.find(u => (u.email || '').toLowerCase() === baseEmail.toLowerCase());
-    const baseName = isTech ? 'Hoàng Trần Trọng Tân' : this.cleanUserName(baseUser?.full_name || this.currentUser.full_name);
-    const baseAvatar = isTech ? 'https://kcoffee.vn/images/logos/Frame%20278.jpg' : (baseUser?.avatar || this.currentUser.avatar || '');
+    const baseName = isTech ? (tech?.name || 'Hoàng Trần Trọng Tân') : this.cleanUserName(baseUser?.full_name || this.currentUser.full_name);
+    const baseAvatar = isTech ? (tech?.avatar || 'https://kcoffee.vn/images/logos/Frame%20278.jpg') : (baseUser?.avatar || this.currentUser.avatar || '');
     const baseInitials = isTech ? 'TT' : (baseUser?.avatar_text || this.currentUser.avatar_text || baseName.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase());
 
     // Default permissions for target role
@@ -1503,6 +1507,7 @@ const BookingData = {
       avatar_text: baseInitials,
       role: effectiveRole,
       tech_id: isTech ? 'TECH-003' : (this.currentUser.tech_id || ''),
+      is_technician: isTech,
       test_mode: isTestMode,
       role_label: this.getRoleLabel(effectiveRole),
       permissions: nextPerms
@@ -2155,7 +2160,9 @@ const BookingData = {
             phone: s.phone || '',
             department: s.department || '',
             referrer_email: s.referrer_email || '',
-            permissions: Array.isArray(s.permissions) ? s.permissions : (this.ROLE_PERMISSIONS[s.role] || []),
+            permissions: (Array.isArray(s.permissions) && (s.role !== 'technician' || s.permissions.includes('create_booking')))
+              ? s.permissions
+              : (this.ROLE_PERMISSIONS[s.role] || []),
             auth_verified: true,
             test_mode: !!s.test_mode
           };
@@ -2258,7 +2265,8 @@ const BookingData = {
         role: 'technician', auth_role: 'technician', role_label: this.getRoleLabel('technician'),
         avatar: technician.avatar || '', phone: technician.phone || '', skills: technician.skills || [],
         department: 'Đội Ngũ Kỹ Thuật Hiện Trường', is_technician: true,
-        permissions: ['view_schedule'], auth_verified: true
+        permissions: [...(this.ROLE_PERMISSIONS.technician || ['view_schedule', 'create_booking', 'self_checkin', 'cancel_own_booking', 'edit_booking'])],
+        auth_verified: true
       };
       this.originalAdminEmail = null;
       this.persistSession(this.currentUser);
