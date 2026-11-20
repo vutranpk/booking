@@ -1124,14 +1124,11 @@ const BookingUI = {
     // Days in current month
     for (let day = 1; day <= daysInMonth; day++) {
       const dayStr = `${this.dpYear}-${String(this.dpMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-      const isPast = dayStr < todayStr;
       const isToday = dayStr === todayStr;
 
       let cellClass = 'py-2 text-center font-bold text-xs transition-all ';
 
-      if (isPast) {
-        cellClass += 'opacity-25 text-slate-400 cursor-not-allowed pointer-events-none rounded-xl ';
-      } else if (this.rangeStep === 1) {
+      if (this.rangeStep === 1) {
         // Range selection mode in progress
         const isStart = dayStr === startDateVal;
         const isHover = this.hoverDate && this.hoverDate > startDateVal && dayStr > startDateVal && dayStr < this.hoverDate;
@@ -1173,8 +1170,7 @@ const BookingUI = {
                 data-date="${dayStr}"
                 onclick="event.stopPropagation(); BookingUI.selectDatePickerDate('${dayStr}', event)"
                 onmouseenter="BookingUI.handleDatePickerHover('${dayStr}')"
-                class="${cellClass}"
-                ${isPast ? 'disabled' : ''}>
+                class="${cellClass}">
           ${day}
         </button>
       `;
@@ -1211,7 +1207,6 @@ const BookingUI = {
       event.stopPropagation();
     }
     const todayStr = BookingData.formatDateStr(new Date());
-    if (dateStr < todayStr) return;
 
     const dropdown = document.getElementById('modal-datepicker-dropdown');
 
@@ -2851,11 +2846,6 @@ const BookingUI = {
       const endDate = b.end_date || b.booking_date;
       this.updateModalDateRangeDisplay(startDate, endDate);
     } else {
-      if (prefillDate && prefillDate < todayStr) {
-        Toast.show('Không thể đặt lịch cho ngày trong quá khứ! Vui lòng chọn từ hôm nay trở đi.', 'warning', 'Lịch quá khứ');
-        return;
-      }
-
       const isTech = BookingData.currentUser?.role === 'technician' || Boolean(BookingData.currentUser?.is_technician);
       const techSelfId = isTech ? (BookingData.currentUser?.tech_id || 'TECH-003') : '';
       const isAutoApprove = BookingData.isSuperAdmin() || (BookingData.hasPermission('approve_booking') && BookingData.currentUser?.role === 'admin');
@@ -2879,7 +2869,7 @@ const BookingUI = {
       this.updateModalTechCard(defaultTechId);
       this.renderCustomTechOptions(defaultTechId);
 
-      const startDate = (prefillDate && prefillDate >= todayStr) ? prefillDate : todayStr;
+      const startDate = prefillDate || todayStr;
       const endDate = (prefillEndDate && prefillEndDate >= startDate) ? prefillEndDate : startDate;
       this.updateModalDateRangeDisplay(startDate, endDate);
     }
@@ -3213,13 +3203,6 @@ const BookingUI = {
     setTimeout(() => { this.justDropped = false; }, 300);
 
     if (!bookingId || !targetDateStr) return;
-
-    // 🛡️ CHẶN DỜI LỊCH VÀO QUÁ KHỨ
-    const todayStr = BookingData.formatDateStr(new Date());
-    if (targetDateStr < todayStr) {
-      Toast.show('Không thể dời task vào ngày trong quá khứ! Vui lòng chọn từ hôm nay trở đi.', 'warning', 'Thao tác không hợp lệ');
-      return;
-    }
 
     // Check permission to reschedule
     if (!BookingData.hasPermission('drag_reschedule')) {
@@ -3771,14 +3754,11 @@ const BookingUI = {
 
     for (let day = 1; day <= daysInMonth; day++) {
       const dayStr = `${this.detailDpYear}-${String(this.detailDpMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-      const isPast = dayStr < todayStr;
       const isToday = dayStr === todayStr;
 
       let cellClass = 'py-1.5 text-center font-bold text-xs transition-all ';
 
-      if (isPast) {
-        cellClass += 'opacity-25 text-slate-400 cursor-not-allowed pointer-events-none rounded-xl ';
-      } else if (this.detailRangeStep === 1) {
+      if (this.detailRangeStep === 1) {
         const isStart = dayStr === startDateVal;
         const isHover = this.detailHoverDate && this.detailHoverDate > startDateVal && dayStr > startDateVal && dayStr < this.detailHoverDate;
         const isHoverEnd = this.detailHoverDate && dayStr === this.detailHoverDate && dayStr > startDateVal;
@@ -3818,8 +3798,7 @@ const BookingUI = {
                 data-date="${dayStr}"
                 onclick="event.stopPropagation(); BookingUI.selectDetailDpDate('${dayStr}', event)"
                 onmouseenter="BookingUI.handleDetailDpHover('${dayStr}')"
-                class="${cellClass}"
-                ${isPast ? 'disabled' : ''}>
+                class="${cellClass}">
           ${day}
         </button>
       `;
@@ -3856,7 +3835,6 @@ const BookingUI = {
       event.stopPropagation();
     }
     const todayStr = BookingData.formatDateStr(new Date());
-    if (dateStr < todayStr) return;
 
     const dropdown = document.getElementById('detail-datepicker-dropdown');
 
@@ -4040,10 +4018,6 @@ const BookingUI = {
     const otReason = otReasonInput ? otReasonInput.value.trim() : '';
 
     const todayStr = BookingData.formatDateStr(new Date());
-    if (newStart !== b.booking_date && newStart < todayStr) {
-      Toast.show('Không thể dời task vào ngày trong quá khứ! Vui lòng chọn từ hôm nay trở đi.', 'warning', 'Thao tác không hợp lệ');
-      return;
-    }
     if (newEnd < newStart) {
       Toast.show('Ngày kết thúc không được trước ngày bắt đầu!', 'warning');
       return;

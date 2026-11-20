@@ -907,9 +907,6 @@ const BookingData = {
     const assignedTechId = data.tech_id || (this.currentUser?.role === 'technician' ? (this.currentUser.tech_id || 'TECH-003') : data.tech_id);
 
     const todayStr = this.formatDateStr(new Date());
-    if (startDate < todayStr) {
-      return { success: false, error: 'Không thể đặt lịch cho ngày trong quá khứ! Vui lòng chọn từ hôm nay trở đi.' };
-    }
 
     const conflict = this.checkConflict(assignedTechId, startDate, endDate, null, startTime, endTime);
     if (conflict.hasConflict) {
@@ -1391,11 +1388,7 @@ const BookingData = {
       return { success: false, error: 'Không thể kéo thả task đã hủy hoặc đã từ chối!' };
     }
 
-    // 🛡️ CHẶN DỜI LỊCH VÀO QUÁ KHỨ
     const todayStr = this.formatDateStr(new Date());
-    if (new_start_date < todayStr) {
-      return { success: false, error: 'Không thể dời task vào ngày trong quá khứ! Vui lòng chọn từ hôm nay trở đi.' };
-    }
 
     // Calculate duration in days safely without UTC offset issues
     const [oy, om, od] = booking.booking_date.split('-').map(Number);
