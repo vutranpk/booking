@@ -970,7 +970,12 @@ const BookingData = {
     const client = window.SupabaseConfig ? window.SupabaseConfig.getClient() : null;
     if (client) {
       const insertPromise = client.from('bookings').insert([newBooking]).then(({ error }) => {
-        if (error) console.warn('Supabase insert booking warning:', error);
+        if (error) {
+          console.error('Supabase insert booking error:', error);
+          if (window.Toast) {
+            Toast.show(`Lỗi đồng bộ máy chủ: ${error.message || 'Không thể ghi đơn vào cơ sở dữ liệu'}`, 'error', 'Lỗi Cloud');
+          }
+        }
       });
       if (window.SystemLoader) {
         window.SystemLoader.track(insertPromise, 'Đang lưu yêu cầu đặt lịch…', 'Đang ghi dữ liệu ca trực lên máy chủ Supabase');
