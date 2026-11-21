@@ -789,6 +789,15 @@ const BookingData = {
     // 0ms UI update across all active components
     this.refreshAllUI();
 
+    // Trigger PWA & System Notifications on phone/desktop
+    if (window.PWANotificationManager && typeof PWANotificationManager.handleBookingRealtimeNotification === 'function') {
+      try {
+        PWANotificationManager.handleBookingRealtimeNotification(table, payload);
+      } catch (err) {
+        console.warn('Notification trigger error:', err);
+      }
+    }
+
     // Broadcast across windows/tabs
     try {
       localStorage.setItem('kcoffee_realtime_ping', String(Date.now()));

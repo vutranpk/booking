@@ -142,11 +142,11 @@
       </div>
 
       <!-- Quick Shortcuts -->
-      <div class="flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-btn p-1">
-        <button type="button" onclick="ReportApp.setQuickRange('this_week')" class="px-2.5 py-1 rounded-md text-[11px] font-bold text-slate-700 hover:text-brand-600 hover:bg-white transition-colors cursor-pointer" title="Chu kỳ: Thứ Bảy tuần trước → Thứ Sáu tuần này">Tuần này</button>
-        <button type="button" onclick="ReportApp.setQuickRange('last_week')" class="px-2.5 py-1 rounded-md text-[11px] font-bold text-slate-700 hover:text-brand-600 hover:bg-white transition-colors cursor-pointer" title="Chu kỳ tuần trước">Tuần trước</button>
-        <button type="button" onclick="ReportApp.setQuickRange('this_month')" class="px-2.5 py-1 rounded-md text-[11px] font-bold text-slate-700 hover:text-brand-600 hover:bg-white transition-colors cursor-pointer">Tháng này</button>
-        <button type="button" onclick="ReportApp.setQuickRange('last_month')" class="px-2.5 py-1 rounded-md text-[11px] font-bold text-slate-700 hover:text-brand-600 hover:bg-white transition-colors cursor-pointer">Tháng trước</button>
+      <div class="flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-btn p-1" id="quick-range-group">
+        <button type="button" id="btn-range-this-week" onclick="ReportApp.setQuickRange('this_week')" class="px-2.5 py-1 rounded-md text-[11px] font-bold text-slate-700 hover:text-brand-600 hover:bg-white transition-colors cursor-pointer" title="Chu kỳ: Thứ Bảy tuần trước → Thứ Sáu tuần này">Tuần này (T7 → T6)</button>
+        <button type="button" id="btn-range-last-week" onclick="ReportApp.setQuickRange('last_week')" class="px-2.5 py-1 rounded-md text-[11px] font-bold text-slate-700 hover:text-brand-600 hover:bg-white transition-colors cursor-pointer" title="Chu kỳ: Thứ Bảy → Thứ Sáu tuần trước">Tuần trước</button>
+        <button type="button" id="btn-range-this-month" onclick="ReportApp.setQuickRange('this_month')" class="px-2.5 py-1 rounded-md text-[11px] font-bold text-slate-700 hover:text-brand-600 hover:bg-white transition-colors cursor-pointer">Tháng này</button>
+        <button type="button" id="btn-range-last-month" onclick="ReportApp.setQuickRange('last_month')" class="px-2.5 py-1 rounded-md text-[11px] font-bold text-slate-700 hover:text-brand-600 hover:bg-white transition-colors cursor-pointer">Tháng trước</button>
       </div>
 
       <!-- Zoom Toggle (Fit screen vs 100%) -->
@@ -393,16 +393,20 @@
         const paramStart = urlParams.get('start');
         const paramEnd = urlParams.get('end');
 
-        // Set default date range: Current month (1st to last day)
+        // Set default date range: Chu kỳ tuần công ty (Thứ Bảy tuần trước -> Thứ Sáu tuần này)
         const now = new Date();
-        const y = now.getFullYear();
-        const m = now.getMonth();
-        const firstDay = new Date(y, m, 1);
-        const lastDay = new Date(y, m + 1, 0);
-
         const pad = (n) => String(n).padStart(2, '0');
-        const defaultStart = `${y}-${pad(m + 1)}-01`;
-        const defaultEnd = `${y}-${pad(m + 1)}-${pad(lastDay.getDate())}`;
+        const formatD = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+
+        // (now.getDay() + 1) % 7: 0 khi là Thứ 7, 1 khi là CN, 2 khi là T2 ... 6 khi là T6
+        const daysSinceSaturday = (now.getDay() + 1) % 7;
+        const curSaturday = new Date(now);
+        curSaturday.setDate(now.getDate() - daysSinceSaturday);
+        const curFriday = new Date(curSaturday);
+        curFriday.setDate(curSaturday.getDate() + 6);
+
+        const defaultStart = formatD(curSaturday);
+        const defaultEnd = formatD(curFriday);
 
         this.startDate = paramStart || defaultStart;
         this.endDate = paramEnd || defaultEnd;
@@ -411,6 +415,7 @@
         const eInput = document.getElementById('end-date-input');
         if (sInput) sInput.value = this.startDate;
         if (eInput) eInput.value = this.endDate;
+        this.updateActiveQuickButton();
 
         // 1. RENDER NGAY LẬP TỨC (0ms) với dữ liệu đệm cục bộ / localStorage / BookingData
         this.populateTechDropdown(paramTech);
@@ -547,6 +552,7 @@
         }
         this.startDate = s;
         this.endDate = e;
+        this.updateActiveQuickButton();
         this.renderAll();
       },
 
@@ -559,22 +565,21 @@
 
         if (type === 'this_week') {
           // Chu kỳ tuần công ty: Từ Thứ Bảy tuần trước đến Thứ Sáu tuần này
-          const dow = (now.getDay() + 6) % 7; // Mon: 0 ... Fri: 4, Sat: 5, Sun: 6
-          const diffToFriday = 4 - dow;
-          const friday = new Date(now);
-          friday.setDate(now.getDate() + diffToFriday);
-          const saturday = new Date(friday);
-          saturday.setDate(friday.getDate() - 6);
+          // dayOfWeek: 0: CN, 1: T2, 2: T3, 3: T4, 4: T5, 5: T6, 6: T7
+          const daysSinceSaturday = (now.getDay() + 1) % 7;
+          const saturday = new Date(now);
+          saturday.setDate(now.getDate() - daysSinceSaturday);
+          const friday = new Date(saturday);
+          friday.setDate(saturday.getDate() + 6);
           sDate = formatD(saturday);
           eDate = formatD(friday);
         } else if (type === 'last_week') {
           // Chu kỳ tuần trước: lùi thêm 7 ngày
-          const dow = (now.getDay() + 6) % 7;
-          const diffToFriday = 4 - dow;
-          const friday = new Date(now);
-          friday.setDate(now.getDate() + diffToFriday - 7);
-          const saturday = new Date(friday);
-          saturday.setDate(friday.getDate() - 6);
+          const daysSinceSaturday = (now.getDay() + 1) % 7;
+          const saturday = new Date(now);
+          saturday.setDate(now.getDate() - daysSinceSaturday - 7);
+          const friday = new Date(saturday);
+          friday.setDate(saturday.getDate() + 6);
           sDate = formatD(saturday);
           eDate = formatD(friday);
         } else if (type === 'this_month') {
@@ -592,10 +597,36 @@
         if (sDate && eDate) {
           this.startDate = sDate;
           this.endDate = eDate;
-          document.getElementById('start-date-input').value = sDate;
-          document.getElementById('end-date-input').value = eDate;
+          const sInput = document.getElementById('start-date-input');
+          const eInput = document.getElementById('end-date-input');
+          if (sInput) sInput.value = sDate;
+          if (eInput) eInput.value = eDate;
+          this.updateActiveQuickButton(type);
           this.renderAll();
         }
+      },
+
+      updateActiveQuickButton(activeType = null) {
+        const btnMap = {
+          'this_week': document.getElementById('btn-range-this-week'),
+          'last_week': document.getElementById('btn-range-last-week'),
+          'this_month': document.getElementById('btn-range-this-month'),
+          'last_month': document.getElementById('btn-range-last-month'),
+        };
+
+        const activeClasses = ['bg-brand-600', 'text-white', 'shadow-2xs'];
+        const inactiveClasses = ['text-slate-700', 'hover:text-brand-600', 'hover:bg-white'];
+
+        Object.entries(btnMap).forEach(([type, btn]) => {
+          if (!btn) return;
+          if (type === activeType) {
+            btn.classList.add(...activeClasses);
+            btn.classList.remove(...inactiveClasses);
+          } else {
+            btn.classList.remove(...activeClasses);
+            btn.classList.add(...inactiveClasses);
+          }
+        });
       },
 
       renderAll() {
@@ -814,17 +845,10 @@
           });
           const uniqueWorkDays = actualWorkDates.size;
 
-          // Số ngày làm việc tiêu chuẩn = Công chuẩn (đã trừ Chủ Nhật & 0.5 ngày Thứ 7) - Số ngày nghỉ phép hợp lệ
-          let effectiveStandardDays = standardWorkDays - offDaysCount;
-          if (effectiveStandardDays <= 0) {
-            effectiveStandardDays = standardWorkDays > 0 ? standardWorkDays : diffDays;
-          }
-          const displayStandardDays = Number.isInteger(effectiveStandardDays)
-            ? effectiveStandardDays
-            : effectiveStandardDays.toFixed(1);
-
-          const pct = Math.round((uniqueWorkDays / effectiveStandardDays) * 100);
-          workDaysEl.textContent = `${uniqueWorkDays} / ${displayStandardDays} ngày (${pct}%)`;
+          // Số ngày làm việc tiêu chuẩn = Tổng ngày trong kỳ - Số ngày nghỉ tuần (Chủ Nhật) - Số ngày nghỉ phép hợp lệ
+          const effectiveStandardDays = Math.max(1, diffDays - countSundaysInPeriod - offDaysCount);
+          const pct = Math.min(100, Math.round((uniqueWorkDays / effectiveStandardDays) * 100));
+          workDaysEl.textContent = `${uniqueWorkDays} / ${effectiveStandardDays} ngày (${pct}%)`;
         }
         if (avgHoursEl) {
           const avg = completedCount > 0 ? (totalHours / completedCount).toFixed(1) : '0.0';
@@ -889,7 +913,8 @@
 
         let activeWorkDays = 0;
         let activeOffDays = 0;
-        let readyDays = 0;
+        let countSundaysInRange = 0;
+        let sundaysWorked = 0;
 
         while (curr <= lastGridDate) {
           const iso = formatIso(curr);
@@ -916,6 +941,7 @@
             `;
           } else {
             // In range: check shift data
+            if (isSunday) countSundaysInRange++;
             const shifts = dateToShifts.get(iso) || [];
             const shiftCount = shifts.length;
 
@@ -947,6 +973,7 @@
                 </span>
               `;
             } else if (hasOverdue) {
+              if (isSunday && shiftCount > 0) sundaysWorked++;
               activeWorkDays++;
               cellBg = 'bg-rose-50/60';
               cellBorder = 'border border-rose-300';
@@ -959,6 +986,7 @@
                 </div>
               `;
             } else if (hasInProgress) {
+              if (isSunday && shiftCount > 0) sundaysWorked++;
               activeWorkDays++;
               cellBg = 'bg-accent-50/60';
               cellBorder = 'border border-accent-300';
@@ -973,6 +1001,7 @@
               // ⭐ CHỦ NHẬT CÓ TASK: 100% NGOÀI PHẠM VI GIỜ LÀM VIỆC (OT)
               // ========================================================
               activeWorkDays++;
+              sundaysWorked++;
               cellBg = 'bg-rose-50/80';
               cellBorder = 'border-2 border-rose-300 shadow-2xs';
               shiftDisplayHtml = `
@@ -1053,13 +1082,6 @@
               // ========================================================
               // 0 TASK TRONG NGÀY: SẠCH SẼ, KHÔNG HIỆN TEXT RỐI MẮT
               // ========================================================
-              // Tính ngày sẵn sàng trong thời gian làm việc quy định:
-              // - Chủ Nhật: ngày nghỉ tuần theo luật -> 0 ngày sẵn sàng
-              // - Thứ Bảy: làm việc nửa ngày sáng -> 0.5 ngày sẵn sàng
-              // - Thứ 2 -> Thứ 6: ngày làm việc cả ngày -> 1.0 ngày sẵn sàng
-              if (!isSunday) {
-                readyDays += isSaturday ? 0.5 : 1.0;
-              }
               cellBg = isSunday ? 'bg-burgundy-50/20' : (isSaturday ? 'bg-slate-50/40' : 'bg-white');
               cellBorder = 'border border-slate-200/70';
               shiftDisplayHtml = '';
@@ -1087,8 +1109,10 @@
         container.innerHTML = cellsHtml;
 
         if (countLabel) {
-          const readyDaysDisplay = Number.isInteger(readyDays) ? readyDays : readyDays.toFixed(1);
-          countLabel.textContent = `Tổng ${diffDays} ngày trong kỳ • ${activeWorkDays} ngày có task${outOfHoursTaskCount > 0 ? ` (${outOfHoursTaskCount} task ngoài giờ)` : ''} • ${activeOffDays} ngày nghỉ phép • ${readyDaysDisplay} ngày sẵn sàng`;
+          const sundaysOff = Math.max(0, countSundaysInRange - sundaysWorked);
+          const readyDays = Math.max(0, diffDays - activeWorkDays - activeOffDays - sundaysOff);
+          const sundayText = sundaysOff > 0 ? ` • ${sundaysOff} ngày nghỉ tuần (CN)` : '';
+          countLabel.textContent = `Tổng ${diffDays} ngày trong kỳ • ${activeWorkDays} ngày có task${outOfHoursTaskCount > 0 ? ` (${outOfHoursTaskCount} task ngoài giờ)` : ''} • ${activeOffDays} ngày nghỉ phép${sundayText} • ${readyDays} ngày sẵn sàng`;
         }
       },
 

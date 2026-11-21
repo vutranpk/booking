@@ -6,7 +6,18 @@
   <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <title>K-Workspace | Hệ thống điều phối kỹ sư</title>
-  <link rel="icon" type="image/png" href="images/favicon.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="images/icon-192.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="images/favicon.png">
+
+  <!-- 📱 PWA & Mobile App Setup (iOS & Android) -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#213664">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="K-Workspace">
+  <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="images/apple-touch-icon.png">
 
   <!-- 🛡️ INSTANT AUTH GUARD (Eliminates FOUC while preserving active sessions) -->
   <script>
@@ -138,7 +149,16 @@
       #admin-role-bubble-container { display: none !important; }
     }
     @media (max-width: 639px) {
-      #notification-dropdown { right: -2.5rem; width: min(23rem, calc(100vw - 1.25rem)); max-height: calc(100dvh - 5rem); }
+      #notification-dropdown {
+        position: fixed !important;
+        top: 4.25rem !important;
+        left: 0.75rem !important;
+        right: 0.75rem !important;
+        width: auto !important;
+        max-width: none !important;
+        max-height: calc(100dvh - 5.5rem) !important;
+        z-index: 9999 !important;
+      }
       #booking-modal { align-items: flex-start; overflow: hidden; padding: max(0.5rem, env(safe-area-inset-top)) 0.5rem max(0.5rem, env(safe-area-inset-bottom)); }
       #booking-modal > div { width: 100%; max-height: calc(100dvh - 1rem - env(safe-area-inset-top) - env(safe-area-inset-bottom)); overflow-y: auto; overscroll-behavior: contain; margin-block: 0; }
       #booking-modal > div > div:first-child { position: sticky; top: 0; z-index: 60; padding: 0.875rem 1rem; background: #fff; }
@@ -153,6 +173,46 @@
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="h-full font-sans text-slate-800 antialiased bg-[#f8fafc]">
+
+  <!-- 🚀 APP INTRO / SPLASH SCREEN (Tự động ẩn mượt mà khi ứng dụng sẵn sàng) -->
+  <div id="app-splash-screen" class="fixed inset-0 z-[100000] bg-white flex flex-col items-center justify-center p-6 select-none transition-opacity duration-500 ease-out">
+    <div class="flex flex-col items-center max-w-xs text-center">
+      <!-- Logo Phúc Sinh & K-Workspace vừa phải, cân đối -->
+      <div class="h-14 flex items-center justify-center mb-4">
+        <img src="images/logo-full.png" alt="Phúc Sinh Consumer" class="h-11 w-auto max-w-[160px] object-contain">
+      </div>
+      
+      <div class="flex items-center gap-2 mb-1.5">
+        <span class="w-2 h-2 rounded-full bg-brand-600 animate-ping"></span>
+        <h1 class="text-sm font-black font-condensed tracking-widest uppercase text-slate-800">K-WORKSPACE</h1>
+      </div>
+      
+      <p class="text-[11px] text-slate-500 font-medium">Hệ Thống Điều Phối & Kỹ Thuật</p>
+
+      <!-- Sleek Subtle Loading Bar -->
+      <div class="w-32 h-1 bg-slate-100 rounded-full mt-5 overflow-hidden relative">
+        <div class="h-full bg-brand-600 rounded-full w-2/3 animate-pulse"></div>
+      </div>
+    </div>
+  </div>
+  <script>
+    // Tự động ẩn splash screen sau khi trang đã nạp xong hoặc tối đa 600ms
+    (function() {
+      function dismissSplash() {
+        var splash = document.getElementById('app-splash-screen');
+        if (splash && !splash.classList.contains('opacity-0')) {
+          splash.classList.add('opacity-0', 'pointer-events-none');
+          setTimeout(function() { if (splash.parentNode) splash.parentNode.removeChild(splash); }, 550);
+        }
+      }
+      if (document.readyState === 'complete') {
+        setTimeout(dismissSplash, 350);
+      } else {
+        window.addEventListener('load', function() { setTimeout(dismissSplash, 350); });
+        setTimeout(dismissSplash, 800); // Fail-safe
+      }
+    })();
+  </script>
 
   <!-- ======================================================== -->
   <!-- K-WORKSPACE SAAS APP LAYOUT (SIDEBAR + OPEN MAIN CANVAS)  -->
@@ -376,15 +436,15 @@
 
           <span class="h-5 w-px bg-slate-200/90 hidden sm:block"></span>
 
-          <!-- User Avatar Trigger (Pure Unboxed Avatar + Name) -->
+          <!-- User Avatar Trigger (Pure Unboxed Avatar on Mobile, Name + Chevron on Desktop) -->
           <div class="relative" id="top-user-menu-wrapper">
-            <button id="btn-top-user-pill" type="button" onclick="App.toggleTopUserMenu()" class="flex items-center gap-2 py-0.5 px-1 rounded-full hover:bg-slate-200/60 flex-shrink-0 cursor-pointer transition-colors active:scale-98 focus:outline-hidden group" title="Tài khoản cá nhân">
+            <button id="btn-top-user-pill" type="button" onclick="App.toggleTopUserMenu()" class="flex items-center gap-1.5 sm:gap-2 p-0 sm:py-0.5 sm:px-1 rounded-full hover:bg-slate-200/60 flex-shrink-0 cursor-pointer transition-colors active:scale-98 focus:outline-hidden group" title="Tài khoản cá nhân">
               <div id="top-user-avatar-badge" class="w-9 h-9 rounded-full bg-brand-600 text-white font-bold font-condensed flex items-center justify-center text-xs flex-shrink-0 ring-2 ring-white shadow-xs overflow-hidden">--</div>
               <div class="hidden sm:flex items-baseline gap-1.5 text-left">
                 <span id="top-user-name" class="text-xs font-bold text-slate-800 group-hover:text-brand-600 transition-colors leading-none">...</span>
                 <span id="top-user-role" class="text-[11px] font-semibold text-amber-600 leading-none"></span>
               </div>
-              <svg id="top-user-chevron" class="w-3.5 h-3.5 text-slate-400 group-hover:text-slate-700 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+              <svg id="top-user-chevron" class="hidden sm:block w-3.5 h-3.5 text-slate-400 group-hover:text-slate-700 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
             </button>
 
             <!-- User Menu Dropdown -->
@@ -402,6 +462,21 @@
                 <button id="top-menu-email-settings-btn" onclick="BookingUI.switchTab('email-settings'); App.toggleTopUserMenu(false);" type="button" class="w-full text-left px-3 py-2 rounded-xl hover:bg-accent-50/70 text-slate-700 hover:text-accent-700 text-xs font-semibold flex items-center gap-2.5 transition-colors cursor-pointer group">
                   <svg class="w-4 h-4 text-accent-600 flex-shrink-0 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
                   <span class="font-semibold text-slate-800 group-hover:text-accent-700">Email & Lịch mời</span>
+                </button>
+                <button onclick="PWANotificationManager.requestPermission(); App.toggleTopUserMenu(false);" type="button" class="w-full text-left px-3 py-2 rounded-xl hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 text-xs font-semibold flex items-center gap-2.5 transition-colors cursor-pointer group">
+                  <svg class="w-4 h-4 text-emerald-600 flex-shrink-0 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+                  <span class="font-semibold text-slate-800 group-hover:text-emerald-700">Bật thông báo điện thoại</span>
+                </button>
+                <button onclick="PWANotificationManager.triggerInstall(); App.toggleTopUserMenu(false);" type="button" class="w-full text-left px-3 py-2 rounded-xl hover:bg-brand-50 text-slate-700 hover:text-brand-700 text-xs font-semibold flex items-center gap-2.5 transition-colors cursor-pointer group">
+                  <svg class="w-4 h-4 text-brand-600 flex-shrink-0 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                  <span class="font-semibold text-slate-800 group-hover:text-brand-700">Cài ứng dụng K-Workspace</span>
+                </button>
+                <button onclick="PWANotificationManager.forceUpdateApp(); App.toggleTopUserMenu(false);" type="button" class="w-full text-left px-3 py-2 rounded-xl hover:bg-slate-100 text-slate-700 hover:text-slate-900 text-xs font-semibold flex items-center justify-between transition-colors cursor-pointer group">
+                  <div class="flex items-center gap-2.5">
+                    <svg class="w-4 h-4 text-brand-600 flex-shrink-0 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                    <span class="font-semibold text-slate-800 group-hover:text-brand-700">Cập nhật bản mới</span>
+                  </div>
+                  <span class="text-[9px] font-mono font-bold text-slate-400 bg-slate-100 px-1 py-0.5 rounded">Check</span>
                 </button>
               </div>
 
@@ -657,29 +732,29 @@
             </div>
 
             <!-- Right: View Switcher (Lưới lịch / Danh sách) + Status Legend -->
-            <div class="flex items-center justify-between sm:justify-end gap-3">
-              <div class="flex items-center gap-2.5 sm:gap-3 text-[11px] font-semibold text-slate-600 flex-wrap">
-                <span class="flex items-center gap-1.5">
+            <div class="flex items-center justify-between sm:justify-end gap-2 sm:gap-3 flex-wrap sm:flex-nowrap">
+              <div class="flex items-center gap-2 sm:gap-3 text-[10.5px] sm:text-[11px] font-semibold text-slate-600 flex-wrap">
+                <span class="flex items-center gap-1">
                   <span class="w-2.5 h-2.5 rounded-full bg-blue-600"></span>
                   <span>Hoàn thành</span>
                 </span>
-                <span class="flex items-center gap-1.5">
+                <span class="flex items-center gap-1">
                   <span class="w-2.5 h-2.5 rounded-full bg-accent-600"></span>
                   <span>Đã duyệt</span>
                 </span>
-                <span class="flex items-center gap-1.5">
+                <span class="flex items-center gap-1">
                   <span class="w-2.5 h-2.5 rounded-full bg-orange-500"></span>
                   <span>Chờ duyệt</span>
                 </span>
               </div>
 
               <!-- View Switcher: Lưới tháng vs Danh sách quét nhanh -->
-              <div class="inline-flex items-center p-0.5 bg-slate-100 rounded-xl border border-slate-200/70">
-                <button id="btn-cal-view-grid" type="button" onclick="BookingUI.setCalendarViewMode('grid')" class="px-2.5 py-1 rounded-lg text-[11px] font-bold font-condensed uppercase tracking-wider bg-white text-slate-900 shadow-2xs transition-all cursor-pointer flex items-center gap-1">
+              <div class="inline-flex items-center p-0.5 bg-slate-100 rounded-xl border border-slate-200/70 shrink-0">
+                <button id="btn-cal-view-grid" type="button" onclick="BookingUI.setCalendarViewMode('grid')" class="px-2 sm:px-2.5 py-1 rounded-lg text-[10.5px] sm:text-[11px] font-bold font-condensed uppercase tracking-wider bg-white text-slate-900 shadow-2xs transition-all cursor-pointer flex items-center gap-1">
                   <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
                   <span>Lưới tháng</span>
                 </button>
-                <button id="btn-cal-view-list" type="button" onclick="BookingUI.setCalendarViewMode('list')" class="px-2.5 py-1 rounded-lg text-[11px] font-bold font-condensed uppercase tracking-wider text-slate-500 hover:text-slate-900 transition-all cursor-pointer flex items-center gap-1">
+                <button id="btn-cal-view-list" type="button" onclick="BookingUI.setCalendarViewMode('list')" class="px-2 sm:px-2.5 py-1 rounded-lg text-[10.5px] sm:text-[11px] font-bold font-condensed uppercase tracking-wider text-slate-500 hover:text-slate-900 transition-all cursor-pointer flex items-center gap-1">
                   <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
                   <span>Danh sách</span>
                 </button>
@@ -2280,6 +2355,13 @@
 
       <!-- Mobile Drawer Bottom Account & Logout Actions -->
       <div class="mt-4 pt-3 border-t border-slate-100 space-y-1.5">
+        <button type="button" onclick="PWANotificationManager.forceUpdateApp(); document.getElementById('mobile-drawer-backdrop').click();" class="w-full h-10 px-3 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100 flex items-center justify-between transition-colors cursor-pointer">
+          <div class="flex items-center gap-2.5">
+            <svg class="w-4 h-4 text-brand-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+            <span>Cập nhật bản mới</span>
+          </div>
+          <span class="text-[9px] font-mono font-bold text-slate-500 bg-slate-200/60 px-1.5 py-0.5 rounded">Tải lại</span>
+        </button>
         <button type="button" onclick="BookingUI.openProfileModal(); document.getElementById('mobile-drawer-backdrop').click();" class="w-full h-10 px-3 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100 flex items-center gap-2.5 transition-colors cursor-pointer">
           <svg class="w-4 h-4 text-slate-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
           <span>Thông tin tài khoản</span>
@@ -2345,6 +2427,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="assets/js/core/supabase.js?v=20261109.1900"></script>
   <script src="assets/js/core/toast.js?v=20261109.1900"></script>
+  <script src="assets/js/core/pwa-notification.js?v=20261121.01"></script>
   <script src="assets/js/modules/booking/booking.data.js?v=20261109.1900"></script>
   <script src="assets/js/modules/booking/booking.ui.js?v=20261109.1900"></script>
   <script src="assets/js/core/app.js?v=20261109.1900"></script>

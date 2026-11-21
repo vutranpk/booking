@@ -2133,8 +2133,14 @@ const BookingUI = {
                 const isEnd = bEnd === dateStr;
                 const isSingleDay = isStart && isEnd;
                 const techShortName = tech ? tech.name.split(' ').slice(-2).join(' ') : b.tech_id;
-                const bTime = (b.start_time && b.end_time) ? `${b.start_time.slice(0, 5)}-${b.end_time.slice(0, 5)}` : '';
-                const bTimeBadge = bTime ? `<span class="text-[9px] font-mono font-bold bg-black/20 px-1 py-0.5 rounded text-white/95 leading-none shrink-0">${bTime}</span>` : '';
+                const bTimeShort = b.start_time ? b.start_time.slice(0, 5) : '';
+                const bTimeFull = (b.start_time && b.end_time) ? `${b.start_time.slice(0, 5)}-${b.end_time.slice(0, 5)}` : bTimeShort;
+                const bTimeBadge = bTimeShort ? `
+                  <span class="text-[8.5px] sm:text-[9px] font-mono font-bold bg-black/25 px-1 py-0.5 rounded text-white leading-none shrink-0">
+                    <span class="sm:hidden">${bTimeShort}</span>
+                    <span class="hidden sm:inline">${bTimeFull}</span>
+                  </span>
+                ` : '';
 
                 const canDrag = BookingData.hasPermission('drag_reschedule') && !isCompleted;
                 const dragAttrs = canDrag ? `draggable="true" ondragstart="BookingUI.handleDragStart(event, '${b.booking_id}')" ondragend="BookingUI.handleDragEnd(event)"` : '';
@@ -2183,9 +2189,9 @@ const BookingUI = {
                   return `
                     <div onclick="event.stopPropagation(); if (!BookingUI.justDropped) BookingUI.openDetailModal('${b.booking_id}')"
                          ${dragAttrs}
-                         class="h-6 sm:h-8 w-full px-1.5 sm:px-2 rounded-lg ${baseBg} border ${borderColor} text-white transition-all flex items-center justify-between gap-1 shadow-2xs ${dragCursorClass}"
-                         title="${tech ? tech.name : ''}: ${b.title} (${b.location || 'Văn phòng'}) [${bTime || '08:00 - 17:00'}] • ${statusLabel}${dragHint}">
-                      <div class="flex items-center gap-1 min-w-0">
+                         class="h-6 sm:h-8 w-full max-w-full overflow-hidden px-1 sm:px-2 rounded-lg ${baseBg} border ${borderColor} text-white transition-all flex items-center justify-between gap-0.5 sm:gap-1 shadow-2xs ${dragCursorClass}"
+                         title="${tech ? tech.name : ''}: ${b.title} (${b.location || 'Văn phòng'}) [${bTimeFull || '08:00 - 17:00'}] • ${statusLabel}${dragHint}">
+                      <div class="flex items-center gap-1 min-w-0 max-w-full overflow-hidden">
                         ${overdueIcon}
                         ${liveProgressIcon}
                         ${completedIcon}
@@ -2201,16 +2207,18 @@ const BookingUI = {
                   return `
                     <div onclick="event.stopPropagation(); if (!BookingUI.justDropped) BookingUI.openDetailModal('${b.booking_id}')"
                          ${dragAttrs}
-                         class="h-6 sm:h-8 ${rightMargin} px-1.5 sm:px-2 rounded-l-lg ${baseBg} border-y border-l ${borderColor} text-white flex items-center gap-1 z-20 shadow-2xs transition-all ${dragCursorClass}"
-                         title="${tech ? tech.name : ''}: ${b.title} (${bStart} đến ${bEnd}) [${bTime || '08:00 - 17:00'}] • ${statusLabel}${dragHint}">
-                      ${overdueIcon}
-                      ${liveProgressIcon}
-                      ${completedIcon}
-                      ${bTimeBadge}
-                      <span class="text-[10px] sm:text-xs font-bold font-condensed tracking-tight text-white truncate leading-none select-none">
-                        ${isWeekContinuation ? `↳ ${techShortName}` : techShortName}
-                      </span>
-                      <span class="hidden sm:inline text-[10px] text-white/90 truncate font-sans">• ${b.title}</span>
+                         class="h-6 sm:h-8 ${rightMargin} overflow-hidden px-1 sm:px-2 rounded-l-lg ${baseBg} border-y border-l ${borderColor} text-white flex items-center gap-1 z-20 shadow-2xs transition-all ${dragCursorClass}"
+                         title="${tech ? tech.name : ''}: ${b.title} (${bStart} đến ${bEnd}) [${bTimeFull || '08:00 - 17:00'}] • ${statusLabel}${dragHint}">
+                      <div class="flex items-center gap-1 min-w-0 max-w-full overflow-hidden">
+                        ${overdueIcon}
+                        ${liveProgressIcon}
+                        ${completedIcon}
+                        ${bTimeBadge}
+                        <span class="text-[10px] sm:text-xs font-bold font-condensed tracking-tight text-white truncate leading-none select-none">
+                          ${isWeekContinuation ? `↳ ${techShortName}` : techShortName}
+                        </span>
+                        <span class="hidden sm:inline text-[10px] text-white/90 truncate font-sans">• ${b.title}</span>
+                      </div>
                     </div>
                   `;
                 } else if (isEnd || (isLastCol && !isStart)) {
