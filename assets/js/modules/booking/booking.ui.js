@@ -2135,12 +2135,29 @@ const BookingUI = {
                 const techShortName = tech ? tech.name.split(' ').slice(-2).join(' ') : b.tech_id;
                 const bTimeShort = b.start_time ? b.start_time.slice(0, 5) : '';
                 const bTimeFull = (b.start_time && b.end_time) ? `${b.start_time.slice(0, 5)}-${b.end_time.slice(0, 5)}` : bTimeShort;
-                const bTimeBadge = bTimeShort ? `
-                  <span class="text-[8.5px] sm:text-[9px] font-mono font-bold bg-black/25 px-1 py-0.5 rounded text-white leading-none shrink-0">
-                    <span class="sm:hidden">${bTimeShort}</span>
-                    <span class="hidden sm:inline">${bTimeFull}</span>
+
+                // Tính thời gian làm việc thực tế của ca (VD: 08:00 - 12:00 -> 4h; 08:00 - 17:00 -> 8h/9h)
+                let shiftDurationText = '';
+                if (b.start_time && b.end_time) {
+                  const [sh, sm] = b.start_time.split(':').map(Number);
+                  const [eh, em] = b.end_time.split(':').map(Number);
+                  if (!isNaN(sh) && !isNaN(eh)) {
+                    let diffMin = (eh * 60 + (em || 0)) - (sh * 60 + (sm || 0));
+                    if (diffMin < 0) diffMin += 24 * 60; // xử lý ca qua đêm
+                    const hours = diffMin / 60;
+                    shiftDurationText = Number.isInteger(hours) ? `${hours}h` : `${parseFloat(hours.toFixed(1))}h`;
+                  }
+                }
+                if (!shiftDurationText) {
+                  shiftDurationText = b.duration ? `${b.duration}h` : '8h';
+                }
+
+                const bTimeBadge = `
+                  <span class="text-[8.5px] sm:text-[9px] font-mono font-bold bg-black/25 px-1 py-0.5 rounded text-white leading-none shrink-0" title="Thời gian ca: ${bTimeFull || ''} (${shiftDurationText})">
+                    <span class="sm:hidden font-black">${shiftDurationText}</span>
+                    <span class="hidden sm:inline">${bTimeFull || shiftDurationText}</span>
                   </span>
-                ` : '';
+                `;
 
                 const canDrag = BookingData.hasPermission('drag_reschedule') && !isCompleted;
                 const dragAttrs = canDrag ? `draggable="true" ondragstart="BookingUI.handleDragStart(event, '${b.booking_id}')" ondragend="BookingUI.handleDragEnd(event)"` : '';
@@ -2180,7 +2197,7 @@ const BookingUI = {
 
                 const overdueIcon = isOverdue ? `<span class="w-3.5 h-3.5 rounded-full bg-white/25 flex items-center justify-center shrink-0 text-white" title="Cần hoàn thành"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg></span>` : '';
                 const liveProgressIcon = isInProgress ? `<span class="relative flex h-2 w-2 shrink-0 mr-1"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-90"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-white"></span></span>` : '';
-                const completedIcon = isCompleted ? `<span class="w-3.5 h-3.5 rounded-full bg-white/25 flex items-center justify-center shrink-0 text-white" title="Đã hoàn thành"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg></span>` : '';
+                const completedIcon = isCompleted ? `<span class="hidden sm:flex w-3.5 h-3.5 rounded-full bg-white/25 items-center justify-center shrink-0 text-white" title="Đã hoàn thành"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg></span>` : '';
 
                 const extendRight = !isLastCol && !isEnd;
                 const extendLeft = !isFirstCol && !isStart;

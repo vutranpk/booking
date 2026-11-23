@@ -811,28 +811,37 @@ const BookingData = {
     }, 300);
   },
 
-  setupRealtimeListener() {
+  _realtimeReconnectTimer: null,
+  _pollingIntervalTimer: null,
+  _visibilityListenerAttached: false,
+
+  async setupRealtimeListener() {
     const client = window.SupabaseConfig ? window.SupabaseConfig.getClient() : null;
     if (!client) {
       console.warn('⚠️ Supabase client not ready for Realtime subscription.');
       return;
     }
 
+    // Luôn kích hoạt cơ chế đồng bộ ngầm khi mở tab & nhịp tim 10 giây/lần
+    this.startBackgroundSyncPolling();
+
     if (this.supabaseRealtimeChannel) {
       return; // Already actively listening
     }
 
-    // Keep realtime authenticated if session exists
+    // Đảm bảo token auth của phiên đăng nhập được nạp trước khi join channel
     if (client.auth && client.realtime) {
-      client.auth.getSession().then(({ data: { session } = {} }) => {
+      try {
+        const { data: { session } = {} } = await client.auth.getSession();
         if (session?.access_token) {
-          client.realtime.setAuth(session.access_token);
+          await client.realtime.setAuth(session.access_token);
         }
-      }).catch(() => {});
+      } catch (_) {}
     }
 
+    const channelName = `k-workspace-realtime-${Date.now()}`;
     this.supabaseRealtimeChannel = client
-      .channel('k-workspace-realtime-v3')
+      .channel(channelName)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'bookings' }, (payload) => {
         this.handleRealtimeEvent('bookings', payload);
       })
@@ -844,7 +853,56 @@ const BookingData = {
       })
       .subscribe((status, err) => {
         console.log(`📡 Realtime subscription status: ${status}`, err || '');
+        if (status === 'SUBSCRIBED') {
+          console.log('⚡ Realtime WebSocket đã kết nối thành công.');
+        } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          console.warn(`⚠️ Realtime socket đóng/lỗi (${status}), tự kết nối lại sau 3s...`);
+          if (this.supabaseRealtimeChannel) {
+            try { client.removeChannel(this.supabaseRealtimeChannel); } catch (_) {}
+            this.supabaseRealtimeChannel = null;
+          }
+          clearTimeout(this._realtimeReconnectTimer);
+          this._realtimeReconnectTimer = setTimeout(() => {
+            this.setupRealtimeListener();
+          }, 3000);
+        }
       });
+  },
+
+  startBackgroundSyncPolling() {
+    // 1. Tự động đồng bộ ngay khi người dùng chuyển lại tab hoặc mở khóa màn hình điện thoại
+    if (typeof document !== 'undefined' && !this._visibilityListenerAttached) {
+      this._visibilityListenerAttached = true;
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+          this.syncWithSupabase({ silent: true });
+          if (!this.supabaseRealtimeChannel) {
+            this.setupRealtimeListener();
+          }
+        }
+      });
+      window.addEventListener('focus', () => {
+        this.syncWithSupabase({ silent: true });
+      });
+      window.addEventListener('online', () => {
+        this.syncWithSupabase({ silent: true });
+        this.setupRealtimeListener();
+      });
+      window.addEventListener('storage', (e) => {
+        if (e.key === 'kcoffee_realtime_ping') {
+          this.syncWithSupabase({ silent: true });
+        }
+      });
+    }
+
+    // 2. Nhịp tim định kỳ 10 giây/lần khi tab đang hiển thị
+    if (!this._pollingIntervalTimer) {
+      this._pollingIntervalTimer = setInterval(() => {
+        if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+          this.syncWithSupabase({ silent: true });
+        }
+      }, 10000);
+    }
   },
 
   save() {
