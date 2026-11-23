@@ -2353,7 +2353,14 @@ const BookingUI = {
       });
     }
 
-    monthBookings.sort((a, b) => a.booking_date.localeCompare(b.booking_date));
+    // Sắp xếp task mới nhất lên đầu tiên (giảm dần theo ngày, giờ và mã booking)
+    monthBookings.sort((a, b) => {
+      const dateCmp = (b.booking_date || '').localeCompare(a.booking_date || '');
+      if (dateCmp !== 0) return dateCmp;
+      const timeCmp = (b.start_time || '').localeCompare(a.start_time || '');
+      if (timeCmp !== 0) return timeCmp;
+      return (b.booking_id || '').localeCompare(a.booking_id || '');
+    });
 
     if (monthBookings.length === 0) {
       agendaContainer.innerHTML = `
