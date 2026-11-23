@@ -746,6 +746,10 @@
                   <span class="w-2.5 h-2.5 rounded-full bg-orange-500"></span>
                   <span>Chờ duyệt</span>
                 </span>
+                <span class="flex items-center gap-1">
+                  <span class="w-2.5 h-2.5 rounded-full bg-slate-500"></span>
+                  <span>Nghỉ (OFF)</span>
+                </span>
               </div>
 
               <!-- View Switcher: Lưới tháng vs Danh sách quét nhanh -->
@@ -1772,14 +1776,15 @@
               <input id="modal-end-time" type="time" required value="17:00" class="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-800 font-mono focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-brand-500/20">
             </div>
           </div>
+          <div id="modal-time-order-hint" class="hidden text-[10.5px] text-amber-700 bg-amber-50 border border-amber-200/80 px-2.5 py-1.5 rounded-lg mt-1 font-medium flex items-center gap-1"></div>
           <p class="text-[10px] text-slate-400 mt-1">1 kỹ sư có thể nhận nhiều task khác nhau trong cùng ngày nếu các khung giờ không trùng nhau.</p>
         </div>
 
         <div>
           <div class="flex items-center justify-between mb-1">
             <label class="block text-xs font-bold text-slate-700">Nhiệm vụ / Mục đích *</label>
-            <button type="button" onclick="BookingUI.setBookingTypeQuick('off')" class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 transition-colors cursor-pointer flex items-center gap-1">
-              <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+            <button type="button" onclick="BookingUI.setBookingTypeQuick('off')" class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 transition-colors cursor-pointer flex items-center gap-1">
+              <span class="w-1.5 h-1.5 rounded-full bg-slate-500"></span>
               <span>Nghỉ phép (OFF)</span>
             </button>
           </div>

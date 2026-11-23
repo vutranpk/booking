@@ -678,10 +678,29 @@ const BookingData = {
     const reqEmail = (b.requester_email || b.created_by || '').trim().toLowerCase();
     const userObj = (this.users || []).find(u => (u.email || '').toLowerCase() === reqEmail);
     const reqName = userObj ? this.cleanUserName(userObj.full_name) : this.cleanUserName(b.requester_name || reqEmail || 'Người dùng');
+    
+    let sDate = b.booking_date || b.date;
+    let eDate = b.end_date || sDate;
+    let sTime = b.start_time;
+    let eTime = b.end_time;
+
+    // Tự động hoán vị nếu cùng 1 ngày mà start_time > end_time do người dùng nhập lộn (VD: 17:00 - 08:00)
+    if (sDate === eDate && sTime && eTime) {
+      const sVal = sTime.slice(0, 5);
+      const eVal = eTime.slice(0, 5);
+      if (sVal > eVal) {
+        const tmp = sTime;
+        sTime = eTime;
+        eTime = tmp;
+      }
+    }
+
     return {
       ...b,
-      booking_date: b.booking_date || b.date,
-      end_date: b.end_date || b.booking_date || b.date,
+      booking_date: sDate,
+      end_date: eDate,
+      start_time: sTime,
+      end_time: eTime,
       tech_id: b.tech_id || b.technician_id,
       booking_id: b.booking_id || b.id,
       requester_email: reqEmail,
@@ -912,8 +931,8 @@ const BookingData = {
   checkConflict(tech_id, start_date, end_date = null, exclude_booking_id = null, start_time = '08:00', end_time = '17:00') {
     const sDate = start_date;
     const eDate = end_date || start_date;
-    const sTime = (start_time || '08:00').slice(0, 5);
-    const eTime = (end_time || '17:00').slice(0, 5);
+    let sTime = (start_time || '08:00').slice(0, 5);
+    let eTime = (end_time || '17:00').slice(0, 5);
 
     if (eDate < sDate) {
       return {
@@ -922,10 +941,17 @@ const BookingData = {
       };
     }
 
-    if (sDate === eDate && eTime <= sTime) {
+    // Tự động hoán vị nếu cùng 1 ngày bị nhập ngược giờ bắt đầu và kết thúc
+    if (sDate === eDate && sTime > eTime) {
+      const tmp = sTime;
+      sTime = eTime;
+      eTime = tmp;
+    }
+
+    if (sDate === eDate && eTime === sTime) {
       return {
         hasConflict: true,
-        message: 'Giờ kết thúc phải sau giờ bắt đầu ca trực!'
+        message: 'Giờ kết thúc phải khác giờ bắt đầu ít nhất 30 phút!'
       };
     }
 
@@ -941,8 +967,13 @@ const BookingData = {
     for (const b of techBookings) {
       const bStart = b.booking_date;
       const bEnd = b.end_date || b.booking_date;
-      const bStartTime = (b.start_time || '08:00').slice(0, 5);
-      const bEndTime = (b.end_time || '17:00').slice(0, 5);
+      let bStartTime = (b.start_time || '08:00').slice(0, 5);
+      let bEndTime = (b.end_time || '17:00').slice(0, 5);
+      if (bStart === bEnd && bStartTime > bEndTime) {
+        const tmp = bStartTime;
+        bStartTime = bEndTime;
+        bEndTime = tmp;
+      }
       const timeText = `${bStartTime} - ${bEndTime}`;
 
       const existStartIso = `${bStart}T${bStartTime}:00`;
@@ -972,8 +1003,13 @@ const BookingData = {
     if (!this.hasPermission('create_booking')) return { success: false, error: 'Tài khoản của bạn không có quyền đặt lịch.' };
     const startDate = data.booking_date;
     const endDate = data.end_date || data.booking_date;
-    const startTime = (data.start_time || '08:00').slice(0, 5);
-    const endTime = (data.end_time || '17:00').slice(0, 5);
+    let startTime = (data.start_time || '08:00').slice(0, 5);
+    let endTime = (data.end_time || '17:00').slice(0, 5);
+    if (startDate === endDate && startTime > endTime) {
+      const tmp = startTime;
+      startTime = endTime;
+      endTime = tmp;
+    }
     const assignedTechId = data.tech_id || (this.currentUser?.role === 'technician' ? (this.currentUser.tech_id || 'TECH-003') : data.tech_id);
 
     const todayStr = this.formatDateStr(new Date());
@@ -1065,9 +1101,13 @@ const BookingData = {
 
     const techId = updatedData.tech_id || booking.tech_id;
     const startDate = updatedData.booking_date || booking.booking_date;
-    const endDate = updatedData.end_date || booking.end_date || startDate;
-    const startTime = (updatedData.start_time || booking.start_time || '08:00').slice(0, 5);
-    const endTime = (updatedData.end_time || booking.end_time || '17:00').slice(0, 5);
+    let startTime = (updatedData.start_time || booking.start_time || '08:00').slice(0, 5);
+    let endTime = (updatedData.end_time || booking.end_time || '17:00').slice(0, 5);
+    if (startDate === endDate && startTime > endTime) {
+      const tmp = startTime;
+      startTime = endTime;
+      endTime = tmp;
+    }
 
     // Conflict check excluding this booking
     const conflict = this.checkConflict(techId, startDate, endDate, booking_id, startTime, endTime);

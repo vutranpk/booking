@@ -198,6 +198,19 @@ const BookingUI = {
       const eTime = endTimeField?.value || '17:00';
       const bookingId = document.getElementById('modal-booking-id')?.value || null;
       const alertBox = document.getElementById('modal-conflict-alert');
+      const timeOrderHint = document.getElementById('modal-time-order-hint');
+
+      // Cảnh báo trực quan nếu nhập giờ kết thúc sớm hơn giờ bắt đầu trên cùng ngày
+      if (sDate === eDate && sTime && eTime && sTime > eTime) {
+        if (timeOrderHint) {
+          timeOrderHint.classList.remove('hidden');
+          timeOrderHint.innerHTML = `<span>⚠️ Giờ kết thúc <strong>(${eTime})</strong> sớm hơn giờ bắt đầu <strong>(${sTime})</strong>. Hệ thống sẽ tự động hoán đổi lại đúng trình tự khi lưu.</span>`;
+        }
+      } else {
+        if (timeOrderHint) {
+          timeOrderHint.classList.add('hidden');
+        }
+      }
 
       if (techId && sDate && alertBox) {
         const res = BookingData.checkConflict(techId, sDate, eDate, bookingId, sTime, eTime);
@@ -228,7 +241,18 @@ const BookingUI = {
       endDateField.addEventListener('change', checkFormConflict);
     }
     if (startTimeField) {
-      startTimeField.addEventListener('change', checkFormConflict);
+      startTimeField.addEventListener('change', () => {
+        const sDate = startDateField?.value;
+        const eDate = endDateField?.value || sDate;
+        if (sDate === eDate && startTimeField.value && endTimeField?.value) {
+          if (endTimeField.value <= startTimeField.value) {
+            const [sh, sm] = startTimeField.value.split(':').map(Number);
+            const targetH = Math.min(23, sh + 4);
+            endTimeField.value = `${String(targetH).padStart(2, '0')}:${String(sm || 0).padStart(2, '0')}`;
+          }
+        }
+        checkFormConflict();
+      });
     }
     if (endTimeField) {
       endTimeField.addEventListener('change', checkFormConflict);
@@ -1698,11 +1722,15 @@ const BookingUI = {
         ? `${this.formatDateDisplay(b.booking_date)} → ${this.formatDateDisplay(b.end_date)}`
         : this.formatDateDisplay(b.booking_date);
 
+      const isOff = /off|nghỉ|leave/i.test(b.title || '') || /off|nghỉ|leave/i.test(b.notes || '') || b.type === 'OFF';
       let dateBadgeClass = 'bg-slate-50 border-slate-200/80 text-slate-800';
       let dateTopLabel = isTodayShift ? 'H.NAY' : monthStr;
       let statusBadgeHtml = '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold font-condensed uppercase tracking-wide bg-amber-50 text-amber-800 border border-amber-200">Chờ duyệt</span>';
       
-      if (isOverdue) {
+      if (isOff) {
+        dateBadgeClass = 'bg-slate-100 border-slate-300 text-slate-700';
+        statusBadgeHtml = '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold font-condensed uppercase tracking-wide bg-slate-100 text-slate-700 border border-slate-300">Nghỉ (OFF)</span>';
+      } else if (isOverdue) {
         dateBadgeClass = 'bg-rose-50 border-rose-300 text-rose-800 animate-pulse';
         dateTopLabel = 'QUÁ HẠN';
         statusBadgeHtml = '<span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold font-condensed uppercase tracking-wide bg-rose-50 text-rose-700 border border-rose-300 flex items-center gap-1 shadow-2xs"><span class="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping"></span>Cần hoàn thành</span>';
@@ -2136,37 +2164,6 @@ const BookingUI = {
                 const bTimeShort = b.start_time ? b.start_time.slice(0, 5) : '';
                 const bTimeFull = (b.start_time && b.end_time) ? `${b.start_time.slice(0, 5)}-${b.end_time.slice(0, 5)}` : bTimeShort;
 
-                // Tính thời gian làm việc thực tế của ca (VD: 08:00 - 12:00 -> 4h; 08:00 - 17:00 -> 8h/9h)
-                let shiftDurationText = '';
-                if (b.start_time && b.end_time) {
-                  const [sh, sm] = b.start_time.split(':').map(Number);
-                  const [eh, em] = b.end_time.split(':').map(Number);
-                  if (!isNaN(sh) && !isNaN(eh)) {
-                    let diffMin = (eh * 60 + (em || 0)) - (sh * 60 + (sm || 0));
-                    if (diffMin < 0) diffMin += 24 * 60; // xử lý ca qua đêm
-                    const hours = diffMin / 60;
-                    shiftDurationText = Number.isInteger(hours) ? `${hours}h` : `${parseFloat(hours.toFixed(1))}h`;
-                  }
-                }
-                if (!shiftDurationText) {
-                  shiftDurationText = b.duration ? `${b.duration}h` : '8h';
-                }
-
-                const bTimeBadge = `
-                  <span class="text-[8.5px] sm:text-[9px] font-mono font-bold bg-black/25 px-1 py-0.5 rounded text-white leading-none shrink-0" title="Thời gian ca: ${bTimeFull || ''} (${shiftDurationText})">
-                    <span class="sm:hidden font-black">${shiftDurationText}</span>
-                    <span class="hidden sm:inline">${bTimeFull || shiftDurationText}</span>
-                  </span>
-                `;
-
-                const canDrag = BookingData.hasPermission('drag_reschedule') && !isCompleted;
-                const dragAttrs = canDrag ? `draggable="true" ondragstart="BookingUI.handleDragStart(event, '${b.booking_id}')" ondragend="BookingUI.handleDragEnd(event)"` : '';
-                const dragCursorClass = canDrag ? 'cursor-grab active:cursor-grabbing hover:brightness-95' : 'cursor-pointer';
-                const dragHint = canDrag ? ' • Kéo thả để dời ngày' : '';
-
-                const isFirstCol = dayIdx === 0;
-                const isLastCol = dayIdx === 6;
-
                 const isOff = /off|nghỉ|leave/i.test(b.title || '') || /off|nghỉ|leave/i.test(b.notes || '') || b.type === 'OFF';
                 const isInProgress = b.status === 'IN_PROGRESS';
                 const isOverdue = BookingData.isPendingCompletion(b);
@@ -2174,9 +2171,9 @@ const BookingUI = {
                 let borderColor = 'border-orange-400/60';
                 let statusLabel = 'Chờ duyệt';
                 if (isOff) {
-                  baseBg = 'bg-amber-600 hover:bg-amber-700';
-                  borderColor = 'border-amber-500/70';
-                  statusLabel = 'Nghỉ phép (OFF)';
+                  baseBg = 'bg-slate-500 hover:bg-slate-600';
+                  borderColor = 'border-slate-400/80';
+                  statusLabel = 'Nghỉ (OFF)';
                 } else if (isOverdue) {
                   baseBg = 'bg-rose-600 hover:bg-rose-700 animate-pulse';
                   borderColor = 'border-rose-400';
@@ -2194,6 +2191,47 @@ const BookingUI = {
                   borderColor = 'border-accent-500/60';
                   statusLabel = 'Đã duyệt';
                 }
+
+                // Tính thời gian làm việc thực tế của ca (VD: 08:00 - 12:00 -> 4h; 08:00 - 17:00 -> 8h/9h)
+                // Riêng trạng thái OFF hiển thị chữ "OFF" rõ ràng, dễ hiểu
+                let shiftDurationText = '';
+                if (isOff) {
+                  shiftDurationText = 'OFF';
+                } else if (b.start_time && b.end_time) {
+                  let [sh, sm] = b.start_time.split(':').map(Number);
+                  let [eh, em] = b.end_time.split(':').map(Number);
+                  if (!isNaN(sh) && !isNaN(eh)) {
+                    // Tự động đảo nếu cùng ngày bị nhập ngược
+                    if (isSingleDay && (sh * 60 + (sm || 0)) > (eh * 60 + (em || 0))) {
+                      [sh, eh] = [eh, sh];
+                      [sm, em] = [em, sm];
+                    }
+                    let diffMin = (eh * 60 + (em || 0)) - (sh * 60 + (sm || 0));
+                    if (diffMin < 0) diffMin += 24 * 60; // xử lý ca qua đêm
+                    const hours = diffMin / 60;
+                    shiftDurationText = Number.isInteger(hours) ? `${hours}h` : `${parseFloat(hours.toFixed(1))}h`;
+                  }
+                }
+                if (!shiftDurationText) {
+                  shiftDurationText = isOff ? 'OFF' : (b.duration ? `${b.duration}h` : '8h');
+                }
+
+                const bTimeBadge = isOff
+                  ? `<span class="text-[8.5px] sm:text-[9px] font-mono font-black bg-black/30 px-1.5 py-0.5 rounded text-white leading-none shrink-0 tracking-wider">OFF</span>`
+                  : `
+                    <span class="text-[8.5px] sm:text-[9px] font-mono font-bold bg-black/25 px-1 py-0.5 rounded text-white leading-none shrink-0" title="Thời gian ca: ${bTimeFull || ''} (${shiftDurationText})">
+                      <span class="sm:hidden font-black">${shiftDurationText}</span>
+                      <span class="hidden sm:inline">${bTimeFull || shiftDurationText}</span>
+                    </span>
+                  `;
+
+                const canDrag = BookingData.hasPermission('drag_reschedule') && !isCompleted;
+                const dragAttrs = canDrag ? `draggable="true" ondragstart="BookingUI.handleDragStart(event, '${b.booking_id}')" ondragend="BookingUI.handleDragEnd(event)"` : '';
+                const dragCursorClass = canDrag ? 'cursor-grab active:cursor-grabbing hover:brightness-95' : 'cursor-pointer';
+                const dragHint = canDrag ? ' • Kéo thả để dời ngày' : '';
+
+                const isFirstCol = dayIdx === 0;
+                const isLastCol = dayIdx === 6;
 
                 const overdueIcon = isOverdue ? `<span class="w-3.5 h-3.5 rounded-full bg-white/25 flex items-center justify-center shrink-0 text-white" title="Cần hoàn thành"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg></span>` : '';
                 const liveProgressIcon = isInProgress ? `<span class="relative flex h-2 w-2 shrink-0 mr-1"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-90"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-white"></span></span>` : '';
@@ -2348,10 +2386,15 @@ const BookingUI = {
             ? this.formatDateDisplay(b.booking_date)
             : `${this.formatDateDisplay(b.booking_date)} → ${this.formatDateDisplay(bEnd)}`;
 
+          const isOff = /off|nghỉ|leave/i.test(b.title || '') || /off|nghỉ|leave/i.test(b.notes || '') || b.type === 'OFF';
           let agendaBadgeClass = 'bg-orange-50 text-orange-700 border border-orange-200';
           let agendaStatusText = 'Chờ duyệt';
           let agendaDateBoxClass = 'bg-orange-50 text-orange-800 border border-orange-200/80';
-          if (b.status === 'IN_PROGRESS') {
+          if (isOff) {
+            agendaBadgeClass = 'bg-slate-100 text-slate-700 border border-slate-300 font-bold';
+            agendaStatusText = 'Nghỉ (OFF)';
+            agendaDateBoxClass = 'bg-slate-100 text-slate-700 border border-slate-300';
+          } else if (b.status === 'IN_PROGRESS') {
             agendaBadgeClass = 'bg-emerald-50 text-emerald-800 border border-emerald-300 font-extrabold';
             agendaStatusText = '🟢 Đang thực hiện';
             agendaDateBoxClass = 'bg-emerald-50 text-emerald-800 border border-emerald-300';
@@ -2375,10 +2418,16 @@ const BookingUI = {
                 <div class="min-w-0">
                   <div class="flex items-center gap-2 flex-wrap">
                     <span class="text-xs sm:text-sm font-bold text-slate-900 group-hover:text-brand-700 truncate">${b.title}</span>
-                    <span class="inline-flex items-center gap-1 font-mono font-bold text-brand-700 bg-brand-50 border border-brand-200/80 px-1.5 py-0.5 rounded text-[10px]">
-                      <svg class="w-3 h-3 text-brand-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 1118 0z"/></svg>
-                      ${(b.start_time || '08:00').slice(0, 5)} - ${(b.end_time || '17:00').slice(0, 5)}
-                    </span>
+                    ${isOff ? `
+                      <span class="inline-flex items-center gap-1 font-mono font-bold text-slate-700 bg-slate-100 border border-slate-300 px-1.5 py-0.5 rounded text-[10px]">
+                        OFF
+                      </span>
+                    ` : `
+                      <span class="inline-flex items-center gap-1 font-mono font-bold text-brand-700 bg-brand-50 border border-brand-200/80 px-1.5 py-0.5 rounded text-[10px]">
+                        <svg class="w-3 h-3 text-brand-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 1118 0z"/></svg>
+                        ${(b.start_time || '08:00').slice(0, 5)} - ${(b.end_time || '17:00').slice(0, 5)}
+                      </span>
+                    `}
                   </div>
                   <div class="flex items-center gap-1.5 text-[11px] text-slate-500 mt-0.5 flex-wrap">
                     <span class="font-bold text-slate-800">${tech ? tech.name : b.tech_id}</span>
@@ -2642,8 +2691,11 @@ const BookingUI = {
       const isAssignedTech = isTechnician && Boolean(techId) && String(b.tech_id) === String(techId);
       const canCompleteThis = (b.status === 'APPROVED' || b.status === 'IN_PROGRESS' || isOverdue) && (isAssignedTech || isSuper || isApprover);
 
+      const isOff = /off|nghỉ|leave/i.test(b.title || '') || /off|nghỉ|leave/i.test(b.notes || '') || b.type === 'OFF';
       let badge = '';
-      if (isOverdue) {
+      if (isOff) {
+        badge = `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold font-condensed uppercase bg-slate-100 text-slate-700 border border-slate-300">Nghỉ (OFF)</span>`;
+      } else if (isOverdue) {
         badge = `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold font-condensed uppercase bg-rose-50 text-rose-700 border border-rose-300 animate-pulse shadow-2xs"><span class="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping"></span>Cần hoàn thành</span>`;
       } else if (b.status === 'COMPLETED') {
         badge = `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold font-condensed uppercase bg-blue-50 text-blue-700 border border-blue-200">${Lucide.check} Đã hoàn thành</span>`;
@@ -2664,7 +2716,7 @@ const BookingUI = {
               <span class="font-black font-condensed text-brand-600 text-xs">${b.booking_id}</span>
               <span class="text-slate-300">•</span>
               <span class="font-bold font-condensed text-slate-700 text-xs">${dateStr}</span>
-              <span class="text-slate-400 text-[11px] font-mono">(${timeStr})</span>
+              <span class="text-slate-400 text-[11px] font-mono">(${isOff ? 'OFF' : timeStr})</span>
             </div>
             ${badge}
           </div>
@@ -2714,8 +2766,11 @@ const BookingUI = {
       const isAssignedTech = isTechnician && Boolean(techId) && String(b.tech_id) === String(techId);
       const canCompleteThis = (b.status === 'APPROVED' || b.status === 'IN_PROGRESS' || isOverdue) && (isAssignedTech || isSuper || isApprover);
 
+      const isOff = /off|nghỉ|leave/i.test(b.title || '') || /off|nghỉ|leave/i.test(b.notes || '') || b.type === 'OFF';
       let badge = '';
-      if (isOverdue) {
+      if (isOff) {
+        badge = `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold font-condensed uppercase bg-slate-100 text-slate-700 border border-slate-300">Nghỉ (OFF)</span>`;
+      } else if (isOverdue) {
         badge = `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-extrabold font-condensed uppercase bg-rose-50 text-rose-700 border border-rose-300 animate-pulse shadow-2xs"><span class="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping"></span>Cần hoàn thành</span>`;
       } else if (b.status === 'COMPLETED') {
         badge = `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold font-condensed uppercase bg-blue-50 text-blue-700 border border-blue-200">${Lucide.check} Hoàn thành</span>`;
@@ -2971,8 +3026,8 @@ const BookingUI = {
     const techId = document.getElementById('modal-tech-id').value;
     const bDate = document.getElementById('modal-booking-date').value;
     const endDate = document.getElementById('modal-end-date').value || bDate;
-    const startTime = document.getElementById('modal-start-time')?.value || '08:00';
-    const endTime = document.getElementById('modal-end-time')?.value || '17:00';
+    let startTime = document.getElementById('modal-start-time')?.value || '08:00';
+    let endTime = document.getElementById('modal-end-time')?.value || '17:00';
     const title = document.getElementById('modal-title').value.trim();
     const location = document.getElementById('modal-location').value.trim();
     const notes = document.getElementById('modal-notes').value.trim();
@@ -2984,6 +3039,25 @@ const BookingUI = {
     if (!location) {
       Toast.show('Vui lòng nhập địa điểm thực hiện!', 'error');
       return;
+    }
+
+    // Tự động xử lý tình trạng người dùng nhập lộn giờ bắt đầu và kết thúc trên cùng ngày
+    if (bDate === endDate) {
+      if (startTime > endTime) {
+        const tmp = startTime;
+        startTime = endTime;
+        endTime = tmp;
+        const sInput = document.getElementById('modal-start-time');
+        const eInput = document.getElementById('modal-end-time');
+        if (sInput) sInput.value = startTime;
+        if (eInput) eInput.value = endTime;
+        if (window.Toast) {
+          Toast.show(`Hệ thống đã tự động đảo lại: ${startTime} → ${endTime} cho đúng trình tự.`, 'info', 'Tự điều chỉnh giờ');
+        }
+      } else if (startTime === endTime) {
+        Toast.show('Giờ kết thúc phải khác giờ bắt đầu ít nhất 30 phút!', 'error', 'Giờ không hợp lệ');
+        return;
+      }
     }
 
     if (bookingId) {
@@ -3280,10 +3354,15 @@ const BookingUI = {
     if (!modal || !content || !footer) return;
     const tech = BookingData.technicians.find(t => String(t.tech_id) === String(b.tech_id));
 
+    const isOff = /off|nghỉ|leave/i.test(b.title || '') || /off|nghỉ|leave/i.test(b.notes || '') || b.type === 'OFF';
     const isOverdue = BookingData.isPendingCompletion(b);
 
     let statusText = '';
-    if (isOverdue) {
+    if (isOff) {
+      statusText = `<span class="inline-flex items-center gap-1.5 whitespace-nowrap text-slate-700 font-bold font-condensed bg-slate-100 px-3 py-1 rounded-full border border-slate-300 text-xs tracking-wide shadow-2xs">
+        <span class="w-2 h-2 rounded-full bg-slate-500"></span> NGHỈ PHÉP (OFF)
+      </span>`;
+    } else if (isOverdue) {
       statusText = `<span class="inline-flex items-center gap-1.5 whitespace-nowrap text-rose-700 font-extrabold font-condensed bg-rose-50 px-3 py-1 rounded-full border border-rose-300 text-xs tracking-wide shadow-2xs animate-pulse">
         <svg class="w-3.5 h-3.5 text-rose-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
         CẦN HOÀN THÀNH
@@ -3310,13 +3389,18 @@ const BookingUI = {
 
     const bStart = b.booking_date;
     const bEnd = b.end_date || b.booking_date;
-    const sTime = (b.start_time || '08:00').slice(0, 5);
-    const eTime = (b.end_time || '17:00').slice(0, 5);
+    let sTime = (b.start_time || '08:00').slice(0, 5);
+    let eTime = (b.end_time || '17:00').slice(0, 5);
+    if (bStart === bEnd && sTime > eTime) {
+      const tmp = sTime;
+      sTime = eTime;
+      eTime = tmp;
+    }
     const timeStr = `${sTime} - ${eTime}`;
     const [initSh, initSm] = sTime.split(':').map(Number);
     const [initEh, initEm] = eTime.split(':').map(Number);
     const initHrs = Math.max(0, (initEh + initEm / 60) - (initSh + initSm / 60));
-    const initIsOt = initHrs > 8;
+    const initIsOt = !isOff && initHrs > 8;
     const initOtHours = (initHrs - 8).toFixed(1);
     const d1 = new Date(bStart);
     const d2 = new Date(bEnd);
@@ -3353,10 +3437,16 @@ const BookingUI = {
           <div class="flex items-center justify-between gap-2">
             <div class="flex items-center gap-2 flex-wrap min-w-0">
               <span class="text-xs font-black font-mono text-brand-700 bg-brand-50 border border-brand-200/80 px-2.5 py-0.5 rounded-md tracking-wider">${b.booking_id}</span>
-              <span class="inline-flex items-center gap-1 text-[11px] font-mono font-bold text-slate-700 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-md">
-                ${Lucide.clock} ${timeStr}
-              </span>
-              ${initIsOt ? `<span class="inline-flex items-center gap-1 text-[10px] font-extrabold text-amber-800 bg-amber-50 border border-amber-300 px-2 py-0.5 rounded-md">⚡ OT: +${initOtHours}h</span>` : ''}
+              ${isOff ? `
+                <span class="inline-flex items-center gap-1 text-[11px] font-mono font-bold text-slate-700 bg-slate-100 border border-slate-300 px-2 py-0.5 rounded-md">
+                  Nghỉ phép (OFF)
+                </span>
+              ` : `
+                <span class="inline-flex items-center gap-1 text-[11px] font-mono font-bold text-slate-700 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-md">
+                  ${Lucide.clock} ${timeStr}
+                </span>
+                ${initIsOt ? `<span class="inline-flex items-center gap-1 text-[10px] font-extrabold text-amber-800 bg-amber-50 border border-amber-300 px-2 py-0.5 rounded-md">⚡ OT: +${initOtHours}h</span>` : ''}
+              `}
             </div>
             <div class="flex-shrink-0">${statusText}</div>
           </div>
