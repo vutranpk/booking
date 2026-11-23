@@ -4430,7 +4430,7 @@ const BookingUI = {
               `).join('') : '<span class="text-[11px] text-slate-400">Đa nhiệm</span>'}
             </div>
             <div class="flex items-center gap-1.5 flex-shrink-0">
-              <a href="template-report.html?tech=${t.tech_id}" target="_blank" class="h-8 px-2.5 rounded-lg border border-brand-200 bg-brand-50 hover:bg-brand-100 text-brand-700 font-semibold text-xs transition-colors flex items-center gap-1 shadow-2xs" title="Xem & xuất báo cáo 16:9">
+              <a href="template-report.html?tech=${t.tech_id}" class="h-8 px-2.5 rounded-lg border border-brand-200 bg-brand-50 hover:bg-brand-100 text-brand-700 font-semibold text-xs transition-colors flex items-center gap-1 shadow-2xs" title="Xem & xuất báo cáo 16:9">
                 <svg class="w-3.5 h-3.5 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                 <span>Báo cáo 16:9</span>
               </a>
@@ -4498,7 +4498,7 @@ const BookingUI = {
           </td>
           <td class="py-3 px-4 text-right whitespace-nowrap">
             <div class="flex items-center justify-end gap-1.5">
-              <a href="template-report.html?tech=${t.tech_id}" target="_blank" class="px-2.5 py-1.5 rounded-lg border border-brand-200 bg-brand-50 hover:bg-brand-100 text-brand-700 font-semibold text-xs transition-colors inline-flex items-center gap-1 shadow-2xs" title="Xem & xuất báo cáo 16:9">
+              <a href="template-report.html?tech=${t.tech_id}" class="px-2.5 py-1.5 rounded-lg border border-brand-200 bg-brand-50 hover:bg-brand-100 text-brand-700 font-semibold text-xs transition-colors inline-flex items-center gap-1 shadow-2xs" title="Xem & xuất báo cáo 16:9">
                 <svg class="w-3.5 h-3.5 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                 <span>Báo cáo 16:9</span>
               </a>
