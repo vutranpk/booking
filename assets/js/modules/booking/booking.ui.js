@@ -43,12 +43,13 @@ const BookingUI = {
   selectedSkill: 'all',
   searchQuery: '',
 
-  // Unified Pagination State for All List-based Pages
+  // Unified Pagination State for All List-based Pages (20 items / page)
   pagination: {
-    approval: { page: 1, pageSize: 5 },
-    myBookings: { page: 1, pageSize: 6 },
-    technicians: { page: 1, pageSize: 5 },
-    users: { page: 1, pageSize: 6 }
+    approval: { page: 1, pageSize: 20 },
+    myBookings: { page: 1, pageSize: 20 },
+    calendarAgenda: { page: 1, pageSize: 20 },
+    technicians: { page: 1, pageSize: 20 },
+    users: { page: 1, pageSize: 20 }
   },
 
   setPage(moduleName, newPage) {
@@ -56,6 +57,7 @@ const BookingUI = {
     this.pagination[moduleName].page = Math.max(1, newPage);
     if (moduleName === 'approval') this.renderApprovalBoard();
     else if (moduleName === 'myBookings') this.renderMyBookings();
+    else if (moduleName === 'calendarAgenda') this.renderCalendarAgenda();
     else if (moduleName === 'technicians') this.renderTechnicians();
     else if (moduleName === 'users') this.renderUsers();
   },
@@ -265,6 +267,7 @@ const BookingUI = {
       this.currentMonth = 11;
       this.currentYear--;
     }
+    if (this.pagination.calendarAgenda) this.pagination.calendarAgenda.page = 1;
     this.render();
   },
 
@@ -274,11 +277,13 @@ const BookingUI = {
       this.currentMonth = 0;
       this.currentYear++;
     }
+    if (this.pagination.calendarAgenda) this.pagination.calendarAgenda.page = 1;
     this.render();
   },
 
   todayPeriod() {
     this.initDates();
+    if (this.pagination.calendarAgenda) this.pagination.calendarAgenda.page = 1;
     this.render();
   },
 
@@ -2374,13 +2379,19 @@ const BookingUI = {
 
     const todayStr = BookingData.formatDateStr(new Date());
 
+    const { page, pageSize } = this.pagination.calendarAgenda || { page: 1, pageSize: 20 };
+    const totalPages = Math.ceil(monthBookings.length / pageSize) || 1;
+    const curPage = Math.min(Math.max(1, page), totalPages);
+    if (this.pagination.calendarAgenda) this.pagination.calendarAgenda.page = curPage;
+    const pagedList = monthBookings.slice((curPage - 1) * pageSize, curPage * pageSize);
+
     agendaContainer.innerHTML = `
       <div class="px-4 py-2.5 bg-slate-50/70 border-b border-slate-100 flex items-center justify-between">
         <span class="text-[11px] font-bold font-condensed uppercase tracking-wider text-slate-500">Danh sách task tháng ${this.currentMonth + 1}/${this.currentYear}</span>
         <span class="text-[11px] font-bold font-condensed text-brand-600">${monthBookings.length} task</span>
       </div>
       <div class="divide-y divide-slate-100">
-        ${monthBookings.map(b => {
+        ${pagedList.map(b => {
           const tech = BookingData.technicians.find(t => t.tech_id === b.tech_id);
           const isCompleted = b.status === 'COMPLETED';
           const isApproved = b.status === 'APPROVED';
@@ -2454,6 +2465,7 @@ const BookingUI = {
           `;
         }).join('')}
       </div>
+      ${this.renderPaginationHtml('calendarAgenda', monthBookings.length, curPage, pageSize)}
     `;
   },
 
