@@ -2480,18 +2480,6 @@ const BookingUI = {
       pendingBadge.classList.toggle('hidden', pendingCount === 0);
     }
 
-    const myBadge = document.getElementById('sidebar-my-bookings-badge');
-    if (myBadge) {
-      myBadge.textContent = dispatchHistoryCount;
-      myBadge.classList.toggle('hidden', dispatchHistoryCount === 0);
-    }
-
-    const techsBadge = document.getElementById('sidebar-techs-badge');
-    if (techsBadge) {
-      techsBadge.textContent = totalTechs;
-      techsBadge.classList.toggle('hidden', totalTechs === 0);
-    }
-
     // Technician tab stats
     const techStatTotal = document.getElementById('tech-stat-total');
     if (techStatTotal) techStatTotal.textContent = totalTechs;
@@ -5244,7 +5232,6 @@ const BookingUI = {
     const totalEl = document.getElementById('tech-stat-total');
     const activeEl = document.getElementById('tech-stat-active');
     const shiftsEl = document.getElementById('tech-stat-shifts');
-    const sidebarBadge = document.getElementById('sidebar-techs-badge');
 
     const allTechs = BookingData.technicians || [];
     const activeTechs = allTechs.filter(t => t.is_active);
@@ -5265,7 +5252,6 @@ const BookingUI = {
     if (totalEl) totalEl.textContent = allTechs.length;
     if (activeEl) activeEl.textContent = activeTechs.length;
     if (shiftsEl) shiftsEl.textContent = shifts30Days.length;
-    if (sidebarBadge) sidebarBadge.textContent = allTechs.length;
 
     if (!container) return;
 
