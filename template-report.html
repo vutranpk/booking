@@ -716,6 +716,11 @@
           scanD.setDate(scanD.getDate() + 1);
         }
 
+        const formatDays = (val) => {
+          const r = Math.round((Number(val) || 0) * 10) / 10;
+          return Number.isInteger(r) ? String(r) : r.toFixed(1);
+        };
+
         techBookings.forEach(b => {
           const bDate = b.booking_date || b.date;
           if (!dateToShifts.has(bDate)) dateToShifts.set(bDate, []);
@@ -728,7 +733,33 @@
                         b.type === 'OFF';
 
           if (isOff) {
-            offDaysCount++;
+            const bEnd = (b.end_date && b.end_date >= bDate) ? b.end_date : bDate;
+            const sT = (b.start_time || '08:00').slice(0, 5);
+            const eT = (b.end_time || '17:00').slice(0, 5);
+            const [osh, osm] = sT.split(':').map(Number);
+            const [oeh, oem] = eT.split(':').map(Number);
+            const oHrs = Math.max(0, (oeh + oem / 60) - (osh + osm / 60));
+
+            let offWeight = 0;
+            if (bEnd <= bDate) {
+              const dObj = new Date(bDate + 'T00:00:00');
+              const dow = isNaN(dObj.getTime()) ? 1 : dObj.getDay();
+              if (dow === 0) offWeight = 0;
+              else if (dow === 6) offWeight = 0.5; // Thứ 7 làm nửa ngày
+              else offWeight = (oHrs > 0 && oHrs <= 4.5) ? 0.5 : 1.0;
+            } else {
+              const curOffD = new Date(bDate + 'T00:00:00');
+              const endOffD = new Date((bEnd < this.endDate ? bEnd : this.endDate) + 'T00:00:00');
+              let guard = 0;
+              while (curOffD <= endOffD && guard++ < 366) {
+                const dow = curOffD.getDay();
+                if (dow === 6) offWeight += 0.5;
+                else if (dow !== 0) offWeight += 1.0;
+                curOffD.setDate(curOffD.getDate() + 1);
+              }
+            }
+            b._offDaysWeight = Math.round(offWeight * 10) / 10;
+            offDaysCount = Math.round((offDaysCount + b._offDaysWeight) * 10) / 10;
           } else if (b.status === 'COMPLETED' || b.status === 'APPROVED' || b.status === 'IN_PROGRESS') {
             if (b.status === 'COMPLETED') completedCount++;
             if (b.status === 'APPROVED' || b.status === 'IN_PROGRESS') approvedCount++;
@@ -804,7 +835,7 @@
 
         if (statCompletedEl) statCompletedEl.textContent = `${completedCount} task`;
         if (statHoursEl) statHoursEl.textContent = `${Math.round(totalHours)}h`;
-        if (statOffEl) statOffEl.textContent = `${offDaysCount} ngày`;
+        if (statOffEl) statOffEl.textContent = `${formatDays(offDaysCount)} ngày`;
         if (statRateEl) statRateEl.textContent = completionRate;
 
         // Display Out-of-hours badge if there are tasks on Sunday, Saturday afternoon or OT
@@ -824,10 +855,10 @@
         const offStatusEl = document.getElementById('summary-off-status');
 
         if (workDaysEl) {
-          // Tính số ngày có ca/task làm việc thực tế (loại trừ ngày xin nghỉ phép OFF)
-          const actualWorkDates = new Set();
+          // Tính ngày công làm việc thực tế (Thứ 2-6 = 1.0 ngày, Thứ 7 sáng = 0.5 ngày)
+          let actualWorkUnits = 0;
           dateToShifts.forEach((shifts, dateStr) => {
-            const hasActiveWork = shifts.some(b => {
+            const activeTasks = shifts.filter(b => {
               const titleLower = (b.title || '').toLowerCase();
               const notesLower = (b.notes || '').toLowerCase();
               const isOff = titleLower.includes('off') || titleLower.includes('nghỉ') ||
@@ -835,14 +866,27 @@
                             b.type === 'OFF';
               return !isOff && (b.status === 'COMPLETED' || b.status === 'APPROVED' || b.status === 'IN_PROGRESS');
             });
-            if (hasActiveWork) actualWorkDates.add(dateStr);
+            if (activeTasks.length > 0) {
+              const dObj = new Date(dateStr + 'T00:00:00');
+              const dow = isNaN(dObj.getTime()) ? 1 : dObj.getDay();
+              if (dow === 6) {
+                const satHrs = activeTasks.reduce((acc, t) => {
+                  const [sh, sm] = ((t.start_time || '08:00').slice(0, 5)).split(':').map(Number);
+                  const [eh, em] = ((t.end_time || '12:00').slice(0, 5)).split(':').map(Number);
+                  return acc + Math.max(0, (eh + em / 60) - (sh + sm / 60));
+                }, 0);
+                actualWorkUnits += (satHrs > 4.5 ? 1.0 : 0.5);
+              } else {
+                actualWorkUnits += 1.0;
+              }
+            }
           });
-          const uniqueWorkDays = actualWorkDates.size;
+          actualWorkUnits = Math.round(actualWorkUnits * 10) / 10;
 
-          // Số ngày làm việc tiêu chuẩn = Tổng ngày trong kỳ - Số ngày nghỉ tuần (Chủ Nhật) - Số ngày nghỉ phép hợp lệ
-          const effectiveStandardDays = Math.max(1, diffDays - countSundaysInPeriod - offDaysCount);
-          const pct = Math.min(100, Math.round((uniqueWorkDays / effectiveStandardDays) * 100));
-          workDaysEl.textContent = `${uniqueWorkDays} / ${effectiveStandardDays} ngày (${pct}%)`;
+          // Công chuẩn kỳ = Tổng công quy định (T2-T6: 1.0, T7: 0.5, CN: 0) - Số ngày nghỉ phép quy đổi
+          const effectiveStandardDays = Math.max(0.5, Math.round((standardWorkDays - offDaysCount) * 10) / 10);
+          const pct = Math.min(100, Math.round((actualWorkUnits / effectiveStandardDays) * 100));
+          workDaysEl.textContent = `${formatDays(actualWorkUnits)} / ${formatDays(effectiveStandardDays)} ngày (${pct}%)`;
         }
         if (avgHoursEl) {
           const avg = completedCount > 0 ? (totalHours / completedCount).toFixed(1) : '0.0';
@@ -852,7 +896,7 @@
           otStatusEl.textContent = outOfHoursTaskCount > 0 ? `${outOfHoursTaskCount} task (${totalOtHours.toFixed(1)}h)` : '0 task';
         }
         if (offStatusEl) {
-          offStatusEl.textContent = `${offDaysCount} ngày`;
+          offStatusEl.textContent = `${formatDays(offDaysCount)} ngày`;
         }
 
         const rangeSubtext = document.getElementById('calendar-range-subtext');
@@ -907,6 +951,7 @@
 
         let activeWorkDays = 0;
         let activeOffDays = 0;
+        let activeOffCalendarDays = 0;
         let countSundaysInRange = 0;
         let sundaysWorked = 0;
 
@@ -939,13 +984,14 @@
             const shifts = dateToShifts.get(iso) || [];
             const shiftCount = shifts.length;
 
-            const hasOff = shifts.some(b => {
+            const offShifts = shifts.filter(b => {
               const titleLower = (b.title || '').toLowerCase();
               const notesLower = (b.notes || '').toLowerCase();
               return titleLower.includes('off') || titleLower.includes('nghỉ') ||
                      notesLower.includes('off') || notesLower.includes('nghỉ') ||
                      b.type === 'OFF';
             });
+            const hasOff = offShifts.length > 0;
 
             let cellBg = 'bg-white';
             let cellBorder = 'border-slate-200 hover:border-slate-300';
@@ -958,13 +1004,23 @@
             let shiftDisplayHtml = '';
 
             if (hasOff) {
-              activeOffDays++;
+              const offHrs = offShifts.reduce((acc, ob) => {
+                const [sh, sm] = ((ob.start_time || '08:00').slice(0, 5)).split(':').map(Number);
+                const [eh, em] = ((ob.end_time || '17:00').slice(0, 5)).split(':').map(Number);
+                return acc + Math.max(0, (eh + em / 60) - (sh + sm / 60));
+              }, 0);
+              const cellOffWeight = isSunday ? 0 : (isSaturday ? 0.5 : (offHrs > 0 && offHrs <= 4.5 ? 0.5 : 1.0));
+              activeOffDays = Math.round((activeOffDays + cellOffWeight) * 10) / 10;
+              activeOffCalendarDays = (typeof activeOffCalendarDays === 'number' ? activeOffCalendarDays : 0) + (isSunday ? 0 : 1);
               cellBg = 'bg-amber-50/50';
               cellBorder = 'border border-amber-200';
               shiftDisplayHtml = `
-                <span class="text-3xl font-black font-condensed text-amber-600 uppercase tracking-tight leading-none">
-                  OFF
-                </span>
+                <div class="flex flex-col items-center justify-center leading-none text-center">
+                  <span class="text-3xl font-black font-condensed text-amber-600 uppercase tracking-tight leading-none">
+                    OFF
+                  </span>
+                  ${cellOffWeight === 0.5 ? `<span class="mt-1 text-[10px] font-bold font-condensed text-amber-700">${isSaturday ? 'Thứ 7 • ' : ''}0.5 ngày</span>` : ''}
+                </div>
               `;
             } else if (hasOverdue) {
               if (isSunday && shiftCount > 0) sundaysWorked++;
@@ -1104,9 +1160,10 @@
 
         if (countLabel) {
           const sundaysOff = Math.max(0, countSundaysInRange - sundaysWorked);
-          const readyDays = Math.max(0, diffDays - activeWorkDays - activeOffDays - sundaysOff);
+          const readyDays = Math.max(0, diffDays - activeWorkDays - activeOffCalendarDays - sundaysOff);
           const sundayText = sundaysOff > 0 ? ` • ${sundaysOff} ngày nghỉ tuần (CN)` : '';
-          countLabel.textContent = `Tổng ${diffDays} ngày trong kỳ • ${activeWorkDays} ngày có task${outOfHoursTaskCount > 0 ? ` (${outOfHoursTaskCount} task ngoài giờ)` : ''} • ${activeOffDays} ngày nghỉ phép${sundayText} • ${readyDays} ngày sẵn sàng`;
+          const offText = Number.isInteger(activeOffDays) ? activeOffDays : activeOffDays.toFixed(1);
+          countLabel.textContent = `Tổng ${diffDays} ngày trong kỳ • ${activeWorkDays} ngày có task${outOfHoursTaskCount > 0 ? ` (${outOfHoursTaskCount} task ngoài giờ)` : ''} • ${offText} ngày nghỉ phép${sundayText} • ${readyDays} ngày sẵn sàng`;
         }
       },
 

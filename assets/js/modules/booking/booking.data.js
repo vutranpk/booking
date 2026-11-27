@@ -963,6 +963,73 @@ const BookingData = {
     localStorage.removeItem('kcoffee_bookings_data_28days_v7');
   },
 
+  isSaturdayDate(dateStr) {
+    if (!dateStr) return false;
+    const d = new Date(String(dateStr).slice(0, 10) + 'T00:00:00');
+    return !isNaN(d.getTime()) && d.getDay() === 6;
+  },
+
+  isSundayDate(dateStr) {
+    if (!dateStr) return false;
+    const d = new Date(String(dateStr).slice(0, 10) + 'T00:00:00');
+    return !isNaN(d.getTime()) && d.getDay() === 0;
+  },
+
+  formatDayCount(val) {
+    const rounded = Math.round((Number(val) || 0) * 10) / 10;
+    return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
+  },
+
+  /**
+   * Tính số ngày làm việc / nghỉ phép thực tế theo quy chuẩn công ty:
+   * - Thứ 2 – Thứ 6: 1.0 ngày (<= 4.5h tính nửa ngày 0.5)
+   * - Thứ 7: làm nửa ngày (08:00 - 12:00 = 0.5 ngày); xin OFF thứ 7 luôn tính 0.5 ngày
+   * - Chủ Nhật: ngày nghỉ tuần (OFF Chủ Nhật = 0 ngày)
+   */
+  calcDurationDays(startDate, endDate = null, startTime = '08:00', endTime = '17:00', isOff = false) {
+    const sDate = String(startDate || '').slice(0, 10);
+    const eDate = String((endDate && endDate >= sDate) ? endDate : sDate).slice(0, 10);
+    if (!sDate) return 1;
+
+    const parseHours = (t, fallback) => {
+      const clean = (t || fallback).slice(0, 5);
+      const [h, m] = clean.split(':').map(Number);
+      return (isNaN(h) ? 8 : h) + (isNaN(m) ? 0 : m) / 60;
+    };
+
+    if (sDate === eDate) {
+      const dObj = new Date(sDate + 'T00:00:00');
+      const dow = isNaN(dObj.getTime()) ? 1 : dObj.getDay();
+      const hrs = Math.max(0, parseHours(endTime, '17:00') - parseHours(startTime, '08:00'));
+
+      if (dow === 0) return isOff ? 0 : 1;
+      if (dow === 6) {
+        if (isOff || hrs <= 4.5) return 0.5;
+        return 1;
+      }
+      return (hrs > 0 && hrs <= 4.5) ? 0.5 : 1;
+    }
+
+    if (isOff) {
+      const cur = new Date(sDate + 'T00:00:00');
+      const end = new Date(eDate + 'T00:00:00');
+      if (isNaN(cur.getTime()) || isNaN(end.getTime())) return 1;
+      let total = 0;
+      let guard = 0;
+      while (cur <= end && guard++ < 366) {
+        const dow = cur.getDay();
+        if (dow === 6) total += 0.5;
+        else if (dow !== 0) total += 1;
+        cur.setDate(cur.getDate() + 1);
+      }
+      return Math.round(total * 10) / 10;
+    }
+
+    const d1 = new Date(sDate + 'T00:00:00');
+    const d2 = new Date(eDate + 'T00:00:00');
+    return Math.max(1, Math.round((d2 - d1) / (1000 * 60 * 60 * 24)) + 1);
+  },
+
   checkConflict(tech_id, start_date, end_date = null, exclude_booking_id = null, start_time = '08:00', end_time = '17:00') {
     const sDate = start_date;
     const eDate = end_date || start_date;

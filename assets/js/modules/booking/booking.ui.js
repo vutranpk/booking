@@ -355,6 +355,10 @@ const BookingUI = {
       endDateField.addEventListener('change', checkFormConflict);
     }
     if (startTimeField) {
+      startTimeField.addEventListener('input', () => {
+        this._modalTimeEditedManually = true;
+        this.refreshModalDurationDisplay();
+      });
       startTimeField.addEventListener('change', () => {
         const sDate = startDateField?.value;
         const eDate = endDateField?.value || sDate;
@@ -365,11 +369,23 @@ const BookingUI = {
             endTimeField.value = `${String(targetH).padStart(2, '0')}:${String(sm || 0).padStart(2, '0')}`;
           }
         }
+        this.refreshModalDurationDisplay();
         checkFormConflict();
       });
     }
     if (endTimeField) {
-      endTimeField.addEventListener('change', checkFormConflict);
+      endTimeField.addEventListener('input', () => {
+        this._modalTimeEditedManually = true;
+        this.refreshModalDurationDisplay();
+      });
+      endTimeField.addEventListener('change', () => {
+        this.refreshModalDurationDisplay();
+        checkFormConflict();
+      });
+    }
+    const modalTitleField = document.getElementById('modal-title');
+    if (modalTitleField) {
+      modalTitleField.addEventListener('input', () => this.refreshModalDurationDisplay());
     }
   },
 
@@ -1072,6 +1088,53 @@ const BookingUI = {
     return dateStr;
   },
 
+  refreshModalDurationDisplay() {
+    const sDate = document.getElementById('modal-booking-date')?.value || BookingData.formatDateStr(new Date());
+    const eDate = document.getElementById('modal-end-date')?.value || sDate;
+    const sTime = document.getElementById('modal-start-time')?.value || '08:00';
+    const eTime = document.getElementById('modal-end-time')?.value || '17:00';
+    const titleVal = document.getElementById('modal-title')?.value || '';
+    const locVal = document.getElementById('modal-location')?.value || '';
+    const isOff = /off|nghỉ|leave/i.test(titleVal) || /off|nghỉ|leave/i.test(locVal);
+
+    const d1 = new Date(sDate + 'T00:00:00');
+    const d2 = new Date(eDate + 'T00:00:00');
+    const calDays = Math.max(1, Math.round((d2 - d1) / (1000 * 60 * 60 * 24)) + 1);
+    const effectiveDays = BookingData.calcDurationDays(sDate, eDate, sTime, eTime, isOff);
+    const displayDays = (calDays === 1 || isOff) ? effectiveDays : calDays;
+    const dayLabel = `${BookingData.formatDayCount(displayDays)} ngày`;
+
+    const rangeSublabel = document.getElementById('sublabel-modal-daterange');
+    const durationTag = document.getElementById('label-modal-duration-tag');
+
+    if (durationTag) {
+      durationTag.textContent = dayLabel;
+      durationTag.className = effectiveDays === 0.5
+        ? 'text-[11px] font-bold text-amber-800 font-condensed bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200'
+        : 'text-[11px] font-bold text-slate-900 font-condensed bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200';
+    }
+
+    if (rangeSublabel) {
+      if (calDays === 1) {
+        if (BookingData.isSaturdayDate(sDate)) {
+          rangeSublabel.textContent = effectiveDays === 0.5
+            ? 'Thứ 7 làm nửa ngày (08:00–12:00 • 0.5 ngày)'
+            : 'Thứ 7 (Cả ngày)';
+        } else if (BookingData.isSundayDate(sDate) && isOff) {
+          rangeSublabel.textContent = 'Chủ Nhật là ngày nghỉ tuần (0 ngày phép)';
+        } else if (effectiveDays === 0.5) {
+          rangeSublabel.textContent = 'Nửa ngày (0.5 ngày) • Nhấp để đổi hoặc chọn dải ngày';
+        } else {
+          rangeSublabel.textContent = 'Task 1 ngày • Nhấp để đổi hoặc chọn dải ngày';
+        }
+      } else if (isOff) {
+        rangeSublabel.textContent = `Nghỉ phép liên ngày (${dayLabel} làm việc thực tế)`;
+      } else {
+        rangeSublabel.textContent = `Task liên ngày (${calDays} ngày) • Nhấp để đổi lịch`;
+      }
+    }
+  },
+
   updateModalDateRangeDisplay(startDate, endDate) {
     const sDate = startDate || BookingData.formatDateStr(new Date());
     const eDate = (endDate && endDate >= sDate) ? endDate : sDate;
@@ -1081,29 +1144,35 @@ const BookingUI = {
     if (startInput) startInput.value = sDate;
     if (endInput) endInput.value = eDate;
 
-    const d1 = new Date(sDate);
-    const d2 = new Date(eDate);
+    const isCreateMode = !document.getElementById('modal-booking-id')?.value;
+    const sTimeEl = document.getElementById('modal-start-time');
+    const eTimeEl = document.getElementById('modal-end-time');
+    if (isCreateMode && !this._modalTimeEditedManually && sTimeEl && eTimeEl) {
+      if (sDate === eDate && BookingData.isSaturdayDate(sDate)) {
+        if (sTimeEl.value === '08:00' && eTimeEl.value === '17:00') {
+          eTimeEl.value = '12:00';
+          this._autoSaturdayHalfDay = true;
+        }
+      } else if (this._autoSaturdayHalfDay) {
+        if (sTimeEl.value === '08:00' && eTimeEl.value === '12:00') {
+          eTimeEl.value = '17:00';
+        }
+        this._autoSaturdayHalfDay = false;
+      }
+    }
+
+    const d1 = new Date(sDate + 'T00:00:00');
+    const d2 = new Date(eDate + 'T00:00:00');
     const diffDays = Math.max(1, Math.round((d2 - d1) / (1000 * 60 * 60 * 24)) + 1);
 
     const rangeLabel = document.getElementById('label-modal-daterange');
-    const rangeSublabel = document.getElementById('sublabel-modal-daterange');
-    const durationTag = document.getElementById('label-modal-duration-tag');
-
-    if (diffDays === 1) {
-      if (rangeLabel) rangeLabel.textContent = this.formatDateDisplay(sDate);
-      if (rangeSublabel) rangeSublabel.textContent = 'Task 1 ngày • Nhấp để đổi hoặc chọn dải ngày';
-      if (durationTag) {
-        durationTag.textContent = '1 ngày';
-        durationTag.className = 'text-[11px] font-bold text-slate-900 font-condensed bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200';
-      }
-    } else {
-      if (rangeLabel) rangeLabel.textContent = `${this.formatDateDisplay(sDate)} → ${this.formatDateDisplay(eDate)}`;
-      if (rangeSublabel) rangeSublabel.textContent = `Task liên ngày (${diffDays} ngày) • Nhấp để đổi lịch`;
-      if (durationTag) {
-        durationTag.textContent = `${diffDays} ngày`;
-        durationTag.className = 'text-[11px] font-bold text-slate-900 font-condensed bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200';
-      }
+    if (rangeLabel) {
+      rangeLabel.textContent = diffDays === 1
+        ? this.formatDateDisplay(sDate)
+        : `${this.formatDateDisplay(sDate)} → ${this.formatDateDisplay(eDate)}`;
     }
+
+    this.refreshModalDurationDisplay();
 
     // Keep hidden fallback labels in sync for backward compatibility
     const labelStart = document.getElementById('label-modal-start-date');
@@ -3672,6 +3741,8 @@ const BookingUI = {
       this.updateModalTechCard(defaultTechId);
       this.renderCustomTechOptions(defaultTechId);
 
+      this._modalTimeEditedManually = true;
+      this._autoSaturdayHalfDay = false;
       const startDate = b.booking_date;
       const endDate = b.end_date || b.booking_date;
       this.updateModalDateRangeDisplay(startDate, endDate);
@@ -3685,8 +3756,14 @@ const BookingUI = {
       if (titleInput) titleInput.value = '';
       if (locationInput) locationInput.value = '';
       if (notesInput) notesInput.value = '';
+
+      const startDate = prefillDate || todayStr;
+      const endDate = (prefillEndDate && prefillEndDate >= startDate) ? prefillEndDate : startDate;
+      const isSingleSaturday = startDate === endDate && BookingData.isSaturdayDate(startDate);
+      this._modalTimeEditedManually = false;
+      this._autoSaturdayHalfDay = isSingleSaturday;
       if (startTimeInput) startTimeInput.value = '08:00';
-      if (endTimeInput) endTimeInput.value = '17:00';
+      if (endTimeInput) endTimeInput.value = isSingleSaturday ? '12:00' : '17:00';
 
       const activeCalendarTechId = (this.activeTab === 'timeline' && this.selectedTechId && this.selectedTechId !== 'all' && this.selectedTechId !== '__none__') ? this.selectedTechId : '';
       const defaultTechId = prefillTechId || techSelfId || activeCalendarTechId || (BookingData.technicians[0] ? BookingData.technicians[0].tech_id : '');
@@ -3700,8 +3777,6 @@ const BookingUI = {
       this.updateModalTechCard(defaultTechId);
       this.renderCustomTechOptions(defaultTechId);
 
-      const startDate = prefillDate || todayStr;
-      const endDate = (prefillEndDate && prefillEndDate >= startDate) ? prefillEndDate : startDate;
       this.updateModalDateRangeDisplay(startDate, endDate);
     }
 
@@ -3734,10 +3809,12 @@ const BookingUI = {
     this.openBookingModal('', '', '', booking_id);
   },
 
-  setBookingTimePreset(preset) {
+  setBookingTimePreset(preset, isAuto = false) {
     const sInput = document.getElementById('modal-start-time');
     const eInput = document.getElementById('modal-end-time');
     if (!sInput || !eInput) return;
+    this._modalTimeEditedManually = !isAuto;
+    if (!isAuto) this._autoSaturdayHalfDay = false;
     if (preset === 'morning') {
       sInput.value = '08:00';
       eInput.value = '12:00';
@@ -3749,6 +3826,7 @@ const BookingUI = {
       eInput.value = '17:00';
     }
     sInput.dispatchEvent(new Event('change'));
+    this.refreshModalDurationDisplay();
   },
 
   setBookingTypeQuick(type) {
@@ -3757,8 +3835,20 @@ const BookingUI = {
       const locInput = document.getElementById('modal-location');
       if (titleInput) titleInput.value = '[OFF] Nghỉ phép';
       if (locInput) locInput.value = 'Nghỉ phép';
-      this.setBookingTimePreset('fullday');
-      if (window.Toast) Toast.show('Đã chuyển mục đích sang "Nghỉ phép (OFF)"', 'info', 'Đăng ký OFF');
+
+      const sDate = document.getElementById('modal-booking-date')?.value || '';
+      const eDate = document.getElementById('modal-end-date')?.value || sDate;
+      const isSingleSat = Boolean(sDate) && sDate === eDate && BookingData.isSaturdayDate(sDate);
+
+      if (isSingleSat) {
+        this.setBookingTimePreset('morning', true);
+        this._autoSaturdayHalfDay = true;
+        if (window.Toast) Toast.show('Thứ 7 làm việc nửa ngày (08:00–12:00 • 0.5 ngày nghỉ phép).', 'info', 'Đăng ký OFF Thứ 7');
+      } else {
+        this.setBookingTimePreset('fullday', true);
+        if (window.Toast) Toast.show('Đã chuyển mục đích sang "Nghỉ phép (OFF)"', 'info', 'Đăng ký OFF');
+      }
+      this.refreshModalDurationDisplay();
     }
   },
 
@@ -4265,9 +4355,12 @@ const BookingUI = {
     const initHrs = Math.max(0, (initEh + initEm / 60) - (initSh + initSm / 60));
     const initIsOt = !isOff && initHrs > 8;
     const initOtHours = (initHrs - 8).toFixed(1);
-    const d1 = new Date(bStart);
-    const d2 = new Date(bEnd);
+    const d1 = new Date(bStart + 'T00:00:00');
+    const d2 = new Date(bEnd + 'T00:00:00');
     const diffDays = Math.max(1, Math.round((d2 - d1) / (1000 * 60 * 60 * 24)) + 1);
+    const effectiveDays = BookingData.calcDurationDays(bStart, bEnd, sTime, eTime, isOff);
+    const displayDays = (diffDays === 1 || isOff) ? effectiveDays : diffDays;
+    const durationLabel = `${BookingData.formatDayCount(displayDays)} ngày`;
     const isSingleDay = diffDays === 1;
     const isSuper = BookingData.isSuperAdmin();
     const canApprove = BookingData.hasPermission('approve_booking');
@@ -4325,7 +4418,7 @@ const BookingUI = {
           <div class="px-4 py-3.5 sm:px-6 flex flex-col justify-between gap-2">
             <div class="flex items-center justify-between gap-2">
               <span class="text-[11px] font-medium text-slate-400">Thời gian</span>
-              <span class="text-[10.5px] font-medium text-slate-600 bg-slate-100/80 px-2 py-0.5 rounded-md">${diffDays} ngày</span>
+              <span class="text-[10.5px] font-medium ${effectiveDays === 0.5 ? 'text-amber-800 bg-amber-50' : 'text-slate-600 bg-slate-100/80'} px-2 py-0.5 rounded-md">${durationLabel}</span>
             </div>
 
             <div class="flex items-center gap-1.5 min-w-0">
