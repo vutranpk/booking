@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="vi" class="h-full bg-[#f4f5f7]">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="robots" content="noindex, nofollow, noarchive">
+  <title>404 - Không tìm thấy trang | K-Workspace</title>
+  <link rel="icon" type="image/png" sizes="192x192" href="/images/icon-192.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+            display: ['Plus Jakarta Sans', 'Inter', 'system-ui', 'sans-serif']
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="min-h-full bg-[#f4f5f7] text-slate-800 font-sans antialiased flex flex-col">
+
+  <!-- Minimal Borderless App Header -->
+  <header class="w-full max-w-4xl mx-auto px-4 sm:px-6 pt-5 pb-3 flex items-center justify-between gap-4">
+    <a href="/index.html" class="inline-flex items-center gap-2.5 group focus:outline-none">
+      <img src="/images/logo-full.png" alt="Phúc Sinh Consumer - K-Workspace" class="h-8 w-auto object-contain group-hover:opacity-90 transition-opacity">
+    </a>
+    <span class="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500">
+      <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+      <span>Mã lỗi 404</span>
+    </span>
+  </header>
+
+  <!-- Single White Sheet Main Area -->
+  <main class="flex-1 w-full max-w-4xl mx-auto px-4 sm:px-6 pb-8 flex items-center justify-center">
+    <section class="w-full bg-white rounded-2xl shadow-[0_1px_2px_rgba(15,23,42,0.04)] overflow-hidden divide-y divide-slate-100">
+
+      <!-- Top Editorial Split Header -->
+      <div class="p-6 sm:p-10 grid grid-cols-1 sm:grid-cols-12 gap-6 sm:gap-8 items-center">
+        <div class="sm:col-span-4 flex flex-col justify-center sm:border-r sm:border-slate-100 sm:pr-6">
+          <span class="text-[11px] font-medium text-slate-400 uppercase tracking-wider">Không khả dụng</span>
+          <p class="text-6xl sm:text-7xl font-bold font-display tracking-tight text-slate-900 tabular-nums leading-none mt-2">404</p>
+        </div>
+
+        <div class="sm:col-span-8 space-y-4">
+          <div class="space-y-1.5">
+            <h1 class="text-xl sm:text-2xl font-semibold font-display text-slate-900 tracking-tight">Không tìm thấy trang này</h1>
+            <p class="text-xs sm:text-sm text-slate-500 leading-relaxed">
+              Đường dẫn có thể đã thay đổi, bị xóa hoặc bạn nhập sai địa chỉ. Hãy quay về bảng tổng quan để tiếp tục làm việc.
+            </p>
+          </div>
+
+          <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 pt-1">
+            <a href="/index.html" class="h-10 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 active:bg-slate-950 text-white text-xs font-semibold shadow-2xs inline-flex items-center justify-center gap-2 transition-all whitespace-nowrap">
+              <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+              <span>Về Tổng quan</span>
+            </a>
+            <button type="button" onclick="if (window.history.length > 1) { window.history.back(); } else { window.location.href = '/index.html'; }" class="h-10 px-4 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-xs font-medium inline-flex items-center justify-center gap-2 transition-colors cursor-pointer whitespace-nowrap">
+              <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+              <span>Quay lại</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bottom Quick Split Links -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-slate-100">
+        <a href="/index.html?tab=timeline" class="p-4 sm:px-6 hover:bg-slate-50/70 transition-colors flex items-center justify-between gap-3 group">
+          <div class="min-w-0">
+            <p class="text-xs font-semibold text-slate-900">Lịch làm việc</p>
+            <p class="text-[11px] text-slate-400 truncate mt-0.5">Xem phân công theo kỹ sư</p>
+          </div>
+          <svg class="w-4 h-4 text-slate-300 group-hover:text-slate-700 group-hover:translate-x-0.5 transition-all shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+        </a>
+
+        <a href="/public-reports.html" class="p-4 sm:px-6 hover:bg-slate-50/70 transition-colors flex items-center justify-between gap-3 group">
+          <div class="min-w-0">
+            <p class="text-xs font-semibold text-slate-900">Lịch công khai</p>
+            <p class="text-[11px] text-slate-400 truncate mt-0.5">Tra cứu task trong tháng</p>
+          </div>
+          <svg class="w-4 h-4 text-slate-300 group-hover:text-slate-700 group-hover:translate-x-0.5 transition-all shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+        </a>
+
+        <a href="/login.html" class="p-4 sm:px-6 hover:bg-slate-50/70 transition-colors flex items-center justify-between gap-3 group">
+          <div class="min-w-0">
+            <p class="text-xs font-semibold text-slate-900">Đăng nhập</p>
+            <p class="text-[11px] text-slate-400 truncate mt-0.5">Truy cập tài khoản K-Workspace</p>
+          </div>
+          <svg class="w-4 h-4 text-slate-300 group-hover:text-slate-700 group-hover:translate-x-0.5 transition-all shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+        </a>
+      </div>
+
+    </section>
+  </main>
+
+</body>
+</html>

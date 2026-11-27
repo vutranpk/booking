@@ -102,7 +102,7 @@ const PWANotificationManager = {
         </div>
         <div class="flex-1 min-w-0">
           <h4 class="text-xs font-semibold text-slate-900">Cài ứng dụng K-Workspace</h4>
-          <p class="text-[11px] text-slate-500 mt-0.5 leading-snug">Mở nhanh từ màn hình chính &amp; nhận thông báo ca trực tức thì.</p>
+          <p class="text-[11px] text-slate-500 mt-0.5 leading-snug">Mở nhanh từ màn hình chính &amp; nhận thông báo task tức thì.</p>
           <div class="flex items-center gap-2 mt-2">
             <button type="button" onclick="PWANotificationManager.triggerInstall()" class="h-8 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold cursor-pointer shadow-xs transition-colors">
               Cài đặt ngay
@@ -161,7 +161,7 @@ const PWANotificationManager = {
           </span>
           <div class="text-xs text-emerald-950 leading-relaxed">
             <p class="font-semibold">Bạn đang sử dụng phiên bản App độc lập</p>
-            <p class="text-[11px] text-emerald-800 mt-0.5">Thông báo ca trực, phím tắt mở nhanh và tự động đồng bộ đang hoạt động.</p>
+            <p class="text-[11px] text-emerald-800 mt-0.5">Thông báo task, phím tắt mở nhanh và tự động đồng bộ đang hoạt động.</p>
           </div>
         </div>
       `;
@@ -346,8 +346,8 @@ const PWANotificationManager = {
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
         </div>
         <div class="flex-1 min-w-0">
-          <h5 class="text-xs font-semibold text-slate-900">Bật thông báo ca trực</h5>
-          <p class="text-[11px] text-slate-500 mt-0.5 leading-relaxed">Nhận thông báo tức thì khi có lịch làm việc mới hoặc ca được duyệt.</p>
+          <h5 class="text-xs font-semibold text-slate-900">Bật thông báo task</h5>
+          <p class="text-[11px] text-slate-500 mt-0.5 leading-relaxed">Nhận thông báo tức thì khi có task mới hoặc yêu cầu được duyệt.</p>
           <div class="flex items-center gap-2 mt-2">
             <button type="button" onclick="PWANotificationManager.requestPermission()" class="h-8 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold cursor-pointer shadow-xs transition-colors">
               Bật thông báo
@@ -384,12 +384,12 @@ const PWANotificationManager = {
       if (perm === 'granted') {
         this.playNotificationChime();
         if (window.Toast) {
-          Toast.show('Đã bật thông báo ca trực thành công! Bạn sẽ nhận được thông báo ngay khi có task mới.', 'success', 'Đã Bật Thông Báo');
+          Toast.show('Đã bật thông báo task thành công! Bạn sẽ nhận được thông báo ngay khi có task mới.', 'success', 'Đã Bật Thông Báo');
         }
         // Gửi thử một thông báo chào mừng
         this.showNotification({
           title: 'K-Workspace • Thông Báo Đã Sẵn Sàng',
-          body: 'Bạn sẽ nhận được thông báo khi có phân công task hoặc thay đổi lịch trực.',
+          body: 'Bạn sẽ nhận được thông báo khi có phân công task hoặc cập nhật yêu cầu.',
           tag: 'welcome-notification'
         });
         return true;
@@ -444,7 +444,7 @@ const PWANotificationManager = {
 
   // 7. Gửi thông báo hệ thống ra điện thoại / màn hình khóa
   showNotification(payload = {}) {
-    const title = payload.title || 'Thông Báo Ca Trực K-Workspace';
+    const title = payload.title || 'Thông Báo Task K-Workspace';
     const body = payload.body || '';
     const tag = payload.tag || ('kcoffee-shift-' + Date.now());
     const bookingId = payload.booking_id || null;
@@ -510,8 +510,8 @@ const PWANotificationManager = {
     if (isAssignedTech) {
       if (eventType === 'INSERT') {
         this.showNotification({
-          title: 'Bạn có ca trực mới!',
-          body: `Ca "${booking.title || 'Nhiệm vụ mới'}" ngày ${booking.booking_date} vừa được tạo.`,
+          title: 'Bạn có task mới!',
+          body: `Task "${booking.title || 'Nhiệm vụ mới'}" ngày ${booking.booking_date} vừa được tạo.`,
           booking_id: booking.booking_id,
           tag: `assigned-${booking.booking_id}`,
           type: 'info'
@@ -519,16 +519,16 @@ const PWANotificationManager = {
       } else if (eventType === 'UPDATE') {
         if (oldRec && oldRec.status !== 'APPROVED' && newRec.status === 'APPROVED') {
           this.showNotification({
-            title: 'Ca trực đã được phê duyệt!',
-            body: `Ca "${booking.title}" ngày ${booking.booking_date} đã chính thức được duyệt.`,
+            title: 'Task đã được phê duyệt!',
+            body: `Task "${booking.title}" ngày ${booking.booking_date} đã chính thức được duyệt.`,
             booking_id: booking.booking_id,
             tag: `approved-${booking.booking_id}`,
             type: 'success'
           });
         } else if (oldRec && (oldRec.booking_date !== newRec.booking_date || oldRec.start_time !== newRec.start_time)) {
           this.showNotification({
-            title: 'Lịch ca trực đã được cập nhật!',
-            body: `Ca "${booking.title}" đã được dời sang ngày ${newRec.booking_date} (${newRec.start_time || '08:00'}).`,
+            title: 'Lịch task đã được cập nhật!',
+            body: `Task "${booking.title}" đã được dời sang ngày ${newRec.booking_date} (${newRec.start_time || '08:00'}).`,
             booking_id: booking.booking_id,
             tag: `rescheduled-${booking.booking_id}`,
             type: 'info'
@@ -537,20 +537,20 @@ const PWANotificationManager = {
       }
     }
 
-    // B. DÀNH CHO ADMIN / QUẢN LÝ ĐIỀU PHỐI
+    // B. DÀNH CHO ADMIN / QUẢN LÝ
     else if (isApproverOrAdmin) {
       if (eventType === 'INSERT' && booking.status === 'PENDING') {
         this.showNotification({
-          title: 'Yêu cầu ca trực mới cần duyệt',
-          body: `Đơn từ ${booking.requester_email || 'User'}: "${booking.title}" ngày ${booking.booking_date}.`,
+          title: 'Yêu cầu task mới cần duyệt',
+          body: `Yêu cầu từ ${booking.requester_email || 'User'}: "${booking.title}" ngày ${booking.booking_date}.`,
           booking_id: booking.booking_id,
           tag: `pending-${booking.booking_id}`,
           type: 'info'
         });
       } else if (eventType === 'UPDATE' && oldRec?.status === 'APPROVED' && newRec?.status === 'IN_PROGRESS') {
         this.showNotification({
-          title: 'Kỹ sư đã bắt đầu ca trực',
-          body: `Kỹ sư ${booking.tech_id} đã nhấn bắt đầu ca "${booking.title}".`,
+          title: 'Kỹ sư đã bắt đầu thực hiện task',
+          body: `Kỹ sư ${booking.tech_id} đã bắt đầu task "${booking.title}".`,
           booking_id: booking.booking_id,
           tag: `started-${booking.booking_id}`,
           type: 'info'
@@ -558,12 +558,12 @@ const PWANotificationManager = {
       }
     }
 
-    // C. DÀNH CHO NGƯỜI ĐẶT LỊCH (REQUESTER)
+    // C. DÀNH CHO NGƯỜI YÊU CẦU (REQUESTER)
     else if (isOwner && eventType === 'UPDATE') {
       if (oldRec?.status === 'PENDING' && newRec?.status === 'APPROVED') {
         this.showNotification({
           title: 'Yêu cầu của bạn đã được duyệt!',
-          body: `Ca "${booking.title}" ngày ${booking.booking_date} đã được phê duyệt thành công.`,
+          body: `Task "${booking.title}" ngày ${booking.booking_date} đã được phê duyệt thành công.`,
           booking_id: booking.booking_id,
           tag: `user-approved-${booking.booking_id}`,
           type: 'success'

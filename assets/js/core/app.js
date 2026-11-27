@@ -966,6 +966,7 @@ const App = {
       const text = removeAccents(card.innerText + ' ' + (card.getAttribute('data-search') || ''));
       const match = !q || text.includes(q);
       card.classList.toggle('hidden', !match);
+      card.classList.toggle('flex', match);
       if (match) visibleCount++;
     });
     const emptyState = document.getElementById('signature-picker-empty');

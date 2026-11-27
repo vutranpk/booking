@@ -1,4 +1,4 @@
-﻿(() => {
+(() => {
   const $ = (id) => document.getElementById(id);
   const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]);
   const state = {
@@ -103,9 +103,9 @@
       const fallbackSrc = getFallbackAvatar(engineer.name);
       return `
         <button type="button" data-tech-id="${escapeHtml(engineer.id)}"
-                aria-label="${escapeHtml(engineer.name)} · ${shiftCount} ca"
+                aria-label="${escapeHtml(engineer.name)} · ${shiftCount} task"
                 aria-pressed="${active}"
-                title="${escapeHtml(engineer.name)} (${shiftCount} ca trong tháng) • Nhấn để lọc"
+                title="${escapeHtml(engineer.name)} (${shiftCount} task trong tháng) • Nhấn để lọc"
                 class="relative w-10 h-10 lg:w-auto lg:h-9 p-0.5 lg:pl-1.5 lg:pr-3 lg:py-0 rounded-full transition-all shrink-0 inline-flex items-center justify-center lg:justify-start gap-2 cursor-pointer border ${
                   active
                     ? 'bg-slate-900 text-white border-slate-900 ring-2 ring-slate-900 ring-offset-1 lg:ring-0 shadow-xs'
@@ -156,9 +156,9 @@
     const requestId = ++state.detailRequestId;
     const bStart = String(row.booking_date || '').slice(0, 10);
     const bEnd = String(row.end_date || row.booking_date || '').slice(0, 10);
-    $('detail-title').textContent = row.work_title || 'Chi tiết ca trực';
+    $('detail-title').textContent = row.work_title || 'Chi tiết task';
     $('detail-subtitle').textContent = `${row.engineer_name} · ${dateLabel(bStart)}${bEnd !== bStart ? ` → ${dateLabel(bEnd)}` : ''}`;
-    $('detail-content').innerHTML = '<p role="status" class="rounded-xl bg-slate-50 px-3 py-4 text-center text-xs text-slate-500">Đang tải chi tiết ca…</p>';
+    $('detail-content').innerHTML = '<p role="status" class="rounded-xl bg-slate-50 px-3 py-4 text-center text-xs text-slate-500">Đang tải chi tiết task…</p>';
     openDialog();
     try {
       let detail = state.detailsByBookingId.get(row.booking_id);
@@ -171,10 +171,10 @@
         detail = Array.isArray(data) ? data[0] : data;
         if (detail) state.detailsByBookingId.set(row.booking_id, detail);
       }
-      if (!detail) throw new Error('Ca này không còn khả dụng.');
+      if (!detail) throw new Error('Task này không còn khả dụng.');
       const dStart = String(detail.booking_date || bStart).slice(0, 10);
       const dEnd = String(detail.end_date || dStart).slice(0, 10);
-      $('detail-title').textContent = detail.work_title || row.work_title || 'Ca làm việc';
+      $('detail-title').textContent = detail.work_title || row.work_title || 'Task làm việc';
       $('detail-subtitle').textContent = `${detail.engineer_name} · ${dateLabel(dStart)}${dEnd !== dStart ? ` → ${dateLabel(dEnd)}` : ''}`;
       $('detail-content').innerHTML = `<div class="divide-y divide-slate-100 text-xs">
         <div class="grid grid-cols-1 gap-3 pb-3.5 sm:grid-cols-2">
@@ -184,7 +184,7 @@
           </section>
           <section class="bg-slate-50/70 rounded-2xl p-3 border border-slate-200/80 flex flex-col justify-between">
             <div class="mb-1.5 flex items-center justify-between gap-2">
-              <h3 class="font-condensed text-[10px] font-bold uppercase tracking-wider text-slate-400">Thời gian ca trực</h3>
+              <h3 class="font-condensed text-[10px] font-bold uppercase tracking-wider text-slate-400">Thời gian thực hiện</h3>
               ${statusBadge(detail.status)}
             </div>
             <div class="space-y-1">
@@ -209,7 +209,7 @@
       if (requestId === state.detailRequestId) {
         const message = error?.code === 'PGRST202' || /schema cache|could not find the function/i.test(error?.message || '')
           ? 'Cơ sở dữ liệu chưa có RPC chi tiết lịch. Hãy chạy migration public_engineer_schedule_monthly_details.'
-          : 'Không tải được chi tiết ca. Hãy kiểm tra kết nối rồi thử lại.';
+          : 'Không tải được chi tiết task. Hãy kiểm tra kết nối rồi thử lại.';
         $('detail-content').innerHTML = `<p role="alert" class="rounded-xl bg-rose-50 px-3 py-3 text-xs text-rose-700">${escapeHtml(message)}</p>`;
       }
     }
@@ -493,7 +493,7 @@
       container.className = `${visibilityClass} border-t border-slate-200/80 bg-white`;
       container.innerHTML = `
         <div class="py-8 px-4 text-center">
-          <p class="text-xs font-semibold text-slate-500">Chưa có ca trực nào trong ${monthLabel(state.month)}.</p>
+          <p class="text-xs font-semibold text-slate-500">Chưa có task nào trong ${monthLabel(state.month)}.</p>
         </div>
       `;
       return;
@@ -510,8 +510,8 @@
     container.className = `${visibilityClass} border-t border-slate-200/80 bg-white`;
     container.innerHTML = `
       <div class="px-4 py-2.5 bg-slate-50/70 border-b border-slate-100 flex items-center justify-between">
-        <span class="font-condensed text-xs font-bold uppercase tracking-wider text-slate-700">Danh sách chi tiết lịch trực trong tháng</span>
-        <span class="font-condensed text-xs font-bold text-slate-900">${sorted.length} ca</span>
+        <span class="font-condensed text-xs font-bold uppercase tracking-wider text-slate-700">Danh sách chi tiết task trong tháng</span>
+        <span class="font-condensed text-xs font-bold text-slate-900">${sorted.length} task</span>
       </div>
       <div class="divide-y divide-slate-100">
         ${Object.keys(grouped).map((dateStr) => {
@@ -530,7 +530,7 @@
                 ${items.map((row) => {
                   const isMulti = row.end_date && row.end_date !== row.booking_date;
                   const detail = state.detailsByBookingId.get(row.booking_id);
-                  const title = row.work_title || detail?.work_title || 'Ca làm việc';
+                  const title = row.work_title || detail?.work_title || 'Task làm việc';
                   const loc = row.work_location || detail?.work_location || '';
                   const sTime = row.start_time || detail?.start_time;
                   const eTime = row.end_time || detail?.end_time;

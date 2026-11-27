@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
-  <title>K-Workspace | Hệ thống điều phối kỹ sư</title>
+  <title>K-Workspace | Quản lý task &amp; Lịch kỹ sư</title>
   <link rel="icon" type="image/png" sizes="192x192" href="images/icon-192.png">
   <link rel="icon" type="image/png" sizes="32x32" href="images/favicon.png">
 
@@ -362,7 +362,7 @@
         <h1 class="text-sm font-bold font-display tracking-tight text-slate-900">K-Workspace</h1>
       </div>
       
-      <p class="text-[11px] text-slate-500 font-medium">Hệ thống điều phối & kỹ thuật</p>
+      <p class="text-[11px] text-slate-500 font-medium">Quản lý task &amp; lịch kỹ sư</p>
 
       <div class="w-32 h-1 bg-slate-100 rounded-full mt-5 overflow-hidden relative">
         <div class="h-full bg-slate-900 rounded-full w-2/3 animate-pulse"></div>
@@ -406,7 +406,7 @@
             <img src="images/logo-full.png" alt="Phúc Sinh Consumer - K-Workspace" class="h-8 w-auto max-w-[140px] object-contain group-hover:opacity-90 transition-opacity">
           </div>
           <div id="sidebar-quick-booking-card" class="flex-shrink-0">
-            <button onclick="BookingUI.openBookingModal()" type="button" class="w-8 h-8 rounded-full bg-white hover:bg-slate-900 text-slate-600 hover:text-white shadow-2xs flex items-center justify-center transition-all active:scale-95 cursor-pointer" title="Đặt lịch nhanh" aria-label="Đặt lịch nhanh">
+            <button onclick="BookingUI.openBookingModal()" type="button" class="w-8 h-8 rounded-full bg-white hover:bg-slate-900 text-slate-600 hover:text-white shadow-2xs flex items-center justify-center transition-all active:scale-95 cursor-pointer" title="Tạo task mới" aria-label="Tạo task mới">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
             </button>
           </div>
@@ -423,11 +423,11 @@
             <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
           </button>
 
-          <!-- Tab 1: Lịch trực -->
+          <!-- Tab 1: Lịch làm việc -->
           <button onclick="BookingUI.switchTab('timeline')" data-tab="timeline" id="sidebar-tab-timeline" class="booking-nav-tab w-full text-left px-3.5 py-2 rounded-full text-[13px] font-medium text-slate-600 hover:text-slate-900 hover:bg-white/60 flex items-center justify-between transition-all cursor-pointer">
             <div class="flex items-center gap-2.5">
               <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-              <span>Lịch trực</span>
+              <span>Lịch làm việc</span>
             </div>
           </button>
 
@@ -440,11 +440,11 @@
             <span id="sidebar-pending-badge" class="px-1.5 py-0.5 rounded-full text-[10px] font-semibold font-display bg-amber-100/90 text-amber-800 flex-shrink-0 ml-2 hidden">0</span>
           </button>
 
-          <!-- Tab 3: Lịch điều phối -->
+          <!-- Tab 3: Danh sách task -->
           <button onclick="BookingUI.switchTab('my-bookings')" data-tab="my-bookings" id="sidebar-tab-my-bookings" class="booking-nav-tab w-full text-left px-3.5 py-2 rounded-full text-[13px] font-medium text-slate-600 hover:text-slate-900 hover:bg-white/60 flex items-center justify-between transition-all cursor-pointer">
             <div class="flex items-center gap-2.5">
               <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
-              <span id="tab-my-bookings-label">Lịch điều phối</span>
+              <span id="tab-my-bookings-label">Danh sách task</span>
             </div>
             <span id="sidebar-my-bookings-badge" class="text-[11px] font-semibold font-display tabular-nums text-slate-400 hidden">0</span>
           </button>
@@ -597,7 +597,7 @@
 
               <div class="p-2.5 bg-[#f7f8fa] border-t border-slate-100 text-center">
                 <button id="btn-view-all-notifications" class="text-xs font-medium text-slate-600 hover:text-slate-900 transition-colors inline-flex items-center gap-1 cursor-pointer">
-                  <span>Xem lịch sử điều phối</span>
+                  <span>Xem lịch sử task &amp; yêu cầu</span>
                   <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
                 </button>
               </div>
@@ -701,9 +701,9 @@
 
           <!-- Unified Page Title + Subtitle Strip (Inside Top of White Sheet) -->
           <div id="mobile-page-heading-strip">
-            <h1 id="page-main-title" class="text-lg lg:text-[22px] font-semibold font-display text-slate-900 tracking-tight leading-snug">Tổng quan điều phối</h1>
-            <p id="page-main-subtitle" class="text-xs text-slate-500 mt-0.5 leading-relaxed">Theo dõi trực ca &amp; điều phối kỹ thuật theo thời gian thực.</p>
-            <span id="mobile-page-main-title" class="sr-only">Tổng quan điều phối</span>
+            <h1 id="page-main-title" class="text-lg lg:text-[22px] font-semibold font-display text-slate-900 tracking-tight leading-snug">Tổng quan công việc</h1>
+            <p id="page-main-subtitle" class="text-xs text-slate-500 mt-0.5 leading-relaxed">Theo dõi tiến độ task kỹ thuật và yêu cầu hỗ trợ theo thời gian thực.</p>
+            <span id="mobile-page-main-title" class="sr-only">Tổng quan công việc</span>
             <div class="lg:hidden flex items-center gap-1.5 text-[11px] font-medium text-slate-400 leading-none mt-1.5">
               <span id="mobile-sync-dot" class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse flex-shrink-0"></span>
               <span id="mobile-sync-label">Đồng bộ trực tiếp</span>
@@ -721,10 +721,10 @@
             <!-- Top 4 Editorial Split-Line KPIs with Micro Visuals -->
             <div class="border-y border-slate-100 -mx-4 sm:-mx-6 grid grid-cols-2 lg:grid-cols-4 [&>*:nth-child(odd)]:border-r [&>*:nth-child(-n+2)]:border-b lg:[&>*:nth-child(-n+2)]:border-b-0 lg:[&>*:not(:last-child)]:border-r [&>*]:border-slate-100">
 
-              <!-- KPI 1: Kỹ sư trực chiến (Tonal Progress + Live Roster Subtext) -->
+              <!-- KPI 1: Kỹ sư sẵn sàng (Tonal Progress + Live Roster Subtext) -->
               <div id="overview-card-available" onclick="BookingUI.switchTab('technicians')" class="bg-white hover:bg-slate-50/60 p-4 sm:p-5 transition-colors cursor-pointer group flex flex-col justify-between">
                 <div class="flex items-center justify-between gap-1.5 mb-2.5">
-                  <span id="overview-stat-available-label" class="text-xs font-medium text-slate-500 truncate">Kỹ sư trực chiến</span>
+                  <span id="overview-stat-available-label" class="text-xs font-medium text-slate-500 truncate">Kỹ sư sẵn sàng</span>
                   <svg class="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-600 group-hover:translate-x-0.5 transition-all shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
                 </div>
                 <div class="flex items-center justify-between gap-2">
@@ -751,13 +751,13 @@
                   <p id="overview-stat-pending" class="text-[26px] sm:text-[32px] font-semibold text-slate-900 font-display tabular-nums tracking-tight leading-none">--</p>
                   <span id="overview-pending-smart-pill" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10.5px] font-medium bg-emerald-50 text-emerald-700 whitespace-nowrap">Sạch hàng đợi</span>
                 </div>
-                <p id="overview-stat-pending-sub" class="text-[11px] text-slate-400 mt-3 truncate">Không có đơn tồn đọng</p>
+                <p id="overview-stat-pending-sub" class="text-[11px] text-slate-400 mt-3 truncate">Không có yêu cầu tồn đọng</p>
               </div>
 
-              <!-- KPI 3: Task điều phối (7-Day Mini Sparkline) -->
+              <!-- KPI 3: Task công việc (7-Day Mini Sparkline) -->
               <div id="overview-card-approved" onclick="BookingUI.switchTab('timeline')" class="bg-white hover:bg-slate-50/60 p-4 sm:p-5 transition-colors cursor-pointer group flex flex-col justify-between">
                 <div class="flex items-center justify-between gap-1.5 mb-2.5">
-                  <span id="overview-stat-approved-label" class="text-xs font-medium text-slate-500 truncate">Task điều phối</span>
+                  <span id="overview-stat-approved-label" class="text-xs font-medium text-slate-500 truncate">Task công việc</span>
                   <svg class="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-600 group-hover:translate-x-0.5 transition-all shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
                 </div>
                 <div class="flex items-end justify-between gap-2">
@@ -785,37 +785,37 @@
               </div>
             </div>
 
-            <!-- Middle Section: Pure White Split Columns (Bar Chart & Field Readiness) -->
+            <!-- Middle Section: Pure White Split Columns (Chart & Field Readiness) -->
             <div class="-mx-4 sm:-mx-6 grid grid-cols-1 lg:grid-cols-12 divide-y lg:divide-y-0 lg:divide-x divide-slate-100">
 
-              <!-- Left Column (8 cols on XL / 7 on LG): Monthly Bar Chart directly on White -->
+              <!-- Left Column (8 cols on XL / 7 on LG): Workload Chart directly on White -->
               <div class="lg:col-span-7 xl:col-span-8 px-4 py-4 sm:p-6 flex flex-col justify-between">
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 mb-2">
                   <div>
-                    <p class="text-xs font-medium text-slate-500">Tần suất điều phối</p>
-                    <div class="flex items-center gap-2.5 mt-1">
-                      <h3 id="overview-chart-total-count" class="text-2xl sm:text-[28px] font-semibold font-display tabular-nums tracking-tight text-slate-900 leading-none">-- ca</h3>
-                      <span id="overview-chart-year-badge" class="text-[11px] font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md">Tháng hiện tại</span>
+                    <p class="text-xs font-medium text-slate-500">Khối lượng task làm việc</p>
+                    <div class="flex items-center gap-2.5 mt-1 flex-wrap">
+                      <h3 id="overview-chart-total-count" class="text-2xl sm:text-[28px] font-semibold font-display tabular-nums tracking-tight text-slate-900 leading-none">-- task</h3>
+                      <span id="overview-chart-year-badge" class="text-[11px] font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md">7 ngày qua</span>
                     </div>
                   </div>
 
-                  <!-- Time Range Selector -->
+                  <!-- Time Range Selector: 7 ngày (Cột) / 30 ngày (Line) -->
                   <div id="overview-chart-range-pills" class="inline-flex items-center bg-slate-100/80 rounded-xl p-0.5 text-[11px] font-medium text-slate-500 self-start sm:self-auto">
-                    <button type="button" data-chart-range="3m" onclick="BookingUI.setOverviewChartRange('3m')" class="px-2.5 py-1 rounded-lg hover:text-slate-900 transition-all cursor-pointer">3 tháng</button>
-                    <button type="button" data-chart-range="6m" onclick="BookingUI.setOverviewChartRange('6m')" class="px-2.5 py-1 rounded-lg hover:text-slate-900 transition-all cursor-pointer">6 tháng</button>
-                    <button type="button" data-chart-range="12m" onclick="BookingUI.setOverviewChartRange('12m')" class="px-2.5 py-1 rounded-lg bg-white text-slate-900 font-semibold shadow-2xs transition-all cursor-pointer">Cả năm</button>
+                    <button type="button" data-chart-range="7d" onclick="BookingUI.setOverviewChartRange('7d')" class="px-2.5 py-1 rounded-lg bg-white text-slate-900 font-semibold shadow-2xs transition-all cursor-pointer">7 ngày</button>
+                    <button type="button" data-chart-range="30d" onclick="BookingUI.setOverviewChartRange('30d')" class="px-2.5 py-1 rounded-lg hover:text-slate-900 transition-all cursor-pointer">30 ngày</button>
                   </div>
                 </div>
 
-                <!-- SVG Bar Chart -->
-                <div class="relative w-full pt-4 pb-1">
-                  <svg id="overview-chart-svg" viewBox="0 0 620 165" class="w-full h-40 overflow-visible">
-                    <g id="overview-chart-grid-group">
-                      <line x1="28" y1="132" x2="610" y2="132" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="3 3" />
-                      <line x1="28" y1="90" x2="610" y2="90" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="3 3" />
-                      <line x1="28" y1="48" x2="610" y2="48" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="3 3" />
-                      <line x1="28" y1="10" x2="610" y2="10" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="3 3" />
-                    </g>
+                <!-- Dynamic Full-Width SVG Chart (7d Bar / 30d Line) -->
+                <div id="overview-chart-container" class="relative w-full pt-4 pb-1">
+                  <svg id="overview-chart-svg" viewBox="0 0 720 176" class="block w-full h-44 overflow-visible">
+                    <defs>
+                      <linearGradient id="overviewChartAreaGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stop-color="#10b981" stop-opacity="0.18" />
+                        <stop offset="100%" stop-color="#10b981" stop-opacity="0.01" />
+                      </linearGradient>
+                    </defs>
+                    <g id="overview-chart-grid-group"></g>
                     <g id="overview-chart-bars-group"></g>
                   </svg>
                 </div>
@@ -825,7 +825,7 @@
               <div class="lg:col-span-5 xl:col-span-4 px-4 py-4 sm:p-6 flex flex-col justify-between">
                 <div>
                   <div class="flex items-center justify-between gap-2 mb-1.5">
-                    <span class="text-xs font-medium text-slate-500">Trực ca hiện trường</span>
+                    <span class="text-xs font-medium text-slate-500">Trạng thái hiện trường</span>
                     <span class="inline-flex items-center gap-1.5 text-[11px] font-medium text-emerald-700">
                       <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
                       <span>Đang vận hành</span>
@@ -843,7 +843,7 @@
                         <span class="w-2 h-2 rounded-full bg-rose-500"></span>
                         <span class="text-slate-600">Quá hạn cần chốt</span>
                       </div>
-                      <span id="overview-legend-overdue" class="font-semibold text-slate-900 font-display tabular-nums">-- ca</span>
+                      <span id="overview-legend-overdue" class="font-semibold text-slate-900 font-display tabular-nums">-- task</span>
                     </div>
 
                     <div class="flex items-center justify-between py-2.5">
@@ -851,13 +851,13 @@
                         <span class="w-2 h-2 rounded-full bg-amber-400"></span>
                         <span class="text-slate-600">Chờ Lead duyệt</span>
                       </div>
-                      <span id="overview-legend-pending" class="font-semibold text-slate-900 font-display tabular-nums">-- ca</span>
+                      <span id="overview-legend-pending" class="font-semibold text-slate-900 font-display tabular-nums">-- task</span>
                     </div>
 
                     <div class="flex items-center justify-between py-2.5">
                       <div class="flex items-center gap-2.5">
                         <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-                        <span class="text-slate-600">Sẵn sàng nhận lịch</span>
+                        <span class="text-slate-600">Sẵn sàng nhận task</span>
                       </div>
                       <span id="overview-legend-available" class="font-semibold text-slate-900 font-display tabular-nums">-- kỹ sư</span>
                     </div>
@@ -887,7 +887,7 @@
               <div class="px-4 sm:px-6 pb-3 flex items-center justify-between gap-2">
                 <div class="flex items-center gap-2 min-w-0">
                   <h3 id="overview-shifts-title" class="text-[14px] sm:text-[15px] font-semibold font-display text-slate-900 truncate">
-                    Tín hiệu điều phối
+                    Task &amp; yêu cầu gần đây
                   </h3>
                   <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse flex-shrink-0"></span>
                   <span id="overview-shifts-subtitle" class="hidden sm:inline text-xs text-slate-400 font-normal flex-shrink-0">Trực tiếp</span>
@@ -1393,7 +1393,7 @@
             <div class="px-4 sm:px-5 py-3.5 border-b border-slate-100 flex items-center justify-between">
               <div>
                 <h4 class="text-xs font-semibold text-slate-900">Lịch sử task liên kết</h4>
-                <p class="text-[11px] text-slate-400">Các yêu cầu điều phối do tài khoản này tạo</p>
+                <p class="text-[11px] text-slate-400">Các yêu cầu công việc do tài khoản này tạo</p>
               </div>
               <span id="user-detail-booking-count" class="text-xs font-semibold font-display text-slate-600 bg-slate-100 px-2.5 py-0.5 rounded-full">0 đơn</span>
             </div>
@@ -1638,7 +1638,7 @@
 
               <div>
                 <label class="block text-xs font-medium text-slate-700 mb-1.5">Tên hiển thị người gửi *</label>
-                <input id="email-cfg-sender-name" type="text" placeholder="Hệ thống điều phối K-Workspace" class="w-full text-xs bg-[#f7f8fa] border border-slate-200 rounded-xl p-2.5 text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400">
+                <input id="email-cfg-sender-name" type="text" placeholder="Quản lý Task K-Workspace" class="w-full text-xs bg-[#f7f8fa] border border-slate-200 rounded-xl p-2.5 text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400">
               </div>
             </div>
 
@@ -1767,7 +1767,7 @@
                   <!-- Mock Email Header -->
                   <div class="bg-white rounded-xl p-3 border border-slate-200 shadow-2xs space-y-1">
                     <div class="flex items-center justify-between text-[11px] text-slate-500 pb-1 border-b border-slate-100 gap-2">
-                      <span class="truncate">Từ: <strong id="preview-sender-name-label" class="text-slate-800">Điều phối K-Workspace</strong> &lt;<span id="preview-sender-email-label" class="font-mono">dispatch@k-workspace.vn</span>&gt;</span>
+                      <span class="truncate">Từ: <strong id="preview-sender-name-label" class="text-slate-800">Quản lý Task K-Workspace</strong> &lt;<span id="preview-sender-email-label" class="font-mono">dispatch@k-workspace.vn</span>&gt;</span>
                       <span class="text-[10px] shrink-0">Vừa xong</span>
                     </div>
                     <p id="preview-mock-subject" class="font-semibold text-slate-900 pt-1 text-xs">[Lịch trực] #BK-187897 - Bảo dưỡng hệ thống POS</p>
@@ -1837,43 +1837,40 @@
   <!-- A. CREATE BOOKING MODAL (Responsive Bottom Sheet on Mobile < 640px, Centered Dialog on Desktop) -->
   <div id="booking-modal" onclick="if (event.target === this) BookingUI.closeBookingModal();" class="fixed inset-0 z-50 hidden items-end sm:items-center justify-center bg-slate-900/45 backdrop-blur-sm p-0 sm:p-4 overflow-y-auto">
     <div class="bg-white rounded-t-3xl sm:rounded-2xl border-t sm:border border-slate-200/80 shadow-xl max-w-lg w-full overflow-visible my-0 sm:my-auto">
-      <div class="px-4 pt-2.5 pb-3 sm:p-5 border-b border-slate-100">
+      <div class="px-4 pt-2.5 pb-3 sm:px-6 sm:py-4 border-b border-slate-100">
         <!-- Mobile Pull Handle -->
         <div class="w-10 h-1 bg-slate-300/80 rounded-full mx-auto mb-2.5 sm:hidden"></div>
         <div class="flex items-center justify-between gap-3">
-        <div class="flex items-center gap-2.5 min-w-0">
-          <div class="w-9 h-9 rounded-xl bg-[#f7f8fa] border border-slate-200/80 text-slate-700 flex items-center justify-center shrink-0">
-            <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
+          <div class="flex items-center gap-2.5 min-w-0">
+            <h3 id="booking-modal-title" class="text-base font-semibold font-display text-slate-900 tracking-tight truncate">Tạo task mới</h3>
           </div>
-          <h3 id="booking-modal-title" class="text-base font-semibold text-slate-900 tracking-tight truncate">Tạo yêu cầu đặt lịch</h3>
+          <button onclick="BookingUI.closeBookingModal()" type="button" class="w-8 h-8 rounded-full bg-slate-100/80 hover:bg-slate-200/70 text-slate-500 hover:text-slate-800 flex items-center justify-center transition-colors cursor-pointer shrink-0" title="Đóng" aria-label="Đóng">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
         </div>
-        <button onclick="BookingUI.closeBookingModal()" type="button" class="w-9 h-9 sm:w-8 sm:h-8 rounded-xl bg-[#f7f8fa] hover:bg-slate-100 border border-slate-200/80 text-slate-400 hover:text-slate-700 flex items-center justify-center transition-colors cursor-pointer shrink-0" title="Đóng modal" aria-label="Đóng">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-        </button>
       </div>
-    </div>
 
-      <form id="booking-form" class="p-4 sm:p-5 pb-[max(1rem,env(safe-area-inset-bottom))] flex flex-col gap-3 sm:gap-4">
+      <form id="booking-form" class="p-4 sm:px-6 sm:py-5 pb-[max(1rem,env(safe-area-inset-bottom))] flex flex-col gap-3.5">
         <input id="modal-booking-id" type="hidden">
         <!-- Realtime Conflict Warning Box -->
         <div id="modal-conflict-alert" class="hidden p-3 rounded-xl bg-rose-50/80 border border-rose-200/80 text-rose-700 text-xs flex items-start gap-2.5">
           <svg class="w-4 h-4 text-rose-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
           <div>
-            <span class="font-semibold block">Xung đột lịch</span>
+            <span class="font-semibold block">Trùng lịch</span>
             <p class="leading-relaxed"></p>
           </div>
         </div>
 
         <!-- Unified Technician Selector with Custom Styled Dropdown List -->
         <div id="modal-tech-card" class="flex items-center gap-3.5 transition-all relative">
-          <img id="modal-tech-avatar" src="" alt="" class="w-11 h-11 rounded-full object-cover border border-white shadow-2xs flex-shrink-0 ring-1 ring-slate-200/80">
+          <img id="modal-tech-avatar" src="" alt="" class="w-11 h-11 rounded-full object-cover border border-slate-100 flex-shrink-0">
           <div class="flex-1 min-w-0">
-            <label class="block text-xs font-medium text-slate-700 mb-1.5">Kỹ sư tiếp nhận *</label>
+            <label class="block text-xs font-medium text-slate-700 mb-1.5">Kỹ sư *</label>
 
             <!-- Custom Styled Dropdown Container -->
             <div class="relative" id="modal-tech-dropdown-wrapper">
               <!-- Trigger Button -->
-              <button id="modal-tech-custom-trigger" type="button" class="w-full min-h-11 text-xs font-semibold text-slate-800 bg-[#f7f8fa] hover:bg-white border border-slate-200 hover:border-slate-300 rounded-xl pl-3 pr-8 py-2 text-left cursor-pointer flex items-center justify-between transition-all focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400" aria-expanded="false">
+              <button id="modal-tech-custom-trigger" type="button" class="w-full min-h-10 text-xs font-semibold text-slate-800 bg-slate-50/80 hover:bg-white border border-slate-200/80 hover:border-slate-300 rounded-xl pl-3 pr-8 py-2 text-left cursor-pointer flex items-center justify-between transition-all focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400" aria-expanded="false">
                 <span id="modal-tech-selected-label" class="truncate">Chọn kỹ sư...</span>
                 <svg id="modal-tech-chevron" class="w-4 h-4 text-slate-400 flex-shrink-0 transition-transform duration-200 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
               </button>
@@ -1894,24 +1891,22 @@
         </div>
 
         <!-- Unified Date Range Picker Component -->
-        <div class="relative" id="modal-daterange-picker-wrapper">
+        <div class="relative pt-3 border-t border-slate-100" id="modal-daterange-picker-wrapper">
           <div class="flex items-center justify-between mb-1.5">
-            <label class="block text-xs font-medium text-slate-700">Thời gian thực hiện *</label>
-            <span id="label-modal-duration-tag" class="text-[11px] font-medium text-slate-700 bg-[#f7f8fa] px-2 py-0.5 rounded-md border border-slate-200/80">1 ngày</span>
+            <label class="block text-xs font-medium text-slate-700">Ngày thực hiện *</label>
+            <span id="label-modal-duration-tag" class="text-[11px] font-medium text-slate-600 bg-slate-100/80 px-2 py-0.5 rounded-md">1 ngày</span>
           </div>
 
-          <button id="btn-modal-daterange" type="button" class="w-full bg-[#f7f8fa] hover:bg-white border border-slate-200 hover:border-slate-300 rounded-xl p-3 text-left cursor-pointer flex items-center justify-between gap-3 transition-all focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 group">
-            <div class="flex items-center gap-3 min-w-0">
-              <div class="w-9 h-9 rounded-lg bg-white text-slate-700 flex items-center justify-center flex-shrink-0 border border-slate-200/80 transition-colors">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-              </div>
+          <button id="btn-modal-daterange" type="button" class="w-full bg-slate-50/80 hover:bg-white border border-slate-200/80 hover:border-slate-300 rounded-xl p-2.5 px-3 text-left cursor-pointer flex items-center justify-between gap-3 transition-all focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 group">
+            <div class="flex items-center gap-2.5 min-w-0">
+              <svg class="w-4 h-4 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
               <div class="min-w-0">
                 <div id="label-modal-daterange" class="text-xs font-semibold text-slate-900 transition-colors">--/--/----</div>
-                <div id="sublabel-modal-daterange" class="text-[11px] text-slate-500 truncate mt-0.5">Task 1 ngày • Nhấn để chọn ngày</div>
+                <div id="sublabel-modal-daterange" class="text-[11px] text-slate-400 truncate mt-0.5">Nhấn để chọn ngày</div>
               </div>
             </div>
-            <div class="flex items-center gap-1.5 flex-shrink-0">
-              <span class="hidden sm:inline-block text-[11px] font-medium text-slate-500 group-hover:text-slate-900 transition-colors">Đổi lịch</span>
+            <div class="flex items-center gap-1 flex-shrink-0">
+              <span class="hidden sm:inline-block text-[11px] font-medium text-slate-500 group-hover:text-slate-900 transition-colors">Đổi ngày</span>
               <svg class="w-4 h-4 text-slate-400 group-hover:text-slate-900 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
             </div>
           </button>
@@ -1919,16 +1914,14 @@
           <!-- Hidden inputs for backward compatibility with form submit, validation & conflict checking -->
           <input id="modal-booking-date" type="hidden" required>
           <input id="modal-end-date" type="hidden" required>
-          <!-- Hidden fallback elements to prevent any null reference errors -->
           <span id="label-modal-start-date" class="hidden"></span>
           <span id="label-modal-end-date" class="hidden"></span>
 
           <!-- Floating Custom Date Picker Dropdown Popover -->
           <div id="modal-datepicker-dropdown" onclick="event.stopPropagation()" class="hidden absolute left-0 right-0 top-full mt-2 bg-white rounded-2xl border border-slate-200/90 shadow-xl z-50 p-4 transform transition-all duration-200 origin-top">
-            <!-- Popover Header: Context Badge & Month-Year Navigation -->
             <div class="flex items-center justify-between pb-3 border-b border-slate-100">
               <div class="flex items-center gap-2">
-                <span id="datepicker-target-badge" class="px-2 py-0.5 rounded-md text-[10px] font-medium bg-[#f7f8fa] text-slate-700 border border-slate-200/80">Chọn ngày</span>
+                <span id="datepicker-target-badge" class="px-2 py-0.5 rounded-md text-[10px] font-medium bg-slate-100 text-slate-700">Chọn ngày</span>
                 <span id="datepicker-month-year" class="text-xs font-semibold text-slate-900">Tháng 11, 2026</span>
               </div>
               <div class="flex items-center gap-1">
@@ -1941,35 +1934,23 @@
               </div>
             </div>
 
-            <!-- Smart Dynamic Instruction Banner -->
-            <div id="datepicker-instruction-banner" class="mt-2.5 px-3 py-1.5 rounded-xl bg-[#f7f8fa] border border-slate-200/80 text-[11px] text-slate-600 flex items-center gap-2">
+            <div id="datepicker-instruction-banner" class="mt-2.5 px-3 py-1.5 rounded-xl bg-slate-50 text-[11px] text-slate-600 flex items-center gap-2">
               <span id="datepicker-instruction-dot" class="w-1.5 h-1.5 rounded-full bg-slate-900 flex-shrink-0"></span>
-              <span id="datepicker-instruction-text" class="truncate font-medium">Chọn 1 ngày, hoặc nhấn ngày thứ 2 cho ca liên ngày.</span>
+              <span id="datepicker-instruction-text" class="truncate font-medium">Chọn 1 ngày hoặc nhấn ngày thứ 2 cho task nhiều ngày.</span>
             </div>
 
-            <!-- Weekday Headers -->
             <div class="grid grid-cols-7 text-center text-[10px] font-medium text-slate-400 py-2">
-              <div>T2</div>
-              <div>T3</div>
-              <div>T4</div>
-              <div>T5</div>
-              <div>T6</div>
-              <div>T7</div>
-              <div>CN</div>
+              <div>T2</div><div>T3</div><div>T4</div><div>T5</div><div>T6</div><div>T7</div><div>CN</div>
             </div>
 
-            <!-- Calendar Days Grid (7 Columns) -->
-            <div id="datepicker-days-grid" class="grid grid-cols-7 gap-1 text-xs" onmouseleave="BookingUI.handleDatePickerMouseLeave()">
-              <!-- Rendered via JS -->
-            </div>
+            <div id="datepicker-days-grid" class="grid grid-cols-7 gap-1 text-xs" onmouseleave="BookingUI.handleDatePickerMouseLeave()"></div>
 
-            <!-- Footer: Quick Shortcut Pills & Done Action -->
             <div class="pt-3 mt-3 border-t border-slate-100 flex items-center justify-between gap-2 flex-wrap">
               <div class="flex items-center gap-1 flex-wrap">
-                <button type="button" onclick="BookingUI.setDatePickerQuick('today')" class="px-2.5 py-1 rounded-lg bg-[#f7f8fa] hover:bg-slate-100 border border-slate-200/75 text-slate-700 text-[11px] font-medium transition-colors cursor-pointer">Hôm nay</button>
-                <button type="button" onclick="BookingUI.setDatePickerQuick('tomorrow')" class="px-2.5 py-1 rounded-lg bg-[#f7f8fa] hover:bg-slate-100 border border-slate-200/75 text-slate-700 text-[11px] font-medium transition-colors cursor-pointer">Ngày mai</button>
-                <button type="button" onclick="BookingUI.setDatePickerQuick('plus3')" class="px-2.5 py-1 rounded-lg bg-[#f7f8fa] hover:bg-slate-100 border border-slate-200/75 text-slate-700 text-[11px] font-medium transition-colors cursor-pointer">3 ngày</button>
-                <button type="button" onclick="BookingUI.setDatePickerQuick('plus7')" class="px-2.5 py-1 rounded-lg bg-[#f7f8fa] hover:bg-slate-100 border border-slate-200/75 text-slate-700 text-[11px] font-medium transition-colors cursor-pointer">1 tuần</button>
+                <button type="button" onclick="BookingUI.setDatePickerQuick('today')" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200/70 text-slate-700 text-[11px] font-medium transition-colors cursor-pointer">Hôm nay</button>
+                <button type="button" onclick="BookingUI.setDatePickerQuick('tomorrow')" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200/70 text-slate-700 text-[11px] font-medium transition-colors cursor-pointer">Ngày mai</button>
+                <button type="button" onclick="BookingUI.setDatePickerQuick('plus3')" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200/70 text-slate-700 text-[11px] font-medium transition-colors cursor-pointer">3 ngày</button>
+                <button type="button" onclick="BookingUI.setDatePickerQuick('plus7')" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200/70 text-slate-700 text-[11px] font-medium transition-colors cursor-pointer">1 tuần</button>
               </div>
               <div class="flex items-center gap-2 ml-auto">
                 <button type="button" onclick="BookingUI.closeCustomDatePicker()" class="px-4 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 active:bg-slate-950 text-white text-[11px] font-semibold shadow-2xs transition-all cursor-pointer">Xong</button>
@@ -1978,63 +1959,64 @@
           </div>
         </div>
 
-        <!-- Working Time Slots (Start Time & End Time) -->
-        <div>
+        <!-- Working Time Slots -->
+        <div class="pt-3 border-t border-slate-100">
           <div class="flex items-center justify-between mb-1.5 flex-wrap gap-1">
             <label class="block text-xs font-medium text-slate-700">Khung giờ *</label>
             <div class="flex items-center gap-1 flex-wrap">
-              <button type="button" onclick="BookingUI.setBookingTimePreset('morning')" class="px-2 py-0.5 rounded-md text-[10px] font-medium bg-[#f7f8fa] hover:bg-slate-100 text-slate-700 border border-slate-200/80 transition-colors cursor-pointer">Sáng (08-12h)</button>
-              <button type="button" onclick="BookingUI.setBookingTimePreset('afternoon')" class="px-2 py-0.5 rounded-md text-[10px] font-medium bg-[#f7f8fa] hover:bg-slate-100 text-slate-700 border border-slate-200/80 transition-colors cursor-pointer">Chiều (13h30-17h30)</button>
-              <button type="button" onclick="BookingUI.setBookingTimePreset('fullday')" class="px-2 py-0.5 rounded-md text-[10px] font-medium bg-[#f7f8fa] hover:bg-slate-100 text-slate-700 border border-slate-200/80 transition-colors cursor-pointer">Cả ngày (08-17h)</button>
+              <button type="button" onclick="BookingUI.setBookingTimePreset('morning')" class="px-2 py-0.5 rounded-md text-[10px] font-medium bg-slate-100 hover:bg-slate-200/70 text-slate-700 transition-colors cursor-pointer">Sáng (08–12h)</button>
+              <button type="button" onclick="BookingUI.setBookingTimePreset('afternoon')" class="px-2 py-0.5 rounded-md text-[10px] font-medium bg-slate-100 hover:bg-slate-200/70 text-slate-700 transition-colors cursor-pointer">Chiều (13h30–17h30)</button>
+              <button type="button" onclick="BookingUI.setBookingTimePreset('fullday')" class="px-2 py-0.5 rounded-md text-[10px] font-medium bg-slate-100 hover:bg-slate-200/70 text-slate-700 transition-colors cursor-pointer">Cả ngày (08–17h)</button>
             </div>
           </div>
           <div class="grid grid-cols-2 gap-3">
             <div>
-              <label for="modal-start-time" class="block text-[11px] font-medium text-slate-500 mb-1">Giờ bắt đầu</label>
-              <input id="modal-start-time" type="time" required value="08:00" class="w-full text-xs bg-[#f7f8fa] border border-slate-200 rounded-xl p-2.5 text-slate-800 font-mono focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400">
+              <label for="modal-start-time" class="block text-[11px] font-medium text-slate-400 mb-1">Bắt đầu</label>
+              <input id="modal-start-time" type="time" required value="08:00" class="w-full text-xs bg-slate-50/80 border border-slate-200/80 rounded-xl p-2.5 text-slate-800 font-mono focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400">
             </div>
             <div>
-              <label for="modal-end-time" class="block text-[11px] font-medium text-slate-500 mb-1">Giờ kết thúc</label>
-              <input id="modal-end-time" type="time" required value="17:00" class="w-full text-xs bg-[#f7f8fa] border border-slate-200 rounded-xl p-2.5 text-slate-800 font-mono focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400">
+              <label for="modal-end-time" class="block text-[11px] font-medium text-slate-400 mb-1">Kết thúc</label>
+              <input id="modal-end-time" type="time" required value="17:00" class="w-full text-xs bg-slate-50/80 border border-slate-200/80 rounded-xl p-2.5 text-slate-800 font-mono focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400">
             </div>
           </div>
           <div id="modal-time-order-hint" class="hidden text-[10.5px] text-amber-700 bg-amber-50 border border-amber-200/80 px-2.5 py-1.5 rounded-lg mt-1 font-medium flex items-center gap-1"></div>
-          <p class="text-[11px] text-slate-400 mt-1">Có thể đặt nhiều khung giờ không trùng nhau trong ngày.</p>
         </div>
 
-        <div>
-          <div class="flex items-center justify-between mb-1.5">
-            <label class="block text-xs font-medium text-slate-700">Nhiệm vụ / Mục đích *</label>
-            <button type="button" onclick="BookingUI.setBookingTypeQuick('off')" class="px-2 py-0.5 rounded-md text-[10px] font-medium bg-[#f7f8fa] hover:bg-slate-100 text-slate-700 border border-slate-200/80 transition-colors cursor-pointer flex items-center gap-1.5">
-              <span class="w-1.5 h-1.5 rounded-full bg-slate-500"></span>
-              <span>Nghỉ phép (OFF)</span>
-            </button>
+        <div class="pt-3 border-t border-slate-100 space-y-3">
+          <div>
+            <div class="flex items-center justify-between mb-1.5">
+              <label class="block text-xs font-medium text-slate-700">Nội dung task *</label>
+              <button type="button" onclick="BookingUI.setBookingTypeQuick('off')" class="px-2 py-0.5 rounded-md text-[10px] font-medium bg-slate-100 hover:bg-slate-200/70 text-slate-700 transition-colors cursor-pointer flex items-center gap-1.5">
+                <span class="w-1.5 h-1.5 rounded-full bg-slate-500"></span>
+                <span>Nghỉ phép (OFF)</span>
+              </button>
+            </div>
+            <input id="modal-title" type="text" required placeholder="VD: Bảo trì mạng, setup POS..." class="w-full text-xs bg-slate-50/80 border border-slate-200/80 rounded-xl p-2.5 text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400">
           </div>
-          <input id="modal-title" type="text" required placeholder="VD: Bảo trì mạng, setup POS..." class="w-full text-xs bg-[#f7f8fa] border border-slate-200 rounded-xl p-2.5 text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400">
-        </div>
 
-        <div>
-          <label class="block text-xs font-medium text-slate-700 mb-1.5">Địa điểm thực hiện *</label>
-          <input id="modal-location" type="text" required placeholder="VD: 45 Lê Duẩn, Q.1" class="w-full text-xs bg-[#f7f8fa] border border-slate-200 rounded-xl p-2.5 text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400">
-        </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-700 mb-1.5">Địa điểm *</label>
+            <input id="modal-location" type="text" required placeholder="VD: 45 Lê Duẩn, Q.1" class="w-full text-xs bg-slate-50/80 border border-slate-200/80 rounded-xl p-2.5 text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400">
+          </div>
 
-        <div>
-          <label for="modal-notes" class="sr-only">Ghi chú công việc</label>
-          <textarea id="modal-notes" rows="2" aria-label="Ghi chú công việc" placeholder="Ghi chú thêm (không bắt buộc)" class="w-full text-xs bg-[#f7f8fa] border border-slate-200 rounded-xl p-2.5 text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400"></textarea>
+          <div>
+            <label for="modal-notes" class="sr-only">Ghi chú</label>
+            <textarea id="modal-notes" rows="2" aria-label="Ghi chú" placeholder="Ghi chú thêm (không bắt buộc)" class="w-full text-xs bg-slate-50/80 border border-slate-200/80 rounded-xl p-2.5 text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400"></textarea>
+          </div>
         </div>
 
         <!-- Option: Bắt đầu làm việc ngay -->
         <div id="booking-modal-immediate-container" class="p-3 rounded-xl bg-emerald-50/60 border border-emerald-200/80 flex items-center justify-between gap-3">
           <label for="modal-start-immediately" class="flex items-center gap-2.5 cursor-pointer select-none">
             <input type="checkbox" id="modal-start-immediately" class="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300">
-            <span class="text-xs font-medium text-emerald-900">Bắt đầu task ngay</span>
+            <span class="text-xs font-medium text-emerald-900">Bắt đầu ngay</span>
           </label>
           <span class="text-[10px] font-medium text-emerald-700 bg-white px-2 py-0.5 rounded-md border border-emerald-200/80">Đang thực hiện</span>
         </div>
 
-        <div class="grid grid-cols-2 sm:flex sm:items-center sm:justify-end gap-2 sm:gap-3 pt-2.5 sm:pt-3 border-t border-slate-100">
-          <button type="button" onclick="BookingUI.closeBookingModal()" class="w-full sm:w-auto h-11 sm:h-10 px-4 rounded-xl text-xs font-medium bg-[#f7f8fa] hover:bg-slate-100 border border-slate-200/80 text-slate-700 transition-colors flex items-center justify-center cursor-pointer">Hủy</button>
-          <button type="submit" class="w-full sm:w-auto h-11 sm:h-10 px-4 sm:px-5 rounded-xl bg-slate-900 hover:bg-slate-800 active:bg-slate-950 text-white text-xs font-semibold shadow-2xs transition-all flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap">
+        <div class="grid grid-cols-2 sm:flex sm:items-center sm:justify-end gap-2 pt-3 border-t border-slate-100">
+          <button type="button" onclick="BookingUI.closeBookingModal()" class="w-full sm:w-auto h-10 sm:h-9 px-4 rounded-xl text-xs font-medium bg-slate-100/80 hover:bg-slate-200/70 text-slate-700 transition-colors flex items-center justify-center cursor-pointer whitespace-nowrap">Hủy</button>
+          <button type="submit" class="w-full sm:w-auto h-10 sm:h-9 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 active:bg-slate-950 text-white text-xs font-semibold shadow-2xs transition-all flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap">
             <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
             <span id="booking-modal-submit-text">Gửi yêu cầu</span>
           </button>
@@ -2048,11 +2030,11 @@
     <div class="relative bg-white rounded-t-3xl sm:rounded-2xl border-t sm:border border-slate-200/80 shadow-xl max-w-xl sm:max-w-[620px] w-full overflow-visible px-4 pt-2.5 pb-[max(1rem,env(safe-area-inset-bottom))] sm:p-6 my-0 sm:my-auto max-h-[92dvh] sm:max-h-none overflow-y-auto sm:overflow-visible">
       <!-- Mobile Pull Handle -->
       <div class="w-10 h-1 bg-slate-300/80 rounded-full mx-auto mb-2.5 sm:hidden"></div>
-      <button onclick="BookingUI.closeDetailModal()" type="button" class="absolute top-3.5 right-3.5 sm:top-4 sm:right-4 w-9 h-9 sm:w-8 sm:h-8 rounded-xl bg-[#f7f8fa] hover:bg-slate-100 border border-slate-200/80 text-slate-400 hover:text-slate-700 flex items-center justify-center transition-colors cursor-pointer z-10" title="Đóng modal" aria-label="Đóng">
+      <button onclick="BookingUI.closeDetailModal()" type="button" class="absolute top-3.5 right-3.5 sm:top-5 sm:right-5 w-8 h-8 rounded-full bg-slate-100/80 hover:bg-slate-200/70 text-slate-500 hover:text-slate-800 flex items-center justify-center transition-colors cursor-pointer z-10" title="Đóng" aria-label="Đóng">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
       </button>
       <div id="detail-modal-content"></div>
-      <div id="detail-modal-footer" class="mt-4 sm:mt-5 pt-3.5 border-t border-slate-100">
+      <div id="detail-modal-footer" class="pt-3.5 border-t border-slate-100">
         <!-- Rendered dynamically via JS based on status and role -->
       </div>
     </div>
@@ -2060,20 +2042,33 @@
 
   <!-- C. MODULAR TOOL PREVIEW MODAL -->
   <div id="tool-preview-modal" onclick="if (event.target === this) App.closeToolPreview();" class="fixed inset-0 z-50 hidden items-end sm:items-center justify-center bg-slate-900/45 backdrop-blur-sm p-0 sm:p-4 overflow-y-auto">
-    <div class="relative bg-white rounded-t-3xl sm:rounded-2xl border-t sm:border border-slate-200/80 shadow-xl max-w-md w-full overflow-hidden px-5 pt-2.5 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:p-6 text-center my-0 sm:my-auto">
-      <div class="w-10 h-1 bg-slate-300/80 rounded-full mx-auto mb-3.5 sm:hidden"></div>
-      <div id="preview-tool-icon-container" class="w-14 h-14 rounded-2xl bg-[#f7f8fa] border border-slate-200/80 flex items-center justify-center mx-auto mb-3 shadow-2xs">
-        <svg class="w-7 h-7 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
-      </div>
-      <span id="preview-tool-badge" class="px-2.5 py-0.5 rounded-md text-[11px] font-medium bg-amber-50 text-amber-700 border border-amber-200/80">
-        Sắp ra mắt
-      </span>
-      <h3 id="preview-tool-title" class="text-base font-semibold font-display text-slate-900 mt-2.5 mb-1.5">Tên công cụ</h3>
-      <p id="preview-tool-desc" class="text-xs text-slate-500 leading-relaxed max-w-sm mx-auto mb-5">Mô tả công cụ</p>
-
-      <button type="button" onclick="App.closeToolPreview()" class="w-full h-11 sm:h-10 rounded-xl bg-slate-900 hover:bg-slate-800 active:bg-slate-950 text-white text-xs font-semibold shadow-2xs transition-all cursor-pointer">
-        Đã hiểu
+    <div class="relative bg-white rounded-t-3xl sm:rounded-2xl border-t sm:border border-slate-200/80 shadow-xl max-w-md w-full overflow-hidden px-4 pt-2.5 pb-[max(1rem,env(safe-area-inset-bottom))] sm:p-6 my-0 sm:my-auto">
+      <div class="w-10 h-1 bg-slate-300/80 rounded-full mx-auto mb-2.5 sm:hidden"></div>
+      <button onclick="App.closeToolPreview()" type="button" class="absolute top-3.5 right-3.5 sm:top-5 sm:right-5 w-8 h-8 rounded-full bg-slate-100/80 hover:bg-slate-200/70 text-slate-500 hover:text-slate-800 flex items-center justify-center transition-colors cursor-pointer z-10" title="Đóng" aria-label="Đóng">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
       </button>
+
+      <div class="pb-4 border-b border-slate-100 flex items-start gap-3 pr-10">
+        <div id="preview-tool-icon-container" class="w-10 h-10 rounded-full bg-slate-100/80 text-slate-700 flex items-center justify-center shrink-0">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+        </div>
+        <div class="min-w-0">
+          <span id="preview-tool-badge" class="inline-flex px-2 py-0.5 rounded-md text-[10.5px] font-medium bg-amber-50 text-amber-700">
+            Sắp ra mắt
+          </span>
+          <h3 id="preview-tool-title" class="text-base sm:text-lg font-semibold font-display text-slate-900 mt-1 leading-snug tracking-tight">Tên công cụ</h3>
+        </div>
+      </div>
+
+      <div class="py-4">
+        <p id="preview-tool-desc" class="text-xs text-slate-600 leading-relaxed">Mô tả công cụ</p>
+      </div>
+
+      <div class="pt-3.5 border-t border-slate-100 flex justify-end">
+        <button type="button" onclick="App.closeToolPreview()" class="w-full sm:w-auto h-10 sm:h-9 px-5 rounded-xl bg-slate-900 hover:bg-slate-800 active:bg-slate-950 text-white text-xs font-semibold shadow-2xs transition-all cursor-pointer">
+          Đã hiểu
+        </button>
+      </div>
     </div>
   </div>
 
@@ -2081,178 +2076,156 @@
   <!-- D. SIGNATURE COMPANY PICKER MODAL (POPUP CHỌN CÔNG TY)    -->
   <!-- ======================================================== -->
   <div id="signature-picker-modal" class="fixed inset-0 z-50 hidden items-end sm:items-center justify-center bg-slate-900/45 backdrop-blur-sm p-0 sm:p-4 overflow-y-auto" onclick="if (event.target === this) App.closeSignaturePicker();">
-    <div class="bg-white rounded-t-3xl sm:rounded-2xl border-t sm:border border-slate-200/80 shadow-xl max-w-md sm:max-w-2xl w-full overflow-hidden my-0 sm:my-auto max-h-[88dvh] sm:max-h-[82vh] flex flex-col">
-      
-      <!-- Modal Header -->
-      <div class="px-4 pt-2.5 pb-3 sm:px-5 sm:py-4 border-b border-slate-100 bg-white flex-shrink-0">
+    <div class="relative bg-white rounded-t-3xl sm:rounded-2xl border-t sm:border border-slate-200/80 shadow-xl max-w-xl sm:max-w-[620px] w-full overflow-hidden my-0 sm:my-auto max-h-[90dvh] sm:max-h-[84vh] flex flex-col">
+      <!-- Mobile Pull Handle + Top Header -->
+      <div class="px-4 pt-2.5 pb-3.5 sm:px-6 sm:pt-5 sm:pb-4 border-b border-slate-100 bg-white flex-shrink-0 relative">
         <div class="w-10 h-1 bg-slate-300/80 rounded-full mx-auto mb-2.5 sm:hidden"></div>
-        <div class="flex items-center justify-between gap-3">
-        <div class="flex items-center gap-2.5 min-w-0">
-          <div class="w-8 h-8 rounded-xl bg-[#f7f8fa] border border-slate-200/80 text-slate-700 flex items-center justify-center flex-shrink-0">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
-          </div>
-          <div class="min-w-0">
-            <h3 class="text-sm font-semibold text-slate-900 tracking-tight truncate">Chọn đơn vị tạo chữ ký</h3>
-            <p class="text-[11px] text-slate-500 truncate">Phúc Sinh Group (8 công ty thành viên)</p>
-          </div>
-        </div>
-
-        <button onclick="App.closeSignaturePicker()" type="button" class="h-9 w-9 sm:h-8 sm:w-8 rounded-xl bg-[#f7f8fa] hover:bg-slate-100 border border-slate-200/80 text-slate-400 hover:text-slate-700 flex items-center justify-center transition-colors cursor-pointer flex-shrink-0" title="Đóng (Esc)" aria-label="Đóng">
+        <button onclick="App.closeSignaturePicker()" type="button" class="absolute top-3.5 right-3.5 sm:top-5 sm:right-5 w-8 h-8 rounded-full bg-slate-100/80 hover:bg-slate-200/70 text-slate-500 hover:text-slate-800 flex items-center justify-center transition-colors cursor-pointer" title="Đóng (Esc)" aria-label="Đóng">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
         </button>
-        </div>
-      </div>
 
-      <!-- Quick Search Bar inside Modal -->
-      <div class="px-4 py-2.5 sm:px-5 bg-white border-b border-slate-100 flex-shrink-0">
-        <div class="relative flex items-center">
+        <div class="pr-10 space-y-1">
+          <h3 class="text-base sm:text-lg font-semibold font-display text-slate-900 leading-snug tracking-tight">Chọn đơn vị tạo chữ ký</h3>
+          <div class="flex items-center gap-2 flex-wrap">
+            <span class="text-[11px] font-medium text-slate-400">Phúc Sinh Group</span>
+            <span class="text-[11px] font-medium text-slate-600 bg-slate-100/80 px-2 py-0.5 rounded-md">8 công ty thành viên</span>
+          </div>
+        </div>
+
+        <!-- Inline Clean Search Bar -->
+        <div class="relative flex items-center mt-3">
           <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
           </div>
-          <input 
-            type="text" 
-            id="modal-signature-search" 
-            oninput="App.filterSignatureCompanies(this.value)" 
-            placeholder="Tìm công ty hoặc chi nhánh..." 
-            class="w-full pl-8 pr-3 py-2 rounded-xl text-xs bg-[#f7f8fa] border border-slate-200 text-slate-800 placeholder-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 transition-all"
+          <input
+            type="text"
+            id="modal-signature-search"
+            oninput="App.filterSignatureCompanies(this.value)"
+            placeholder="Tìm công ty hoặc chi nhánh..."
+            class="w-full h-9 pl-8 pr-3 rounded-xl text-xs bg-slate-50/90 border border-slate-200/80 text-slate-800 placeholder-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 transition-all"
             autocomplete="off"
           >
         </div>
       </div>
 
-      <!-- Modal Body (Compact 8 Companies List) -->
-      <div class="p-3 sm:p-4 overflow-y-auto custom-scrollbar flex-1 bg-[#f7f8fa]">
-        <div id="modal-signature-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+      <!-- Editorial Split-Line Company Rows (Zero Card-in-Card) -->
+      <div class="overflow-y-auto custom-scrollbar flex-1 bg-white">
+        <div id="modal-signature-grid" class="grid grid-cols-1 sm:grid-cols-2">
 
           <!-- 1. Consumer -->
           <div onclick="App.selectSignatureCompany('signature/Chu Ky Mail PHUCSINHCOSUMERS.html')"
                data-search="consumer kcoffee k coffee hang tieu dung phuc sinh consumers"
-               class="signature-company-item group bg-white rounded-xl border border-slate-200/75 p-2.5 hover:border-slate-900 hover:shadow-2xs transition-all cursor-pointer flex items-center gap-3">
-            <div class="w-11 h-11 bg-[#f7f8fa] rounded-lg border border-slate-100 p-1.5 flex items-center justify-center flex-shrink-0">
-              <img src="signature/Logo Phuc Sinh Consumers.png" alt="Phúc Sinh Consumer" class="max-h-full max-w-full object-contain">
-            </div>
+               class="signature-company-item group px-4 py-3 sm:px-6 border-b border-slate-100 sm:odd:border-r hover:bg-slate-50/70 transition-colors cursor-pointer flex items-center gap-3 min-w-0">
+            <img src="signature/Logo Phuc Sinh Consumers.png" alt="Phúc Sinh Consumer" class="w-9 h-9 rounded-full object-contain border border-slate-100 bg-white p-1 flex-shrink-0">
             <div class="min-w-0 flex-1">
               <h4 class="text-[13px] font-semibold text-slate-900 truncate leading-tight">CTCP Hàng Tiêu Dùng</h4>
-              <p class="text-[11px] text-slate-500 truncate mt-0.5">K Coffee • Tiêu dùng</p>
+              <p class="text-[11px] text-slate-400 truncate mt-0.5">K Coffee · Tiêu dùng</p>
             </div>
-            <svg class="w-4 h-4 text-slate-300 group-hover:text-slate-900 flex-shrink-0 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+            <svg class="w-4 h-4 text-slate-300 group-hover:text-slate-700 group-hover:translate-x-0.5 flex-shrink-0 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
           </div>
 
           <!-- 2. Corporation -->
           <div onclick="App.selectSignatureCompany('signature/Chu Ky Mail PHUCSINHCORP.html')"
                data-search="corp phuc sinh corporation tap doan xuat nhap khau tieu commodities"
-               class="signature-company-item group bg-white rounded-xl border border-slate-200/75 p-2.5 hover:border-slate-900 hover:shadow-2xs transition-all cursor-pointer flex items-center gap-3">
-            <div class="w-11 h-11 bg-[#f7f8fa] rounded-lg border border-slate-100 p-1.5 flex items-center justify-center flex-shrink-0">
-              <img src="signature/Logo Phuc Sinh Commodities.png" alt="Phúc Sinh Corporation" class="max-h-full max-w-full object-contain">
-            </div>
+               class="signature-company-item group px-4 py-3 sm:px-6 border-b border-slate-100 sm:odd:border-r hover:bg-slate-50/70 transition-colors cursor-pointer flex items-center gap-3 min-w-0">
+            <img src="signature/Logo Phuc Sinh Commodities.png" alt="Phúc Sinh Corporation" class="w-9 h-9 rounded-full object-contain border border-slate-100 bg-white p-1 flex-shrink-0">
             <div class="min-w-0 flex-1">
               <h4 class="text-[13px] font-semibold text-slate-900 truncate leading-tight">Công ty Cổ phần Phúc Sinh</h4>
-              <p class="text-[11px] text-slate-500 truncate mt-0.5">Tập đoàn • Tiêu XNK</p>
+              <p class="text-[11px] text-slate-400 truncate mt-0.5">Tập đoàn · Tiêu XNK</p>
             </div>
-            <svg class="w-4 h-4 text-slate-300 group-hover:text-slate-900 flex-shrink-0 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+            <svg class="w-4 h-4 text-slate-300 group-hover:text-slate-700 group-hover:translate-x-0.5 flex-shrink-0 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
           </div>
 
           <!-- 3. Coffee Corp -->
           <div onclick="App.selectSignatureCompany('signature/Chu Ky Mail PHUC SINH COFFEE CORP.html')"
                data-search="coffee ca phe phuc sinh coffee corp"
-               class="signature-company-item group bg-white rounded-xl border border-slate-200/75 p-2.5 hover:border-slate-900 hover:shadow-2xs transition-all cursor-pointer flex items-center gap-3">
-            <div class="w-11 h-11 bg-[#f7f8fa] rounded-lg border border-slate-100 p-1.5 flex items-center justify-center flex-shrink-0">
-              <img src="signature/Logo Phuc Sinh Coffee.png" alt="Phúc Sinh Coffee" class="max-h-full max-w-full object-contain">
-            </div>
+               class="signature-company-item group px-4 py-3 sm:px-6 border-b border-slate-100 sm:odd:border-r hover:bg-slate-50/70 transition-colors cursor-pointer flex items-center gap-3 min-w-0">
+            <img src="signature/Logo Phuc Sinh Coffee.png" alt="Phúc Sinh Coffee" class="w-9 h-9 rounded-full object-contain border border-slate-100 bg-white p-1 flex-shrink-0">
             <div class="min-w-0 flex-1">
               <h4 class="text-[13px] font-semibold text-slate-900 truncate leading-tight">CTCP Cà Phê Phúc Sinh</h4>
-              <p class="text-[11px] text-slate-500 truncate mt-0.5">Sản xuất cà phê</p>
+              <p class="text-[11px] text-slate-400 truncate mt-0.5">Sản xuất cà phê</p>
             </div>
-            <svg class="w-4 h-4 text-slate-300 group-hover:text-slate-900 flex-shrink-0 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+            <svg class="w-4 h-4 text-slate-300 group-hover:text-slate-700 group-hover:translate-x-0.5 flex-shrink-0 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
           </div>
 
           <!-- 4. Coffee Essence -->
           <div onclick="App.selectSignatureCompany('signature/Chu Ky Mail PHUCSINHCOFFEEESSENCECORP.html')"
                data-search="essence tinh chat ca phe hoa tan ps coffee essence"
-               class="signature-company-item group bg-white rounded-xl border border-slate-200/75 p-2.5 hover:border-slate-900 hover:shadow-2xs transition-all cursor-pointer flex items-center gap-3">
-            <div class="w-11 h-11 bg-[#f7f8fa] rounded-lg border border-slate-100 p-1.5 flex items-center justify-center flex-shrink-0">
-              <img src="signature/Logo PS COFFEE ESSENCE.png" alt="PS Coffee Essence" class="max-h-full max-w-full object-contain">
-            </div>
+               class="signature-company-item group px-4 py-3 sm:px-6 border-b border-slate-100 sm:odd:border-r hover:bg-slate-50/70 transition-colors cursor-pointer flex items-center gap-3 min-w-0">
+            <img src="signature/Logo PS COFFEE ESSENCE.png" alt="PS Coffee Essence" class="w-9 h-9 rounded-full object-contain border border-slate-100 bg-white p-1 flex-shrink-0">
             <div class="min-w-0 flex-1">
               <h4 class="text-[13px] font-semibold text-slate-900 truncate leading-tight">CTCP Tinh Chất Cà Phê</h4>
-              <p class="text-[11px] text-slate-500 truncate mt-0.5">Tinh chất cà phê</p>
+              <p class="text-[11px] text-slate-400 truncate mt-0.5">Tinh chất cà phê</p>
             </div>
-            <svg class="w-4 h-4 text-slate-300 group-hover:text-slate-900 flex-shrink-0 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+            <svg class="w-4 h-4 text-slate-300 group-hover:text-slate-700 group-hover:translate-x-0.5 flex-shrink-0 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
           </div>
 
           <!-- 5. Dak Lak -->
           <div onclick="App.selectSignatureCompany('signature/Chu Ky Mail PHUCSINHDAKLAK.html')"
                data-search="dak lak daklak phuc sinh dak lak chi nhanh"
-               class="signature-company-item group bg-white rounded-xl border border-slate-200/75 p-2.5 hover:border-slate-900 hover:shadow-2xs transition-all cursor-pointer flex items-center gap-3">
-            <div class="w-11 h-11 bg-[#f7f8fa] rounded-lg border border-slate-100 p-1.5 flex items-center justify-center flex-shrink-0">
-              <img src="signature/Logo Phuc Sinh Dak Lak.png" alt="Phúc Sinh Đắk Lắk" class="max-h-full max-w-full object-contain">
-            </div>
+               class="signature-company-item group px-4 py-3 sm:px-6 border-b border-slate-100 sm:odd:border-r hover:bg-slate-50/70 transition-colors cursor-pointer flex items-center gap-3 min-w-0">
+            <img src="signature/Logo Phuc Sinh Dak Lak.png" alt="Phúc Sinh Đắk Lắk" class="w-9 h-9 rounded-full object-contain border border-slate-100 bg-white p-1 flex-shrink-0">
             <div class="min-w-0 flex-1">
               <h4 class="text-[13px] font-semibold text-slate-900 truncate leading-tight">CTCP Phúc Sinh Đắk Lắk</h4>
-              <p class="text-[11px] text-slate-500 truncate mt-0.5">Chi nhánh Đắk Lắk</p>
+              <p class="text-[11px] text-slate-400 truncate mt-0.5">Chi nhánh Đắk Lắk</p>
             </div>
-            <svg class="w-4 h-4 text-slate-300 group-hover:text-slate-900 flex-shrink-0 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+            <svg class="w-4 h-4 text-slate-300 group-hover:text-slate-700 group-hover:translate-x-0.5 flex-shrink-0 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
           </div>
 
           <!-- 6. Dak Nong -->
           <div onclick="App.selectSignatureCompany('signature/Chu Ky Mail PHUC SINH DAK NONG.html')"
                data-search="dak nong daknong phuc sinh dak nong chi nhanh"
-               class="signature-company-item group bg-white rounded-xl border border-slate-200/75 p-2.5 hover:border-slate-900 hover:shadow-2xs transition-all cursor-pointer flex items-center gap-3">
-            <div class="w-11 h-11 bg-[#f7f8fa] rounded-lg border border-slate-100 p-1.5 flex items-center justify-center flex-shrink-0">
-              <img src="signature/Logo Phuc dak nong.png" alt="Phúc Sinh Đắk Nông" class="max-h-full max-w-full object-contain">
-            </div>
+               class="signature-company-item group px-4 py-3 sm:px-6 border-b border-slate-100 sm:odd:border-r hover:bg-slate-50/70 transition-colors cursor-pointer flex items-center gap-3 min-w-0">
+            <img src="signature/Logo Phuc dak nong.png" alt="Phúc Sinh Đắk Nông" class="w-9 h-9 rounded-full object-contain border border-slate-100 bg-white p-1 flex-shrink-0">
             <div class="min-w-0 flex-1">
               <h4 class="text-[13px] font-semibold text-slate-900 truncate leading-tight">CTCP Phúc Sinh Đắk Nông</h4>
-              <p class="text-[11px] text-slate-500 truncate mt-0.5">Chi nhánh Đắk Nông</p>
+              <p class="text-[11px] text-slate-400 truncate mt-0.5">Chi nhánh Đắk Nông</p>
             </div>
-            <svg class="w-4 h-4 text-slate-300 group-hover:text-slate-900 flex-shrink-0 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+            <svg class="w-4 h-4 text-slate-300 group-hover:text-slate-700 group-hover:translate-x-0.5 flex-shrink-0 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
           </div>
 
           <!-- 7. Son La -->
           <div onclick="App.selectSignatureCompany('signature/Chu Ky Mail PHUCSINHSONLA.html')"
                data-search="son la sonla phuc sinh son la arabica tay bac"
-               class="signature-company-item group bg-white rounded-xl border border-slate-200/75 p-2.5 hover:border-slate-900 hover:shadow-2xs transition-all cursor-pointer flex items-center gap-3">
-            <div class="w-11 h-11 bg-[#f7f8fa] rounded-lg border border-slate-100 p-1.5 flex items-center justify-center flex-shrink-0">
-              <img src="signature/Logo Phuc Sinh Son La.png" alt="Phúc Sinh Sơn La" class="max-h-full max-w-full object-contain">
-            </div>
+               class="signature-company-item group px-4 py-3 sm:px-6 border-b border-slate-100 sm:odd:border-r hover:bg-slate-50/70 transition-colors cursor-pointer flex items-center gap-3 min-w-0">
+            <img src="signature/Logo Phuc Sinh Son La.png" alt="Phúc Sinh Sơn La" class="w-9 h-9 rounded-full object-contain border border-slate-100 bg-white p-1 flex-shrink-0">
             <div class="min-w-0 flex-1">
               <h4 class="text-[13px] font-semibold text-slate-900 truncate leading-tight">CTCP Phúc Sinh Sơn La</h4>
-              <p class="text-[11px] text-slate-500 truncate mt-0.5">Nhà máy Sơn La • Arabica</p>
+              <p class="text-[11px] text-slate-400 truncate mt-0.5">Nhà máy Sơn La · Arabica</p>
             </div>
-            <svg class="w-4 h-4 text-slate-300 group-hover:text-slate-900 flex-shrink-0 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+            <svg class="w-4 h-4 text-slate-300 group-hover:text-slate-700 group-hover:translate-x-0.5 flex-shrink-0 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
           </div>
 
           <!-- 8. VietSpices -->
           <div onclick="App.selectSignatureCompany('signature/Chu Ky Mail VietSpices.html')"
                data-search="vietspices viet spices gia vi ho tieu"
-               class="signature-company-item group bg-white rounded-xl border border-slate-200/75 p-2.5 hover:border-slate-900 hover:shadow-2xs transition-all cursor-pointer flex items-center gap-3">
-            <div class="w-11 h-11 bg-[#f7f8fa] rounded-lg border border-slate-100 p-1.5 flex items-center justify-center flex-shrink-0">
-              <img src="signature/Logo Viet Spices.png" alt="VietSpices" class="max-h-full max-w-full object-contain">
-            </div>
+               class="signature-company-item group px-4 py-3 sm:px-6 border-b border-slate-100 sm:odd:border-r hover:bg-slate-50/70 transition-colors cursor-pointer flex items-center gap-3 min-w-0">
+            <img src="signature/Logo Viet Spices.png" alt="VietSpices" class="w-9 h-9 rounded-full object-contain border border-slate-100 bg-white p-1 flex-shrink-0">
             <div class="min-w-0 flex-1">
               <h4 class="text-[13px] font-semibold text-slate-900 truncate leading-tight">CTCP VietSpices</h4>
-              <p class="text-[11px] text-slate-500 truncate mt-0.5">Gia vị &amp; tiêu VietSpices</p>
+              <p class="text-[11px] text-slate-400 truncate mt-0.5">Gia vị &amp; tiêu VietSpices</p>
             </div>
-            <svg class="w-4 h-4 text-slate-300 group-hover:text-slate-900 flex-shrink-0 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+            <svg class="w-4 h-4 text-slate-300 group-hover:text-slate-700 group-hover:translate-x-0.5 flex-shrink-0 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
           </div>
 
         </div>
 
         <!-- Empty State in Modal -->
-        <div id="signature-picker-empty" class="hidden text-center py-8 px-4 bg-white rounded-xl border border-dashed border-slate-200">
+        <div id="signature-picker-empty" class="hidden text-center py-10 px-6">
           <p class="text-xs font-semibold text-slate-700 mb-1">Không tìm thấy công ty phù hợp</p>
           <p class="text-[11px] text-slate-400">Thử từ khóa khác như Consumer, Coffee, Đắk Lắk, Sơn La...</p>
         </div>
       </div>
 
       <!-- Modal Footer -->
-      <div class="px-4 py-3 pb-[max(0.875rem,env(safe-area-inset-bottom))] sm:px-5 sm:py-3 border-t border-slate-100 bg-white grid grid-cols-2 sm:flex sm:items-center sm:justify-between gap-2 text-xs flex-shrink-0">
-        <a href="signature/index.html" class="h-10 sm:h-9 px-3 rounded-xl text-slate-700 hover:text-slate-900 bg-[#f7f8fa] hover:bg-slate-100 border border-slate-200/80 text-xs font-medium flex items-center justify-center transition-colors" title="Mở trang Hub đầy đủ">
-          Mở cổng đầy đủ
-        </a>
-        <button onclick="App.closeSignaturePicker()" type="button" class="h-10 sm:h-9 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold flex items-center justify-center transition-colors cursor-pointer">
+      <div class="px-4 py-3 pb-[max(0.875rem,env(safe-area-inset-bottom))] sm:px-6 sm:py-3.5 border-t border-slate-100 bg-white grid grid-cols-2 sm:flex sm:items-center sm:justify-between gap-2 text-xs flex-shrink-0">
+        <button onclick="App.closeSignaturePicker()" type="button" class="h-10 sm:h-9 px-3.5 rounded-xl bg-slate-100/80 hover:bg-slate-200/70 text-slate-700 text-xs font-medium flex items-center justify-center transition-colors cursor-pointer">
           Đóng
         </button>
+        <a href="signature/index.html" class="h-10 sm:h-9 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 active:bg-slate-950 text-white text-xs font-semibold shadow-2xs flex items-center justify-center gap-1.5 transition-all" title="Mở trang Hub đầy đủ">
+          <span>Mở cổng đầy đủ</span>
+          <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+        </a>
       </div>
 
     </div>
@@ -2261,32 +2234,29 @@
   <!-- E. TECHNICIAN MODAL (ADD / EDIT) -->
   <div id="tech-modal" onclick="if (event.target === this) BookingUI.closeTechModal();" class="fixed inset-0 z-50 hidden items-end sm:items-center justify-center bg-slate-900/45 backdrop-blur-sm p-0 sm:p-4 overflow-y-auto">
     <div class="bg-white rounded-t-3xl sm:rounded-2xl border-t sm:border border-slate-200/80 shadow-xl max-w-lg w-full overflow-hidden my-0 sm:my-auto max-h-[92dvh] flex flex-col">
-      <div class="px-4 pt-2.5 pb-3 sm:p-5 border-b border-slate-100 flex-shrink-0 bg-white">
+      <div class="px-4 pt-2.5 pb-3 sm:px-6 sm:py-4 border-b border-slate-100 flex-shrink-0 bg-white">
         <div class="w-10 h-1 bg-slate-300/80 rounded-full mx-auto mb-2.5 sm:hidden"></div>
         <div class="flex items-center justify-between gap-3">
-        <div class="flex items-center gap-2.5 min-w-0">
-          <div class="w-9 h-9 rounded-xl bg-[#f7f8fa] border border-slate-200/80 text-slate-700 flex items-center justify-center shrink-0">
-            <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+          <div class="flex items-center gap-2.5 min-w-0">
+            <h3 id="tech-modal-title" class="text-base font-semibold font-display text-slate-900 tracking-tight truncate">Thêm kỹ sư</h3>
           </div>
-          <h3 id="tech-modal-title" class="text-base font-semibold text-slate-900 tracking-tight truncate">Thêm mới kỹ sư</h3>
-        </div>
-        <button onclick="BookingUI.closeTechModal()" type="button" class="w-9 h-9 sm:w-8 sm:h-8 rounded-xl bg-[#f7f8fa] hover:bg-slate-100 border border-slate-200/80 text-slate-400 hover:text-slate-700 flex items-center justify-center transition-colors cursor-pointer shrink-0" title="Đóng modal" aria-label="Đóng">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-        </button>
+          <button onclick="BookingUI.closeTechModal()" type="button" class="w-8 h-8 rounded-full bg-slate-100/80 hover:bg-slate-200/70 text-slate-500 hover:text-slate-800 flex items-center justify-center transition-colors cursor-pointer shrink-0" title="Đóng" aria-label="Đóng">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
         </div>
       </div>
 
-      <form id="tech-form" onsubmit="BookingUI.saveTech(event)" class="p-4 sm:p-5 pb-[max(1rem,env(safe-area-inset-bottom))] space-y-4 overflow-y-auto flex-1">
+      <form id="tech-form" onsubmit="BookingUI.saveTech(event)" class="p-4 sm:px-6 sm:py-5 pb-[max(1rem,env(safe-area-inset-bottom))] space-y-3.5 overflow-y-auto flex-1">
         <input type="hidden" id="tech-modal-id" value="">
 
-        <!-- Tech Preview & Avatar Upload -->
-        <div class="p-3.5 bg-[#f7f8fa] rounded-2xl border border-slate-200/75 space-y-2.5">
+        <!-- Tech Preview & Avatar Upload (Pure White Split Row) -->
+        <div class="pb-3.5 border-b border-slate-100 space-y-2.5">
           <div class="flex items-center gap-3">
-            <img id="tech-modal-avatar-preview" src="https://ui-avatars.com/api/?name=%3F&background=f1f5f9&color=94a3b8" alt="Avatar" class="w-14 h-14 rounded-full object-cover border-2 border-white shadow-2xs ring-1 ring-slate-200/80 flex-shrink-0">
+            <img id="tech-modal-avatar-preview" src="https://ui-avatars.com/api/?name=%3F&background=f1f5f9&color=94a3b8" alt="Avatar" class="w-14 h-14 rounded-full object-cover border border-slate-100 flex-shrink-0">
             <div class="flex-1 min-w-0 space-y-1.5">
               <div class="flex items-center gap-2 flex-wrap">
-                <button type="button" onclick="document.getElementById('tech-modal-avatar-file').click()" class="h-8 px-3 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 hover:text-slate-900 text-xs font-medium shadow-2xs flex items-center gap-1.5 transition-all cursor-pointer">
-                  <svg class="w-3.5 h-3.5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                <button type="button" onclick="document.getElementById('tech-modal-avatar-file').click()" class="h-8 px-3 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 hover:text-slate-900 text-xs font-medium inline-flex items-center gap-1.5 transition-colors cursor-pointer">
+                  <svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
                   <span>Tải ảnh</span>
                 </button>
                 <input type="file" id="tech-modal-avatar-file" accept="image/*" class="sr-only" onchange="BookingUI.handleTechAvatarUpload(event)">
@@ -2294,17 +2264,17 @@
                   Xóa ảnh
                 </button>
               </div>
-              <p class="text-[11px] text-slate-400 leading-tight">JPG, PNG, WebP • Tự động nén vuông 256×256.</p>
+              <p class="text-[11px] text-slate-400 leading-tight">JPG, PNG, WebP • Tự động nén 256×256</p>
             </div>
           </div>
           <div>
-            <input id="tech-modal-avatar" oninput="BookingUI.updateTechAvatarPreview(this.value)" type="url" placeholder="Hoặc dán URL ảnh (https://...)" class="w-full text-xs bg-white border border-slate-200 rounded-xl px-2.5 py-1.5 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400">
+            <input id="tech-modal-avatar" oninput="BookingUI.updateTechAvatarPreview(this.value)" type="url" placeholder="Hoặc dán URL ảnh (https://...)" class="w-full text-xs bg-slate-50/80 border border-slate-200/80 rounded-xl px-3 py-2 text-slate-800 placeholder-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400">
           </div>
         </div>
 
         <div>
-          <label class="block text-xs font-medium text-slate-700 mb-1.5">Kỹ sư *</label>
-          <input id="tech-modal-name" type="text" required placeholder="Họ và tên kỹ sư" class="w-full text-xs bg-[#f7f8fa] border border-slate-200 rounded-xl p-2.5 text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400">
+          <label class="block text-xs font-medium text-slate-700 mb-1.5">Họ và tên *</label>
+          <input id="tech-modal-name" type="text" required placeholder="Họ và tên kỹ sư" class="w-full text-xs bg-slate-50/80 border border-slate-200/80 rounded-xl p-2.5 text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400">
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -2313,46 +2283,45 @@
               <label class="block text-xs font-medium text-slate-700">Số điện thoại *</label>
               <span id="tech-modal-phone-badge" class="hidden text-[10px] font-medium px-1.5 py-0.5 rounded-md items-center gap-1"></span>
             </div>
-            <input id="tech-modal-phone" type="tel" required placeholder="Số điện thoại" class="w-full text-xs bg-[#f7f8fa] border border-slate-200 rounded-xl p-2.5 text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400">
+            <input id="tech-modal-phone" type="tel" required placeholder="Số điện thoại" class="w-full text-xs bg-slate-50/80 border border-slate-200/80 rounded-xl p-2.5 text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400">
           </div>
           <div>
             <div class="flex items-center justify-between mb-1.5">
-              <label class="block text-xs font-medium text-slate-700">Email đăng nhập *</label>
+              <label class="block text-xs font-medium text-slate-700">Email *</label>
               <span id="tech-modal-email-badge" class="hidden text-[10px] font-medium px-1.5 py-0.5 rounded-md items-center gap-1"></span>
             </div>
-            <input id="tech-modal-email" type="email" required placeholder="ky.su@company.com" class="w-full text-xs bg-[#f7f8fa] border border-slate-200 rounded-xl p-2.5 text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 font-mono">
+            <input id="tech-modal-email" type="email" required placeholder="ky.su@company.com" class="w-full text-xs bg-slate-50/80 border border-slate-200/80 rounded-xl p-2.5 text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 font-mono">
           </div>
         </div>
         <div id="tech-modal-admin-lock-notice" class="hidden -mt-1 rounded-xl p-2.5 text-[11px] leading-relaxed"></div>
-        <p id="tech-modal-email-desc" class="text-[11px] text-slate-400 -mt-1">Nhận lời mời đăng nhập và lịch Google Calendar.</p>
+        <p id="tech-modal-email-desc" class="text-[11px] text-slate-400 -mt-1">Nhận lời mời đăng nhập và Google Calendar.</p>
 
-        <div>
+        <div class="pt-3 border-t border-slate-100">
           <label class="block text-xs font-medium text-slate-700 mb-1.5">Chuyên môn *</label>
-          <input id="tech-modal-skills" type="text" required placeholder="Kỹ năng chuyên môn (cách bởi dấu phẩy)" class="w-full text-xs bg-[#f7f8fa] border border-slate-200 rounded-xl p-2.5 text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400">
+          <input id="tech-modal-skills" type="text" required placeholder="VD: Network, Cáp quang, Camera AI..." class="w-full text-xs bg-slate-50/80 border border-slate-200/80 rounded-xl p-2.5 text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400">
           <div class="flex flex-wrap gap-1.5 mt-2">
             <span class="text-[11px] text-slate-400 font-medium self-center mr-1">Gợi ý:</span>
-            <button type="button" onclick="BookingUI.addSkillTag('Network')" class="px-2 py-0.5 rounded-md text-[10px] font-medium bg-[#f7f8fa] hover:bg-slate-100 border border-slate-200/80 text-slate-700 transition-colors cursor-pointer">Network</button>
-            <button type="button" onclick="BookingUI.addSkillTag('Cáp quang')" class="px-2 py-0.5 rounded-md text-[10px] font-medium bg-[#f7f8fa] hover:bg-slate-100 border border-slate-200/80 text-slate-700 transition-colors cursor-pointer">Cáp quang</button>
-            <button type="button" onclick="BookingUI.addSkillTag('Camera AI')" class="px-2 py-0.5 rounded-md text-[10px] font-medium bg-[#f7f8fa] hover:bg-slate-100 border border-slate-200/80 text-slate-700 transition-colors cursor-pointer">Camera AI</button>
-            <button type="button" onclick="BookingUI.addSkillTag('Thiết bị POS')" class="px-2 py-0.5 rounded-md text-[10px] font-medium bg-[#f7f8fa] hover:bg-slate-100 border border-slate-200/80 text-slate-700 transition-colors cursor-pointer">POS</button>
-            <button type="button" onclick="BookingUI.addSkillTag('Server Core')" class="px-2 py-0.5 rounded-md text-[10px] font-medium bg-[#f7f8fa] hover:bg-slate-100 border border-slate-200/80 text-slate-700 transition-colors cursor-pointer">Server Core</button>
+            <button type="button" onclick="BookingUI.addSkillTag('Network')" class="px-2 py-0.5 rounded-md text-[10px] font-medium bg-slate-100 hover:bg-slate-200/70 text-slate-700 transition-colors cursor-pointer">Network</button>
+            <button type="button" onclick="BookingUI.addSkillTag('Cáp quang')" class="px-2 py-0.5 rounded-md text-[10px] font-medium bg-slate-100 hover:bg-slate-200/70 text-slate-700 transition-colors cursor-pointer">Cáp quang</button>
+            <button type="button" onclick="BookingUI.addSkillTag('Camera AI')" class="px-2 py-0.5 rounded-md text-[10px] font-medium bg-slate-100 hover:bg-slate-200/70 text-slate-700 transition-colors cursor-pointer">Camera AI</button>
+            <button type="button" onclick="BookingUI.addSkillTag('Thiết bị POS')" class="px-2 py-0.5 rounded-md text-[10px] font-medium bg-slate-100 hover:bg-slate-200/70 text-slate-700 transition-colors cursor-pointer">POS</button>
+            <button type="button" onclick="BookingUI.addSkillTag('Server Core')" class="px-2 py-0.5 rounded-md text-[10px] font-medium bg-slate-100 hover:bg-slate-200/70 text-slate-700 transition-colors cursor-pointer">Server Core</button>
           </div>
         </div>
 
         <div>
-          <label class="block text-xs font-medium text-slate-700 mb-1.5">Mật khẩu khởi tạo (tùy chọn)</label>
-          <input id="tech-modal-password" type="password" autocomplete="new-password" placeholder="Tối thiểu 6 ký tự hoặc để trống" class="w-full text-xs bg-[#f7f8fa] border border-slate-200 rounded-xl p-2.5 text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 font-medium">
-          <p class="text-[11px] text-slate-400 mt-1">Nhập mật khẩu để kỹ sư đăng nhập ngay.</p>
+          <label class="block text-xs font-medium text-slate-700 mb-1.5">Mật khẩu (tùy chọn)</label>
+          <input id="tech-modal-password" type="password" autocomplete="new-password" placeholder="Tối thiểu 6 ký tự hoặc để trống" class="w-full text-xs bg-slate-50/80 border border-slate-200/80 rounded-xl p-2.5 text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 font-medium">
         </div>
 
         <div class="flex items-center gap-2 pt-1">
           <input id="tech-modal-active" type="checkbox" checked class="w-4 h-4 rounded-md text-slate-900 focus:ring-slate-900 border-slate-300">
-          <label for="tech-modal-active" class="text-xs font-medium text-slate-700 cursor-pointer">Sẵn sàng nhận lịch điều phối</label>
+          <label for="tech-modal-active" class="text-xs font-medium text-slate-700 cursor-pointer">Sẵn sàng nhận task làm việc</label>
         </div>
 
-        <div class="grid grid-cols-2 sm:flex sm:items-center sm:justify-end gap-2 sm:gap-3 pt-3 border-t border-slate-100">
-          <button type="button" onclick="BookingUI.closeTechModal()" class="w-full sm:w-auto h-11 sm:h-10 px-4 rounded-xl text-xs font-medium bg-[#f7f8fa] hover:bg-slate-100 border border-slate-200/80 text-slate-700 transition-colors flex items-center justify-center cursor-pointer">Hủy</button>
-          <button id="btn-tech-modal-submit" type="submit" class="w-full sm:w-auto h-11 sm:h-10 px-5 rounded-xl bg-slate-900 hover:bg-slate-800 active:bg-slate-950 text-white text-xs font-semibold shadow-2xs transition-all flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap">
+        <div class="grid grid-cols-2 sm:flex sm:items-center sm:justify-end gap-2 pt-3 border-t border-slate-100">
+          <button type="button" onclick="BookingUI.closeTechModal()" class="w-full sm:w-auto h-10 sm:h-9 px-4 rounded-xl text-xs font-medium bg-slate-100/80 hover:bg-slate-200/70 text-slate-700 transition-colors flex items-center justify-center cursor-pointer whitespace-nowrap">Hủy</button>
+          <button id="btn-tech-modal-submit" type="submit" class="w-full sm:w-auto h-10 sm:h-9 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 active:bg-slate-950 text-white text-xs font-semibold shadow-2xs transition-all flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap">
             <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
             <span id="tech-modal-submit-text">Lưu kỹ sư</span>
           </button>
@@ -2438,7 +2407,7 @@
         <div class="bg-white rounded-2xl border border-slate-200/75 p-5 sm:p-6 shadow-2xs space-y-4">
           <div class="pb-3 border-b border-slate-100">
             <h4 class="text-sm font-semibold text-slate-900">Thông tin cá nhân</h4>
-            <p class="text-[11px] text-slate-500 mt-0.5">Thông tin hiển thị khi phân công và điều phối task</p>
+            <p class="text-[11px] text-slate-500 mt-0.5">Thông tin hiển thị khi phân công và thực hiện task</p>
           </div>
 
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -2594,7 +2563,7 @@
             </span>
             <div class="min-w-0">
               <p class="text-xs font-semibold text-slate-900 leading-tight">Người vận hành (Lead)</p>
-              <p class="text-[11px] text-slate-500">Quyền duyệt &amp; điều phối</p>
+              <p class="text-[11px] text-slate-500">Quyền duyệt &amp; phân công task</p>
             </div>
           </div>
           <span id="bubble-check-approver" class="hidden text-slate-900 flex-shrink-0"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M5 13l4 4L19 7"/></svg></span>
@@ -2719,7 +2688,7 @@
           </button>
           <button id="mobile-tab-timeline" data-tab="timeline" onclick="BookingUI.switchTab('timeline'); App.toggleMobileDrawer(false)" class="booking-nav-tab w-full min-h-[44px] text-left px-3 py-2 rounded-xl text-[13px] font-medium text-slate-600 hover:bg-white/70 hover:text-slate-900 flex items-center gap-2.5 transition-all cursor-pointer">
             <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-            <span>Lịch trực</span>
+            <span>Lịch làm việc</span>
           </button>
           <button id="mobile-tab-approval" data-tab="approval" onclick="BookingUI.switchTab('approval'); App.toggleMobileDrawer(false)" class="booking-nav-tab w-full min-h-[44px] text-left px-3 py-2 rounded-xl text-[13px] font-medium text-slate-600 hover:bg-white/70 hover:text-slate-900 flex items-center gap-2.5 transition-all cursor-pointer">
             <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
@@ -2727,7 +2696,7 @@
           </button>
           <button id="mobile-tab-my-bookings" data-tab="my-bookings" onclick="BookingUI.switchTab('my-bookings'); App.toggleMobileDrawer(false)" class="booking-nav-tab w-full min-h-[44px] text-left px-3 py-2 rounded-xl text-[13px] font-medium text-slate-600 hover:bg-white/70 hover:text-slate-900 flex items-center gap-2.5 transition-all cursor-pointer">
             <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
-            <span>Lịch điều phối</span>
+            <span>Danh sách task</span>
           </button>
           <button id="mobile-tab-technicians" data-tab="technicians" onclick="BookingUI.switchTab('technicians'); App.toggleMobileDrawer(false)" class="booking-nav-tab w-full min-h-[44px] text-left px-3 py-2 rounded-xl text-[13px] font-medium text-slate-600 hover:bg-white/70 hover:text-slate-900 flex items-center gap-2.5 transition-all cursor-pointer">
             <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
@@ -2772,16 +2741,11 @@
     <div class="bg-white rounded-t-3xl sm:rounded-2xl max-w-md w-full px-4 pt-2.5 pb-[max(1rem,env(safe-area-inset-bottom))] sm:p-5 border-t sm:border border-slate-200/80 shadow-xl relative my-0 sm:my-auto">
       <div class="w-10 h-1 bg-slate-300/80 rounded-full mx-auto mb-2.5 sm:hidden"></div>
       <div class="flex items-center justify-between pb-3.5 border-b border-slate-100 mb-4 gap-3">
-        <div class="flex items-center gap-2.5 min-w-0">
-          <span class="w-9 h-9 rounded-xl bg-[#f7f8fa] border border-slate-200/80 text-slate-700 flex items-center justify-center shrink-0">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
-          </span>
-          <div class="min-w-0">
-            <h3 class="text-sm font-semibold text-slate-900 truncate">Gửi email thử nghiệm</h3>
-            <p class="text-[11px] text-slate-500 truncate">Kiểm tra email và lời mời lịch</p>
-          </div>
+        <div class="min-w-0">
+          <h3 class="text-sm font-semibold font-display text-slate-900 truncate">Gửi email thử</h3>
+          <p class="text-[11px] text-slate-500 truncate">Kiểm tra mẫu email và file lịch</p>
         </div>
-        <button onclick="BookingUI.closeSendTestModal()" type="button" class="w-9 h-9 sm:w-8 sm:h-8 rounded-xl bg-[#f7f8fa] hover:bg-slate-100 border border-slate-200/80 text-slate-400 hover:text-slate-700 flex items-center justify-center cursor-pointer transition-colors shrink-0" title="Đóng modal" aria-label="Đóng">
+        <button onclick="BookingUI.closeSendTestModal()" type="button" class="w-8 h-8 rounded-full bg-slate-100/80 hover:bg-slate-200/70 text-slate-500 hover:text-slate-800 flex items-center justify-center cursor-pointer transition-colors shrink-0" title="Đóng" aria-label="Đóng">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
         </button>
       </div>
@@ -2789,7 +2753,7 @@
       <form onsubmit="BookingUI.sendTestEmail(event)" class="space-y-3.5 text-xs">
         <div>
           <label class="block font-medium text-slate-700 mb-1.5">Mẫu email</label>
-          <select id="email-test-template-select" class="w-full bg-[#f7f8fa] border border-slate-200 rounded-xl p-2.5 text-slate-800 font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400">
+          <select id="email-test-template-select" class="w-full bg-slate-50/80 border border-slate-200/80 rounded-xl p-2.5 text-slate-800 font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400">
             <option value="tech_invite">1. Lời mời task cho kỹ sư (.ICS)</option>
             <option value="requester_approved">2. Thông báo duyệt task gửi PM</option>
             <option value="requester_rejected">3. Thông báo từ chối task gửi PM</option>
@@ -2797,16 +2761,16 @@
         </div>
 
         <div>
-          <label class="block font-medium text-slate-700 mb-1.5">Email người nhận thử nghiệm *</label>
-          <input id="email-test-target-email" type="email" required placeholder="your.email@example.com" class="w-full bg-[#f7f8fa] border border-slate-200 rounded-xl p-2.5 text-slate-800 font-mono focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400">
-          <p class="text-[11px] text-slate-400 mt-1">Sử dụng dữ liệu task gần nhất để mô phỏng.</p>
+          <label class="block font-medium text-slate-700 mb-1.5">Email người nhận *</label>
+          <input id="email-test-target-email" type="email" required placeholder="your.email@example.com" class="w-full bg-slate-50/80 border border-slate-200/80 rounded-xl p-2.5 text-slate-800 font-mono focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400">
+          <p class="text-[11px] text-slate-400 mt-1">Dùng dữ liệu task gần nhất để mô phỏng.</p>
         </div>
 
         <div class="pt-3 border-t border-slate-100 grid grid-cols-2 sm:flex sm:items-center sm:justify-end gap-2">
-          <button onclick="BookingUI.closeSendTestModal()" type="button" class="w-full sm:w-auto h-11 sm:h-9 px-3.5 rounded-xl text-xs font-medium bg-[#f7f8fa] hover:bg-slate-100 border border-slate-200/80 text-slate-700 transition-colors flex items-center justify-center cursor-pointer">
+          <button onclick="BookingUI.closeSendTestModal()" type="button" class="w-full sm:w-auto h-10 sm:h-9 px-3.5 rounded-xl text-xs font-medium bg-slate-100/80 hover:bg-slate-200/70 text-slate-700 transition-colors flex items-center justify-center cursor-pointer whitespace-nowrap">
             Đóng
           </button>
-          <button type="submit" class="w-full sm:w-auto h-11 sm:h-9 px-4 rounded-xl text-xs font-semibold bg-slate-900 hover:bg-slate-800 active:bg-slate-950 text-white shadow-2xs flex items-center justify-center gap-1.5 transition-all cursor-pointer whitespace-nowrap">
+          <button type="submit" class="w-full sm:w-auto h-10 sm:h-9 px-4 rounded-xl text-xs font-semibold bg-slate-900 hover:bg-slate-800 active:bg-slate-950 text-white shadow-2xs flex items-center justify-center gap-1.5 transition-all cursor-pointer whitespace-nowrap">
             <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
             <span>Gửi thử</span>
           </button>
@@ -2816,7 +2780,7 @@
   </div>
 
   <!-- Floating Calendar Quick-Peek Popover (Desktop Hover Preview) -->
-  <div id="calendar-quick-peek" class="hidden fixed z-50 pointer-events-none transition-opacity duration-150 opacity-0 w-80 bg-white rounded-2xl border border-slate-200/80 shadow-xl p-3.5 text-xs text-slate-700">
+  <div id="calendar-quick-peek" class="hidden fixed z-30 pointer-events-none transition-opacity duration-150 opacity-0 w-80 bg-white rounded-2xl border border-slate-200/80 shadow-xl p-3.5 text-xs text-slate-700">
     <div id="quick-peek-content"></div>
   </div>
 
@@ -2824,11 +2788,11 @@
   <!-- 4. JAVASCRIPT BUNDLE                       -->
   <!-- ========================================== -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="assets/js/core/supabase.js?v=20261127.1035"></script>
-  <script src="assets/js/core/toast.js?v=20261127.1035"></script>
-  <script src="assets/js/core/pwa-notification.js?v=20261127.1035"></script>
-  <script src="assets/js/modules/booking/booking.data.js?v=20261127.1035"></script>
-  <script src="assets/js/modules/booking/booking.ui.js?v=20261127.1035"></script>
-  <script src="assets/js/core/app.js?v=20261127.1035"></script>
+  <script src="assets/js/core/supabase.js?v=20261127.1530"></script>
+  <script src="assets/js/core/toast.js?v=20261127.1530"></script>
+  <script src="assets/js/core/pwa-notification.js?v=20261127.1530"></script>
+  <script src="assets/js/modules/booking/booking.data.js?v=20261127.1530"></script>
+  <script src="assets/js/modules/booking/booking.ui.js?v=20261127.1530"></script>
+  <script src="assets/js/core/app.js?v=20261127.1530"></script>
 </body>
 </html>

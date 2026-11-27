@@ -2,15 +2,15 @@
 const BookingData = {
   // Granular System Permissions
   ALL_PERMISSIONS: [
-    { key: 'view_schedule', label: 'Xem lịch kỹ sư', group: 'Lịch & Timeline', desc: 'Xem bảng lịch ca trực' },
+    { key: 'view_schedule', label: 'Xem lịch kỹ sư', group: 'Lịch & Timeline', desc: 'Xem lịch làm việc kỹ sư' },
     { key: 'drag_reschedule', label: 'Kéo thả dời lịch', group: 'Lịch & Timeline', desc: 'Kéo thả đổi ngày trực tiếp trên lịch' },
-    { key: 'create_booking', label: 'Đặt lịch mới', group: 'Đặt Lịch', desc: 'Gửi yêu cầu ca trực mới' },
-    { key: 'self_checkin', label: 'Tự check-in việc gấp', group: 'Đặt Lịch', desc: 'Cho phép kỹ sư tự book ca khẩn cấp và bắt đầu ca trực ngay' },
-    { key: 'cancel_own_booking', label: 'Hủy đơn của mình', group: 'Đặt Lịch', desc: 'Chủ động hủy yêu cầu do mình tạo' },
-    { key: 'edit_booking', label: 'Chỉnh sửa ca trực', group: 'Đặt Lịch', desc: 'Sửa ngày hoặc nội dung ca trực' },
-    { key: 'view_approval_queue', label: 'Xem danh sách duyệt', group: 'Phê Duyệt', desc: 'Xem danh sách ca chờ duyệt' },
-    { key: 'approve_booking', label: 'Phê duyệt ca trực', group: 'Phê Duyệt', desc: 'Chấp thuận đơn booking' },
-    { key: 'reject_booking', label: 'Từ chối ca trực', group: 'Phê Duyệt', desc: 'Từ chối đơn kèm lý do' },
+    { key: 'create_booking', label: 'Tạo task mới', group: 'Đặt Lịch', desc: 'Gửi yêu cầu task làm việc mới' },
+    { key: 'self_checkin', label: 'Tự check-in việc gấp', group: 'Đặt Lịch', desc: 'Cho phép kỹ sư tự tạo và bắt đầu task khẩn cấp ngay' },
+    { key: 'cancel_own_booking', label: 'Hủy yêu cầu của mình', group: 'Đặt Lịch', desc: 'Chủ động hủy yêu cầu do mình tạo' },
+    { key: 'edit_booking', label: 'Chỉnh sửa task', group: 'Đặt Lịch', desc: 'Sửa ngày hoặc nội dung task làm việc' },
+    { key: 'view_approval_queue', label: 'Xem danh sách duyệt', group: 'Phê Duyệt', desc: 'Xem danh sách yêu cầu chờ duyệt' },
+    { key: 'approve_booking', label: 'Phê duyệt yêu cầu', group: 'Phê Duyệt', desc: 'Chấp thuận yêu cầu task' },
+    { key: 'reject_booking', label: 'Từ chối yêu cầu', group: 'Phê Duyệt', desc: 'Từ chối yêu cầu kèm lý do' },
     { key: 'view_technicians', label: 'Xem danh sách kỹ sư', group: 'Quản Lý Kỹ Sư', desc: 'Xem hồ sơ kỹ sư' },
     { key: 'manage_technicians', label: 'Thêm & Sửa kỹ sư', group: 'Quản Lý Kỹ Sư', desc: 'Thêm mới, sửa thông tin, bật/tắt kỹ sư' },
     { key: 'view_users', label: 'Xem danh sách người dùng', group: 'Quản Trị Người Dùng', desc: 'Xem danh sách tài khoản thành viên' },
@@ -252,8 +252,8 @@ const BookingData = {
         list.push({
           id: `notif-pending-${b.booking_id}`,
           type: 'new_request',
-          title: 'Yêu cầu điều phối task cần duyệt',
-          message: `${b.requester_name || 'Quản lý dự án'} yêu cầu điều phối Kỹ sư ${techName} cho "${b.title}" (${b.booking_date}).`,
+          title: 'Yêu cầu task mới cần duyệt',
+          message: `${b.requester_name || 'Quản lý dự án'} yêu cầu phân công Kỹ sư ${techName} cho task "${b.title}" (${b.booking_date}).`,
           time: 'Gần đây',
           read: false,
           tab: 'approval',
@@ -1084,8 +1084,8 @@ const BookingData = {
       // Direct notification: approved immediately without queue
       this.addNotification({
         type: 'shift_reminder',
-        title: 'Ca trực đã được phê duyệt tự động',
-        message: `Admin ${newBooking.requester_name} đã setup và duyệt trực tiếp ca trực "${newBooking.title}" cho Kỹ sư (${newBooking.booking_date} lúc ${startTime}-${endTime}).`,
+        title: 'Task đã được phê duyệt tự động',
+        message: `Admin ${newBooking.requester_name} đã tạo và duyệt trực tiếp task "${newBooking.title}" cho Kỹ sư (${newBooking.booking_date} lúc ${startTime}-${endTime}).`,
         tab: 'schedule',
         booking_id: newBooking.booking_id,
         tech_id: newBooking.tech_id
@@ -1094,7 +1094,7 @@ const BookingData = {
       // Live Notification for approvers & admins
       this.addNotification({
         type: 'new_request',
-        title: 'Yêu cầu booking ca trực mới',
+        title: 'Yêu cầu task mới cần duyệt',
         message: `${newBooking.requester_name} đã gửi yêu cầu: "${newBooking.title}" (${newBooking.booking_date} lúc ${startTime}-${endTime}).`,
         tab: 'approval',
         booking_id: newBooking.booking_id,
@@ -1111,12 +1111,12 @@ const BookingData = {
         if (error) {
           console.error('Supabase insert booking error:', error);
           if (window.Toast) {
-            Toast.show(`Lỗi đồng bộ máy chủ: ${error.message || 'Không thể ghi đơn vào cơ sở dữ liệu'}`, 'error', 'Lỗi Cloud');
+            Toast.show(`Lỗi đồng bộ máy chủ: ${error.message || 'Không thể ghi yêu cầu vào cơ sở dữ liệu'}`, 'error', 'Lỗi Cloud');
           }
         }
       });
       if (window.SystemLoader) {
-        window.SystemLoader.track(insertPromise, 'Đang lưu yêu cầu đặt lịch…', 'Đang ghi dữ liệu ca trực lên máy chủ Supabase');
+        window.SystemLoader.track(insertPromise, 'Đang lưu yêu cầu task…', 'Đang ghi dữ liệu task lên máy chủ Supabase');
       }
     }
 
@@ -1131,7 +1131,7 @@ const BookingData = {
     const isAdmin = this.isSuperAdmin();
     const canEdit = this.hasPermission('edit_booking');
     if (!isAdmin && !canEdit) {
-      return { success: false, error: 'Bạn không có quyền chỉnh sửa nội dung đặt lịch.' };
+      return { success: false, error: 'Bạn không có quyền chỉnh sửa nội dung task.' };
     }
 
     const techId = updatedData.tech_id || booking.tech_id;
@@ -1180,7 +1180,7 @@ const BookingData = {
         else if (booking.status === 'APPROVED') this.syncGoogleCalendarBooking(booking_id);
       });
       if (window.SystemLoader) {
-        window.SystemLoader.track(updatePromise, 'Đang cập nhật nội dung ca trực…', 'Đang đồng bộ dữ liệu lên máy chủ');
+        window.SystemLoader.track(updatePromise, 'Đang cập nhật nội dung task…', 'Đang đồng bộ dữ liệu lên máy chủ');
       }
     }
 
@@ -1200,7 +1200,7 @@ const BookingData = {
     const canCheckin = this.hasPermission('self_checkin');
 
     if (!isAssignedTech && !isAdmin && !canApprove && !canCheckin) {
-      return { success: false, error: 'Chỉ kỹ sư phụ trách ca trực hoặc Quản trị viên mới có thể bắt đầu ca trực này.' };
+      return { success: false, error: 'Chỉ kỹ sư phụ trách task hoặc Quản trị viên mới có thể bắt đầu task này.' };
     }
 
     const now = new Date();
@@ -1220,7 +1220,7 @@ const BookingData = {
 
     this.addNotification({
       type: 'shift_started',
-      title: '🟢 Kỹ sư đã bắt đầu thực hiện ca trực',
+      title: '🟢 Kỹ sư đã bắt đầu thực hiện task',
       message: `Kỹ sư ${techName} vừa bắt đầu thực hiện: "${booking.title}" lúc ${nowTime}.`,
       tab: 'timeline',
       booking_id: booking.booking_id,
@@ -1238,7 +1238,7 @@ const BookingData = {
         if (error) console.warn('Supabase start shift warning:', error);
       });
       if (window.SystemLoader) {
-        window.SystemLoader.track(p, 'Đang bắt đầu ca trực…', 'Đang cập nhật trạng thái Đang thực hiện');
+        window.SystemLoader.track(p, 'Đang bắt đầu task…', 'Đang cập nhật trạng thái Đang thực hiện');
       }
     }
 
@@ -2471,7 +2471,7 @@ const BookingData = {
   // ==========================================
   emailSettings: {
     senderEmail: 'dispatch.kcoffee@gmail.com',
-    senderName: 'Hệ Thống Điều Phối K-Coffee Workspace',
+    senderName: 'Quản Lý Task K-Coffee Workspace',
     autoInviteOnApprove: true,
     autoNotifyRequester: true,
     includeGoogleMapsLink: true,
@@ -2479,18 +2479,18 @@ const BookingData = {
     templates: {
       tech_invite: {
         title: 'Lời mời Google Calendar gửi Kỹ Sư',
-        subject: '[Lịch Trực Kỹ Thuật] #{booking_id} - {title}',
-        body: 'Xin chào {tech_name},\n\nBạn vừa được phân công task kỹ thuật mới từ Hệ thống Điều phối K-Coffee:\n\n• Mã task: {booking_id}\n• Nhiệm vụ: {title}\n• Thời gian: {date_range}\n• Địa điểm: {location}\n• Người tạo yêu cầu: {requester_name} ({requester_email})\n• Ghi chú: {notes}\n\n👉 Vui lòng nhấn [CÓ / YES] trên email lời mời Google Calendar này để task được tự động đưa vào ứng dụng Lịch trên điện thoại và nhận chuông báo thức trước 1 giờ.'
+        subject: '[Task Kỹ Thuật] #{booking_id} - {title}',
+        body: 'Xin chào {tech_name},\n\nBạn vừa được phân công task kỹ thuật mới từ hệ thống K-Coffee Workspace:\n\n• Mã task: {booking_id}\n• Nhiệm vụ: {title}\n• Thời gian: {date_range}\n• Địa điểm: {location}\n• Người tạo yêu cầu: {requester_name} ({requester_email})\n• Ghi chú: {notes}\n\n👉 Vui lòng nhấn [CÓ / YES] trên email lời mời Google Calendar này để task được tự động đưa vào ứng dụng Lịch trên điện thoại và nhận chuông báo thức trước 1 giờ.'
       },
       requester_approved: {
-        title: 'Email duyệt task gửi Người Đặt (PM)',
-        subject: '[Duyệt Task] #{booking_id} - Đơn của bạn đã được phê duyệt',
-        body: 'Xin chào {requester_name},\n\nYêu cầu điều phối kỹ thuật "#{booking_id} - {title}" của bạn đã được Lead vận hành phê duyệt thành công.\n\n• Kỹ sư phụ trách: {tech_name} (SĐT: {tech_phone})\n• Thời gian: {date_range}\n• Địa điểm: {location}\n• Người duyệt đơn: {approver_name}\n\nKỹ sư sẽ chủ động liên hệ và có mặt đúng giờ theo lịch hẹn.'
+        title: 'Email duyệt task gửi Người Yêu Cầu (PM)',
+        subject: '[Duyệt Task] #{booking_id} - Yêu cầu của bạn đã được phê duyệt',
+        body: 'Xin chào {requester_name},\n\nYêu cầu công việc kỹ thuật "#{booking_id} - {title}" của bạn đã được Lead vận hành phê duyệt thành công.\n\n• Kỹ sư phụ trách: {tech_name} (SĐT: {tech_phone})\n• Thời gian: {date_range}\n• Địa điểm: {location}\n• Người duyệt: {approver_name}\n\nKỹ sư sẽ chủ động liên hệ và có mặt đúng giờ theo lịch hẹn.'
       },
       requester_rejected: {
-        title: 'Email từ chối task gửi Người Đặt (PM)',
+        title: 'Email từ chối task gửi Người Yêu Cầu (PM)',
         subject: '[Thông Báo] #{booking_id} - Yêu cầu chưa thể phê duyệt',
-        body: 'Xin chào {requester_name},\n\nRất tiếc, yêu cầu điều phối "#{booking_id} - {title}" (Dự kiến ngày {date_range}) hiện chưa thể phê duyệt do lý do sau:\n\n👉 Lý do: {reject_reason}\n\nBạn vui lòng điều chỉnh ngày giờ hoặc liên hệ trực tiếp với Lead kỹ thuật để được hỗ trợ sắp xếp task phù hợp.'
+        body: 'Xin chào {requester_name},\n\nRất tiếc, yêu cầu "#{booking_id} - {title}" (Dự kiến ngày {date_range}) hiện chưa thể phê duyệt do lý do sau:\n\n👉 Lý do: {reject_reason}\n\nBạn vui lòng điều chỉnh ngày giờ hoặc liên hệ trực tiếp với Lead kỹ thuật để được hỗ trợ sắp xếp task phù hợp.'
       }
     }
   },
@@ -2549,13 +2549,13 @@ const BookingData = {
     const endStr = `${y}${m}${d}`;
 
     const nowUtc = new Date().toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
-    const cleanNotes = (booking.notes || 'Task điều phối kỹ thuật K-Coffee').replace(/\n/g, '\\n');
+    const cleanNotes = (booking.notes || 'Task kỹ thuật K-Coffee').replace(/\n/g, '\\n');
     const cleanLocation = (booking.location || 'Tại công trình').replace(/\n/g, ', ');
 
     return [
       'BEGIN:VCALENDAR',
       'VERSION:2.0',
-      'PRODID:-//K-Coffee Workspace//Dispatch System//VI',
+      'PRODID:-//K-Coffee Workspace//Task System//VI',
       'CALSCALE:GREGORIAN',
       'METHOD:REQUEST',
       'BEGIN:VEVENT',
@@ -2563,11 +2563,11 @@ const BookingData = {
       `DTSTAMP:${nowUtc}`,
       `DTSTART;VALUE=DATE:${startStr}`,
       `DTEND;VALUE=DATE:${endStr}`,
-      `SUMMARY:[Task Kỹ Thuật] ${booking.title || 'Ca trực'} (${bId})`,
-      `DESCRIPTION:${cleanNotes}\\nKỹ sư: ${techName} (${tech?.phone || 'Chưa có SĐT'})\\nNgười đặt: ${booking.requester_name || 'PM'}`,
+      `SUMMARY:[Task Kỹ Thuật] ${booking.title || 'Task làm việc'} (${bId})`,
+      `DESCRIPTION:${cleanNotes}\\nKỹ sư: ${techName} (${tech?.phone || 'Chưa có SĐT'})\\nNgười yêu cầu: ${booking.requester_name || 'PM'}`,
       `LOCATION:${cleanLocation}`,
       'STATUS:CONFIRMED',
-      `ORGANIZER;CN=K-Coffee Dispatch:mailto:${sender}`,
+      `ORGANIZER;CN=K-Coffee Workspace:mailto:${sender}`,
       `ATTENDEE;ROLE=REQ-PARTICIPANT;PARTSTAT=ACCEPTED;CN=${techName}:mailto:${techEmail}`,
       'BEGIN:VALARM',
       'ACTION:DISPLAY',
@@ -2595,7 +2595,7 @@ const BookingData = {
     const d = String(endDateObj.getDate()).padStart(2, '0');
     const endStr = `${y}${m}${d}`;
 
-    const title = `[Task] ${booking.title || 'Ca trực'} (${booking.booking_id || ''})`;
+    const title = `[Task] ${booking.title || 'Task làm việc'} (${booking.booking_id || ''})`;
     const details = `Mã task: ${booking.booking_id || ''}\nKỹ sư: ${techName} (${tech?.phone || ''})\nNgười đặt: ${booking.requester_name || ''}\nGhi chú: ${booking.notes || ''}`;
     const location = booking.location || '';
 

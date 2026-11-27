@@ -19,3 +19,10 @@ design-system.html
 Thumbs.db
 .vscode/
 .idea/
+
+# File thiết kế gốc / dữ liệu nặng không phục vụ runtime web
+signature/New folder/
+images/signature/
+*.psd
+*.ai
+*.jfif
