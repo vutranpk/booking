@@ -182,8 +182,8 @@ const BookingData = {
         this.notifications.unshift({
           id: notifId,
           type: 'task_overdue',
-          title: `⚠️ Cần hoàn thành: Task #${b.booking_id}`,
-          message: `Task "${b.title}" của Kỹ sư ${techName} (${b.booking_date}) đã qua hạn thực hiện nhưng chưa được nhấn Hoàn thành. Vui lòng bấm để cập nhật ngay.`,
+          title: `Cần hoàn thành #${b.booking_id}`,
+          message: `Task "${b.title}" của kỹ sư ${techName} (${b.booking_date}) đã quá hạn, cần xác nhận hoàn thành.`,
           time: 'Cần xử lý',
           read: false,
           tab: 'my-bookings',
@@ -236,8 +236,8 @@ const BookingData = {
         list.push({
           id: `notif-overdue-${b.booking_id}`,
           type: 'task_overdue',
-          title: `⚠️ Cần hoàn thành: Task #${b.booking_id}`,
-          message: `Task "${b.title}" của Kỹ sư ${techName} (${b.booking_date}) đã qua ngày trực nhưng chưa được bấm Hoàn thành. Nhấn để đóng task.`,
+          title: `Cần hoàn thành #${b.booking_id}`,
+          message: `Task "${b.title}" của kỹ sư ${techName} (${b.booking_date}) đã quá hạn, cần xác nhận hoàn thành.`,
           time: 'Cần xử lý',
           read: false,
           tab: 'my-bookings',
@@ -492,21 +492,53 @@ const BookingData = {
   supabaseRealtimeChannel: null,
 
   updateCloudStatus(isLive, message = '') {
+    const offline = typeof navigator !== 'undefined' && navigator.onLine === false;
+    const isActuallyLive = Boolean(isLive) && !offline;
+    const statusLabel = offline
+      ? 'Ngoại tuyến (chỉ xem)'
+      : (isActuallyLive ? 'Đồng bộ trực tiếp' : 'Chế độ cục bộ');
+    const dotClassDesktop = isActuallyLive
+      ? 'w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse'
+      : 'w-1.5 h-1.5 rounded-full bg-amber-500';
+    const dotClassMobile = isActuallyLive
+      ? 'w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse flex-shrink-0'
+      : 'w-1.5 h-1.5 rounded-full bg-amber-500 flex-shrink-0';
+    const titleTip = offline
+      ? 'Thiết bị đang ngoại tuyến. Dữ liệu đã lưu vẫn xem được.'
+      : (isActuallyLive ? 'Đã kết nối và đồng bộ trực tiếp với Supabase Cloud' : (message || 'Đang dùng dữ liệu cục bộ'));
+
+    const desktopDot = document.getElementById('desktop-sync-dot');
+    const desktopLabel = document.getElementById('desktop-sync-label');
+    if (desktopDot) desktopDot.className = dotClassDesktop;
+    if (desktopLabel) {
+      desktopLabel.textContent = statusLabel;
+      desktopLabel.className = isActuallyLive ? 'text-slate-500' : 'text-amber-600 font-medium';
+      if (desktopLabel.parentElement) desktopLabel.parentElement.title = titleTip;
+    }
+
+    const mobileDot = document.getElementById('mobile-sync-dot');
+    const mobileLabel = document.getElementById('mobile-sync-label');
+    if (mobileDot) mobileDot.className = dotClassMobile;
+    if (mobileLabel) {
+      mobileLabel.textContent = statusLabel;
+      mobileLabel.className = isActuallyLive ? '' : 'text-amber-600';
+    }
+
     const el = document.getElementById('cloud-sync-status');
     const dot = document.getElementById('cloud-sync-dot');
     const text = document.getElementById('cloud-sync-text');
     if (!el || !dot || !text) return;
 
-    if (isLive) {
+    if (isActuallyLive) {
       el.className = 'hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/90 text-[10px] font-bold shadow-2xs transition-all cursor-default select-none';
       dot.className = 'w-2 h-2 rounded-full bg-emerald-500 animate-pulse';
       text.textContent = 'Supabase Cloud Live';
-      el.title = 'Đã kết nối và đồng bộ trực tiếp với Supabase Cloud Database (Realtime Sync Live)';
+      el.title = titleTip;
     } else {
       el.className = 'hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200/90 text-[10px] font-bold shadow-2xs transition-all cursor-default select-none';
       dot.className = 'w-2 h-2 rounded-full bg-amber-500';
-      text.textContent = 'Chế độ Cục bộ (Offline)';
-      el.title = message || 'Đang dùng dữ liệu cục bộ (Chưa kết nối Cloud)';
+      text.textContent = statusLabel;
+      el.title = titleTip;
     }
   },
 
@@ -662,6 +694,9 @@ const BookingData = {
 
       this._initialSyncCompleted = true;
       this.updateCloudStatus(true);
+      if (window.BookingUI && typeof BookingUI.resolvePendingDeepLink === 'function') {
+        BookingUI.resolvePendingDeepLink();
+      }
       console.log('✅ Supabase Cloud connected & synced successfully (' + (remoteBookings?.length || 0) + ' bookings).');
     } catch (err) {
       console.warn('Supabase sync warning:', err);
@@ -1649,7 +1684,7 @@ const BookingData = {
 
   ROLE_BADGES: {
     admin: 'bg-amber-50 text-amber-800 border border-amber-300',
-    approver: 'bg-brand-50 text-brand-700 border border-brand-200',
+    approver: 'bg-slate-100 text-slate-800 border border-slate-200/80',
     requester: 'bg-slate-100 text-slate-700 border border-slate-200',
     technician: 'bg-accent-50 text-accent-800 border border-accent-300'
   },

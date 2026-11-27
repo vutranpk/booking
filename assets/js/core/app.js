@@ -106,7 +106,10 @@ const App = {
             }
           } else {
             if (window.history && window.history.replaceState) {
-              window.history.replaceState(null, '', window.location.pathname);
+              const cleanUrl = new URL(window.location.href);
+              cleanUrl.searchParams.delete('code');
+              cleanUrl.hash = '';
+              window.history.replaceState(null, '', cleanUrl.pathname + cleanUrl.search);
             }
             this.checkAuthGate();
             if (BookingData.passwordRecoverySession && window.Toast) {
@@ -151,7 +154,7 @@ const App = {
       });
     }
 
-    // Global Shortcut: Ctrl+K or Cmd+K to focus search input
+    // Global Shortcut: Ctrl+K or Cmd+K to focus search input; Escape to close topmost popover/drawer/modal
     document.addEventListener('keydown', (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
         const searchInput = document.getElementById('global-search-input');
@@ -160,6 +163,53 @@ const App = {
           searchInput.focus();
           searchInput.select();
         }
+        return;
+      }
+
+      if (e.key === 'Escape') {
+        this.closeTopMostOverlay();
+      }
+    });
+
+    // Browser / Android PWA Back Gesture Coordination
+    window.addEventListener('popstate', () => {
+      if (this.closeTopMostOverlay({ onlyBackdropLayers: true })) {
+        if (window.BookingUI?.activeTab && window.history?.pushState) {
+          const keepHash = `#${BookingUI.activeTab}`;
+          if (window.location.hash !== keepHash) {
+            try {
+              window.history.pushState({ kTab: BookingUI.activeTab }, '', `${window.location.pathname}${window.location.search}${keepHash}`);
+            } catch (_) {}
+          }
+        }
+        return;
+      }
+      if (window.BookingUI && typeof BookingUI.switchTab === 'function') {
+        const hashTab = (window.location.hash || '').replace(/^#/, '');
+        const validTabs = ['overview', 'timeline', 'approval', 'my-bookings', 'technicians', 'users', 'email-settings'];
+        const targetTab = validTabs.includes(hashTab) ? hashTab : 'overview';
+        if (BookingUI.activeTab !== targetTab) {
+          BookingUI.switchTab(targetTab, { isBack: true, skipHistory: true });
+        }
+      }
+    });
+
+    // Network Connectivity Resilience (Field Mobile / PWA Offline <-> Online)
+    window.addEventListener('offline', () => {
+      if (window.BookingData && typeof BookingData.updateCloudStatus === 'function') {
+        BookingData.updateCloudStatus(false, 'Mất kết nối mạng');
+      }
+      if (window.Toast) {
+        Toast.show('Đang ở chế độ ngoại tuyến. Dữ liệu đã đồng bộ vẫn xem được.', 'warning', 'Mất kết nối mạng');
+      }
+    });
+
+    window.addEventListener('online', () => {
+      if (window.BookingData && typeof BookingData.syncWithSupabase === 'function') {
+        BookingData.syncWithSupabase({ silent: true });
+      }
+      if (window.Toast) {
+        Toast.show('Đã kết nối lại mạng và đồng bộ dữ liệu trực tiếp.', 'success', 'Đã trực tuyến');
       }
     });
 
@@ -192,19 +242,32 @@ const App = {
     const dockMenuBtn = document.getElementById('btn-bottom-dock-menu');
 
     const openDrawer = () => {
-      if (drawerBackdrop && drawerPanel) {
-        drawerBackdrop.classList.remove('hidden');
-        drawerPanel.classList.remove('-translate-x-full');
-      }
+      if (!drawerBackdrop || !drawerPanel) return;
+      drawerBackdrop.classList.remove('hidden');
+      this.syncBodyScrollLock();
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          drawerBackdrop.classList.remove('opacity-0');
+          drawerBackdrop.classList.add('opacity-100');
+          drawerPanel.classList.remove('-translate-x-full');
+          drawerPanel.classList.add('is-open');
+          this.syncBodyScrollLock();
+        });
+      });
     };
 
     const closeDrawer = () => {
-      if (drawerBackdrop && drawerPanel) {
-        drawerPanel.classList.add('-translate-x-full');
-        setTimeout(() => {
+      if (!drawerBackdrop || !drawerPanel) return;
+      drawerBackdrop.classList.remove('opacity-100');
+      drawerBackdrop.classList.add('opacity-0');
+      drawerPanel.classList.add('-translate-x-full');
+      drawerPanel.classList.remove('is-open');
+      setTimeout(() => {
+        if (drawerPanel.classList.contains('-translate-x-full')) {
           drawerBackdrop.classList.add('hidden');
-        }, 250);
-      }
+          this.syncBodyScrollLock();
+        }
+      }, 300);
     };
 
     this.toggleMobileDrawer = (open) => {
@@ -218,6 +281,26 @@ const App = {
     if (drawerBackdrop) drawerBackdrop.addEventListener('click', (e) => {
       if (e.target === drawerBackdrop) closeDrawer();
     });
+
+    // Swipe-left gesture to close Mobile Drawer naturally on touch devices
+    if (drawerPanel) {
+      let touchStartX = 0;
+      let touchStartY = 0;
+      drawerPanel.addEventListener('touchstart', (e) => {
+        if (e.touches && e.touches[0]) {
+          touchStartX = e.touches[0].clientX;
+          touchStartY = e.touches[0].clientY;
+        }
+      }, { passive: true });
+      drawerPanel.addEventListener('touchend', (e) => {
+        if (!e.changedTouches || !e.changedTouches[0]) return;
+        const dx = e.changedTouches[0].clientX - touchStartX;
+        const dy = Math.abs(e.changedTouches[0].clientY - touchStartY);
+        if (dx < -60 && dy < 50) {
+          closeDrawer();
+        }
+      }, { passive: true });
+    }
   },
 
   // ROUTER: Switch between Overview Hub and Booking Modules
@@ -333,7 +416,7 @@ const App = {
       if (isSuper || isAdmin) {
         avatarEl.className = 'w-8 h-8 rounded-full bg-amber-500 text-white font-bold flex items-center justify-center text-xs border border-amber-600 flex-shrink-0 shadow-2xs overflow-hidden';
       } else if (isApprover) {
-        avatarEl.className = 'w-8 h-8 rounded-full bg-brand-50 text-brand-700 font-bold flex items-center justify-center text-xs border border-brand-200 flex-shrink-0 shadow-2xs overflow-hidden';
+        avatarEl.className = 'w-8 h-8 rounded-full bg-slate-100 text-slate-800 font-bold flex items-center justify-center text-xs border border-slate-200/80 flex-shrink-0 shadow-2xs overflow-hidden';
       } else if (isTechnician) {
         avatarEl.className = 'w-8 h-8 rounded-full bg-accent-600 text-white font-bold flex items-center justify-center text-xs border border-accent-700 flex-shrink-0 shadow-2xs overflow-hidden';
       } else {
@@ -350,7 +433,7 @@ const App = {
         roleEl.className = 'text-[10px] font-extrabold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full inline-block mt-0.5 border border-amber-300';
       } else if (isApprover) {
         roleEl.textContent = 'Người vận hành';
-        roleEl.className = 'text-[10px] font-bold text-brand-700 bg-brand-50 px-2 py-0.5 rounded-full inline-block mt-0.5 border border-brand-200';
+        roleEl.className = 'text-[10px] font-bold text-slate-800 bg-slate-100 px-2 py-0.5 rounded-full inline-block mt-0.5 border border-slate-200/80';
       } else if (isTechnician) {
         roleEl.textContent = roleLabel;
         roleEl.className = 'text-[10px] font-bold text-accent-800 bg-accent-50 px-2 py-0.5 rounded-full inline-block mt-0.5 border border-accent-300';
@@ -368,36 +451,42 @@ const App = {
         topAvatarEl.textContent = avatarInitials;
       }
       if (isSuper || isAdmin) {
-        topAvatarEl.className = 'w-9 h-9 rounded-full bg-amber-500 text-white font-condensed font-bold flex items-center justify-center text-xs flex-shrink-0 ring-2 ring-white shadow-xs overflow-hidden transition-transform group-hover:scale-105';
+        topAvatarEl.className = 'w-9 h-9 rounded-full bg-amber-500 text-white font-display font-semibold flex items-center justify-center text-xs flex-shrink-0 border border-slate-200/80 shadow-xs overflow-hidden transition-transform group-hover:scale-105';
       } else if (isApprover) {
-        topAvatarEl.className = 'w-9 h-9 rounded-full bg-brand-700 text-white font-condensed font-bold flex items-center justify-center text-xs flex-shrink-0 ring-2 ring-white shadow-xs overflow-hidden transition-transform group-hover:scale-105';
+        topAvatarEl.className = 'w-9 h-9 rounded-full bg-slate-900 text-white font-display font-semibold flex items-center justify-center text-xs flex-shrink-0 border border-slate-200/80 shadow-xs overflow-hidden transition-transform group-hover:scale-105';
       } else if (isTechnician) {
-        topAvatarEl.className = 'w-9 h-9 rounded-full bg-accent-600 text-white font-condensed font-bold flex items-center justify-center text-xs flex-shrink-0 ring-2 ring-white shadow-xs overflow-hidden transition-transform group-hover:scale-105';
+        topAvatarEl.className = 'w-9 h-9 rounded-full bg-emerald-600 text-white font-display font-semibold flex items-center justify-center text-xs flex-shrink-0 border border-slate-200/80 shadow-xs overflow-hidden transition-transform group-hover:scale-105';
       } else {
-        topAvatarEl.className = 'w-9 h-9 rounded-full bg-slate-200 text-slate-700 font-condensed font-bold flex items-center justify-center text-xs flex-shrink-0 ring-2 ring-white shadow-xs overflow-hidden transition-transform group-hover:scale-105';
+        topAvatarEl.className = 'w-9 h-9 rounded-full bg-slate-200 text-slate-700 font-display font-semibold flex items-center justify-center text-xs flex-shrink-0 border border-slate-200/80 shadow-xs overflow-hidden transition-transform group-hover:scale-105';
       }
     }
     if (topRoleEl) {
       topRoleEl.textContent = roleLabel;
-      if (isAdmin) {
-        topRoleEl.className = 'text-[11px] font-condensed font-bold uppercase tracking-wider text-amber-600 leading-none';
-      } else if (isApprover) {
-        topRoleEl.className = 'text-[11px] font-condensed font-bold uppercase tracking-wider text-brand-600 leading-none';
-      } else if (isTechnician) {
-        topRoleEl.className = 'text-[11px] font-condensed font-bold uppercase tracking-wider text-accent-700 leading-none';
+      topRoleEl.className = 'sr-only';
+    }
+
+    // Sync Orven Left Sidebar User Cell
+    const sideNameEl = document.getElementById('sidebar-user-name');
+    const sideRoleEl = document.getElementById('sidebar-user-role');
+    const sideAvatarEl = document.getElementById('sidebar-user-avatar');
+    if (sideNameEl) sideNameEl.textContent = displayName;
+    if (sideRoleEl) sideRoleEl.textContent = roleLabel;
+    if (sideAvatarEl) {
+      if (u.avatar) {
+        sideAvatarEl.innerHTML = `<img src="${u.avatar}" alt="" class="w-full h-full rounded-lg object-cover">`;
       } else {
-        topRoleEl.className = 'text-[11px] font-condensed font-semibold uppercase tracking-wider text-slate-500 leading-none';
+        sideAvatarEl.textContent = avatarInitials;
       }
     }
 
     const roleSelector = document.getElementById('role-select-input');
     if (roleSelector) roleSelector.value = u.role;
 
-    // Toggle Floating Debug Bubble on right side of screen (CHỈ DÀNH RIÊNG CHO SUPER ADMIN)
+    // Floating Debug Bubble kept hidden (available safely in Top User Menu dropdown)
     const bubbleContainer = document.getElementById('admin-role-bubble-container');
     if (bubbleContainer) {
-      bubbleContainer.classList.toggle('hidden', !canAccessBubble);
-      bubbleContainer.classList.toggle('flex', canAccessBubble);
+      bubbleContainer.classList.add('hidden');
+      bubbleContainer.classList.remove('flex');
     }
 
     // Sync Floating Bubble Active Role Name & Checkmarks
@@ -430,6 +519,11 @@ const App = {
     if (topMenuEmail) topMenuEmail.textContent = u.email;
     if (topMenuRole) topMenuRole.textContent = roleLabel;
 
+    const topMenuRoleSection = document.getElementById('top-menu-role-section');
+    if (topMenuRoleSection) {
+      topMenuRoleSection.classList.toggle('hidden', !canAccessBubble);
+    }
+
     // Update Mobile Drawer User Card
     const mobAvatar = document.getElementById('mobile-user-avatar-badge');
     const mobName = document.getElementById('mobile-user-name');
@@ -452,7 +546,7 @@ const App = {
       if (isAdmin) {
         roleLabelEl.innerHTML = '<svg class="w-4 h-4 text-amber-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg> <span>Admin cấp cao</span>';
       } else if (isApprover) {
-        roleLabelEl.innerHTML = '<svg class="w-4 h-4 text-brand-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg> <span>Người vận hành (Lead)</span>';
+        roleLabelEl.innerHTML = '<svg class="w-4 h-4 text-slate-800 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg> <span>Người vận hành (Lead)</span>';
       } else if (isTechnician) {
         roleLabelEl.innerHTML = '<svg class="w-4 h-4 text-accent-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg> <span>' + roleLabel + '</span>';
       } else {
@@ -477,6 +571,156 @@ const App = {
     }
   },
 
+  syncBodyScrollLock() {
+    const overlayIds = [
+      'booking-modal',
+      'detail-modal',
+      'tech-modal',
+      'user-profile-modal',
+      'signature-picker-modal',
+      'email-test-modal',
+      'tool-preview-modal',
+      'pwa-install-guide-modal',
+      'mobile-drawer-backdrop'
+    ];
+    const hasOpenOverlay = overlayIds.some((id) => {
+      const el = document.getElementById(id);
+      return el && !el.classList.contains('hidden');
+    });
+    document.body.classList.toggle('overflow-hidden', hasOpenOverlay);
+  },
+
+  closeTopMostOverlay(options = {}) {
+    const isVisible = (id) => {
+      const el = document.getElementById(id);
+      return el && !el.classList.contains('hidden');
+    };
+
+    if (isVisible('pwa-install-guide-modal')) {
+      if (window.PWANotificationManager) PWANotificationManager.closeInstallGuideModal();
+      return true;
+    }
+    if (isVisible('email-test-modal') && window.BookingUI) {
+      BookingUI.closeSendTestModal();
+      return true;
+    }
+    if (isVisible('tool-preview-modal')) {
+      this.closeToolPreview();
+      return true;
+    }
+    if (isVisible('signature-picker-modal')) {
+      this.closeSignaturePicker();
+      return true;
+    }
+    if (isVisible('tech-modal') && window.BookingUI) {
+      BookingUI.closeTechModal();
+      return true;
+    }
+    if (isVisible('detail-modal') && window.BookingUI) {
+      BookingUI.closeDetailModal();
+      return true;
+    }
+    if (isVisible('booking-modal') && window.BookingUI) {
+      BookingUI.closeBookingModal();
+      return true;
+    }
+    if (isVisible('user-profile-modal') && window.BookingUI) {
+      BookingUI.closeProfileModal();
+      return true;
+    }
+    if (isVisible('mobile-drawer-backdrop') && typeof this.toggleMobileDrawer === 'function') {
+      this.toggleMobileDrawer(false);
+      return true;
+    }
+
+    if (options.onlyBackdropLayers) return false;
+
+    let closedPopover = false;
+    const notifDropdown = document.getElementById('notification-dropdown');
+    if (notifDropdown && !notifDropdown.classList.contains('hidden')) {
+      this.togglePopoverEl(notifDropdown, false);
+      const bell = document.getElementById('btn-notification-bell');
+      if (bell) bell.setAttribute('aria-expanded', 'false');
+      closedPopover = true;
+    }
+    const userMenuDropdown = document.getElementById('top-user-menu-dropdown');
+    if (userMenuDropdown && !userMenuDropdown.classList.contains('hidden')) {
+      this.toggleTopUserMenu(false);
+      closedPopover = true;
+    }
+    const calDropdown = document.getElementById('calendar-month-dropdown');
+    if (calDropdown && !calDropdown.classList.contains('hidden')) {
+      calDropdown.classList.add('hidden');
+      const btn = document.getElementById('btn-calendar-month-dropdown');
+      const chev = document.getElementById('calendar-dropdown-chevron');
+      if (btn) btn.setAttribute('aria-expanded', 'false');
+      if (chev) chev.classList.remove('rotate-180');
+      closedPopover = true;
+    }
+    const bubbleMenu = document.getElementById('admin-role-bubble-menu');
+    if (bubbleMenu && !bubbleMenu.classList.contains('hidden') && window.BookingUI?.toggleRoleBubble) {
+      BookingUI.toggleRoleBubble(false);
+      closedPopover = true;
+    }
+    return closedPopover;
+  },
+
+  openModalEl(modal, onAfterOpen = null) {
+    if (!modal) return;
+    if (modal._closeTimer) {
+      clearTimeout(modal._closeTimer);
+      modal._closeTimer = null;
+    }
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    this.syncBodyScrollLock();
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        modal.classList.add('is-modal-open');
+        if (typeof onAfterOpen === 'function') onAfterOpen();
+      });
+    });
+  },
+
+  closeModalEl(modal, onAfterClose = null) {
+    if (!modal) return;
+    if (modal._closeTimer) clearTimeout(modal._closeTimer);
+    modal.classList.remove('is-modal-open');
+    modal._closeTimer = setTimeout(() => {
+      if (!modal.classList.contains('is-modal-open')) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+        this.syncBodyScrollLock();
+        if (typeof onAfterClose === 'function') onAfterClose();
+      }
+      modal._closeTimer = null;
+    }, 240);
+  },
+
+  togglePopoverEl(dropdown, show) {
+    if (!dropdown) return;
+    if (dropdown._closeTimer) {
+      clearTimeout(dropdown._closeTimer);
+      dropdown._closeTimer = null;
+    }
+    if (show) {
+      dropdown.classList.remove('hidden');
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          dropdown.classList.add('is-popover-open');
+        });
+      });
+    } else {
+      dropdown.classList.remove('is-popover-open');
+      dropdown._closeTimer = setTimeout(() => {
+        if (!dropdown.classList.contains('is-popover-open')) {
+          dropdown.classList.add('hidden');
+        }
+        dropdown._closeTimer = null;
+      }, 180);
+    }
+  },
+
   toggleTopUserMenu(forceOpen = null) {
     const dropdown = document.getElementById('top-user-menu-dropdown');
     const chevron = document.getElementById('top-user-chevron');
@@ -485,13 +729,8 @@ const App = {
     const isHidden = dropdown.classList.contains('hidden');
     const shouldOpen = forceOpen !== null ? forceOpen : isHidden;
 
-    if (shouldOpen) {
-      dropdown.classList.remove('hidden');
-      if (chevron) chevron.classList.add('rotate-180');
-    } else {
-      dropdown.classList.add('hidden');
-      if (chevron) chevron.classList.remove('rotate-180');
-    }
+    this.togglePopoverEl(dropdown, shouldOpen);
+    if (chevron) chevron.classList.toggle('rotate-180', shouldOpen);
   },
 
   initRoleDropdown() {
@@ -538,10 +777,16 @@ const App = {
       });
 
       document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && !menu.classList.contains('hidden')) {
-          menu.classList.add('hidden');
-          btn.setAttribute('aria-expanded', 'false');
-          if (chevron) chevron.classList.remove('rotate-180');
+        if (e.key === 'Escape') {
+          if (!menu.classList.contains('hidden')) {
+            menu.classList.add('hidden');
+            btn.setAttribute('aria-expanded', 'false');
+            if (chevron) chevron.classList.remove('rotate-180');
+          }
+          const sigModal = document.getElementById('signature-picker-modal');
+          if (sigModal && !sigModal.classList.contains('hidden')) {
+            App.closeSignaturePicker();
+          }
         }
       });
     }
@@ -649,7 +894,7 @@ const App = {
       welcome: {
         title: 'Tạo Hình Chào Đón Nhân Sự Mới',
         badge: 'Đang phát triển • Sắp ra mắt',
-        iconSvg: `<svg class="w-10 h-10 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>`,
+        iconSvg: `<svg class="w-10 h-10 text-slate-900" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>`,
         desc: 'Tự động ghép avatar, chức danh và thông điệp chào mừng vào các khung hình thiết kế sẵn, xuất ảnh chất lượng cao để đăng tải nội bộ và mạng xã hội. Module này đang trong giai đoạn phát triển và sẽ sớm sẵn sàng.'
       }
     };
@@ -661,8 +906,7 @@ const App = {
       if (badgeEl) badgeEl.textContent = target.badge;
       if (iconContainer) iconContainer.innerHTML = target.iconSvg;
 
-      modal.classList.remove('hidden');
-      modal.classList.add('flex');
+      this.openModalEl(modal);
     }
 
     const launcherDropdown = document.getElementById('app-launcher-dropdown');
@@ -671,10 +915,61 @@ const App = {
 
   closeToolPreview() {
     const modal = document.getElementById('tool-preview-modal');
-    if (modal) {
-      modal.classList.add('hidden');
-      modal.classList.remove('flex');
+    if (modal) this.closeModalEl(modal);
+  },
+
+  openSignaturePicker() {
+    if (window.BookingData) {
+      const user = BookingData.currentUser;
+      const isTech = user?.role === 'technician' || user?.is_technician;
+      if (isTech) {
+        if (window.Toast) Toast.show('Kỹ sư không có quyền sử dụng Tiện ích mở rộng', 'warning');
+        return;
+      }
     }
+    const modal = document.getElementById('signature-picker-modal');
+    if (!modal) return;
+    const searchInput = document.getElementById('modal-signature-search');
+    if (searchInput) {
+      searchInput.value = '';
+      this.filterSignatureCompanies('');
+    }
+    this.openModalEl(modal, () => {
+      if (searchInput) setTimeout(() => searchInput.focus(), 80);
+    });
+  },
+
+  closeSignaturePicker() {
+    const modal = document.getElementById('signature-picker-modal');
+    if (modal) this.closeModalEl(modal);
+  },
+
+  selectSignatureCompany(url) {
+    if (!url) return;
+    this.closeSignaturePicker();
+    // Chuyển trang trực tiếp trong tab hiện tại (không mở tab mới)
+    window.location.href = url;
+  },
+
+  filterSignatureCompanies(query) {
+    const removeAccents = (str) => {
+      if (!str) return '';
+      return str.normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/đ/g, 'd').replace(/Đ/g, 'D')
+        .toLowerCase();
+    };
+    const q = removeAccents((query || '').trim());
+    const cards = document.querySelectorAll('#signature-picker-modal .signature-company-item');
+    let visibleCount = 0;
+    cards.forEach(card => {
+      const text = removeAccents(card.innerText + ' ' + (card.getAttribute('data-search') || ''));
+      const match = !q || text.includes(q);
+      card.classList.toggle('hidden', !match);
+      if (match) visibleCount++;
+    });
+    const emptyState = document.getElementById('signature-picker-empty');
+    if (emptyState) emptyState.classList.toggle('hidden', visibleCount > 0);
   }
 };
 

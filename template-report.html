@@ -1,71 +1,53 @@
 <!DOCTYPE html>
-<html lang="vi" class="h-full bg-slate-100 font-sans">
+<html lang="vi" class="h-full bg-[#f7f8fa] font-sans">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Báo Cáo Vận Hành Kỹ Sư 16:9 - Template</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Báo cáo vận hành - K-Workspace</title>
+  <link rel="icon" type="image/png" sizes="192x192" href="images/icon-192.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="images/favicon.png">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#213664">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="K-Workspace">
+  <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
 
-  <!-- Google Fonts: Inter (font-sans) & Roboto Condensed (font-condensed) theo chuẩn design.md -->
+  <!-- Fonts: Inter + Plus Jakarta Sans (Orven) + Roboto Condensed (Canvas Export) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Roboto+Condensed:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700&family=Roboto+Condensed:wght@500;700&display=swap" rel="stylesheet">
 
   <!-- Centralized Design System Engine -->
-  <script src="assets/js/core/design-system.js"></script>
+  <script src="assets/js/core/design-system.js?v=20261126.1815"></script>
 
   <!-- Supabase JS SDK (Official Client) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          fontFamily: {
-            sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
-            condensed: ['"Roboto Condensed"', 'sans-serif'],
-          },
-          colors: {
-            brand: {
-              50: '#f0f4fb',
-              100: '#dbe5f5',
-              200: '#bed0ee',
-              500: '#396bb2',
-              600: '#213664', // Corporate Navy
-              700: '#192b52',
-              800: '#132140',
-              900: '#0d172e',
-            },
-            accent: {
-              50: '#f2f8ef',
-              100: '#e0f0da',
-              200: '#c4e3b9',
-              500: '#569c43', // Nature Botanical Green
-              600: '#39772a',
-              700: '#2b5c1f',
-            },
-            burgundy: {
-              50: '#fdf2f4',
-              100: '#fbe6e9',
-              800: '#800020',
-            }
-          },
-          borderRadius: {
-            'btn': '0.75rem',
-            'card': '1rem',
-            'modal': '1.25rem',
-          }
-        }
-      }
-    };
-  </script>
 
   <!-- Modern SVG-based canvas & image export engines -->
   <script src="https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 
   <style>
+    @media (max-width: 1023px) {
+      html,
+      body,
+      * {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+      }
+      html::-webkit-scrollbar,
+      body::-webkit-scrollbar,
+      *::-webkit-scrollbar {
+        display: none !important;
+        width: 0 !important;
+        height: 0 !important;
+      }
+    }
     /* Fixed 16:9 Canvas Dimensions (1920 x 1080 Full HD) */
     #report-canvas {
       width: 1920px;
@@ -81,7 +63,7 @@
       -moz-osx-font-smoothing: grayscale;
       text-rendering: optimizeLegibility;
     }
-    .font-condensed {
+    #report-canvas .font-condensed {
       font-family: 'Roboto Condensed', 'Inter', system-ui, -apple-system, sans-serif !important;
       font-variant-numeric: tabular-nums;
     }
@@ -102,77 +84,89 @@
     }
   </style>
 </head>
-<body class="min-h-full bg-slate-100 text-slate-800 antialiased flex flex-col font-sans">
+<body class="min-h-full bg-[#f7f8fa] text-slate-800 antialiased flex flex-col font-sans overflow-x-hidden">
 
   <!-- ======================================================== -->
-  <!-- 🎛️ TOP CONTROL BAR (Không xuất hiện trong ảnh chụp 16:9) -->
+  <!-- TOP CONTROL BAR (Orven Light Mode Studio Toolbar)        -->
   <!-- ======================================================== -->
-  <header data-html2canvas-ignore="true" class="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-slate-200 px-4 py-3 text-slate-800 flex flex-wrap items-center justify-between gap-3 shadow-xs">
-    <div class="flex items-center gap-3">
-      <a href="index.html" onclick="if (window.history.length > 1 && document.referrer && document.referrer.includes(window.location.host)) { event.preventDefault(); window.history.back(); }" class="px-3 py-2 rounded-btn bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 transition-colors flex items-center gap-1.5 text-xs font-semibold cursor-pointer" title="Quay lại ứng dụng chính">
-        <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
-        <span>Dashboard</span>
-      </a>
-      <div class="h-4 w-px bg-slate-200 hidden sm:block"></div>
-      <div>
-        <h1 class="text-sm font-bold text-slate-900 flex items-center gap-2">
-          <span class="w-2.5 h-2.5 rounded-full bg-brand-600"></span>
-          <span>Báo Cáo Vận Hành Kỹ Sư 16:9</span>
-        </h1>
+  <header data-html2canvas-ignore="true" class="sticky top-0 z-50 bg-white border-b border-slate-200/80 text-slate-800">
+    <!-- Row 1: Navigation, Title & Export Actions -->
+    <div class="px-3 lg:px-5 py-2.5 flex items-center justify-between gap-2">
+      <div class="flex items-center gap-2 min-w-0">
+        <a href="index.html" onclick="if (window.history.length > 1 && document.referrer && document.referrer.includes(window.location.host)) { event.preventDefault(); window.history.back(); }" class="h-9 px-2.5 lg:px-3 rounded-xl bg-[#f7f8fa] hover:bg-slate-100 border border-slate-200/80 text-slate-700 hover:text-slate-900 transition-colors flex items-center gap-1.5 text-xs font-medium cursor-pointer shrink-0" title="Quay lại">
+          <svg class="w-4 h-4 text-slate-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M15 19l-7-7 7-7"/></svg>
+          <span class="hidden sm:inline">Quay lại</span>
+        </a>
+        <a href="index.html" class="flex items-center shrink-0" title="K-Workspace">
+          <img src="images/logo-full.png" alt="Phúc Sinh - K-Workspace" class="h-9 w-auto object-contain">
+        </a>
+        <span class="hidden sm:inline-block h-4 w-px bg-slate-200 shrink-0"></span>
+        <span class="hidden sm:inline text-base font-semibold font-display text-slate-900 tracking-tight truncate">Báo cáo vận hành</span>
+      </div>
+
+      <!-- Actions -->
+      <div class="flex items-center gap-1.5 lg:gap-2 shrink-0">
+        <button type="button" onclick="ReportApp.toggleFitMode()" id="btn-fit-toggle" class="h-9 px-2.5 lg:px-3 rounded-xl bg-[#f7f8fa] hover:bg-slate-100 border border-slate-200/80 text-xs font-medium text-slate-700 transition-colors flex items-center gap-1.5 cursor-pointer" title="Chuyển đổi kích thước hiển thị">
+          <svg class="w-4 h-4 text-slate-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>
+          <span id="fit-toggle-label" class="hidden sm:inline">Vừa màn hình</span>
+        </button>
+
+        <button type="button" onclick="ReportApp.exportImage('copy')" class="h-9 px-2.5 sm:px-3 rounded-xl bg-white hover:bg-slate-50 border border-slate-200/90 text-slate-700 font-medium text-xs shadow-2xs flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap">
+          <svg class="w-3.5 h-3.5 text-slate-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+          <span class="sm:hidden">Copy</span><span class="hidden sm:inline">Copy ảnh</span>
+        </button>
+
+        <button type="button" onclick="ReportApp.exportImage('download')" id="btn-export-download" class="h-9 px-2.5 sm:px-3.5 rounded-xl bg-slate-900 hover:bg-slate-800 active:bg-slate-950 text-white font-semibold text-xs shadow-2xs flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap">
+          <svg class="w-3.5 h-3.5 text-white shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+          <span class="sm:hidden">Tải ảnh</span><span class="hidden sm:inline">Tải ảnh HD</span>
+        </button>
       </div>
     </div>
 
-    <!-- Filters & Actions -->
-    <div class="flex items-center gap-2 flex-wrap">
-      <!-- Select Kỹ Sư -->
-      <div class="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-btn px-2.5 py-1.5">
-        <label for="tech-select" class="text-[11px] font-bold text-slate-500 uppercase tracking-wider font-condensed">Kỹ sư:</label>
-        <select id="tech-select" onchange="ReportApp.onTechChange(this.value)" class="bg-transparent text-xs font-bold text-slate-900 focus:outline-hidden cursor-pointer">
-          <!-- Populated dynamically via JS -->
-        </select>
+    <!-- Mobile Title Strip (Below Header) -->
+    <div class="sm:hidden px-3 pt-2.5 pb-0.5 bg-[#f7f8fa] border-t border-slate-100">
+      <h1 class="text-[16px] font-semibold font-display text-slate-900 tracking-tight leading-snug">Báo cáo vận hành</h1>
+    </div>
+
+    <!-- Row 2: Compact Filters Strip -->
+    <div class="px-3 lg:px-5 py-2 bg-[#f7f8fa] sm:border-t sm:border-slate-100 flex flex-col lg:flex-row lg:items-center justify-between gap-2">
+      <div class="grid grid-cols-1 sm:flex sm:items-center gap-2 min-w-0">
+        <!-- Select Kỹ sư -->
+        <div class="flex items-center gap-2 bg-white border border-slate-200/90 rounded-xl h-9 px-3 min-w-0">
+          <label for="tech-select" class="text-xs font-medium text-slate-400 shrink-0">Kỹ sư</label>
+          <select id="tech-select" onchange="ReportApp.onTechChange(this.value)" class="flex-1 min-w-0 bg-transparent text-xs font-semibold text-slate-900 focus:outline-none cursor-pointer truncate">
+            <!-- Populated dynamically via JS -->
+          </select>
+        </div>
+
+        <!-- Date Range -->
+        <div class="flex items-center justify-between sm:justify-start gap-2 bg-white border border-slate-200/90 rounded-xl h-9 px-3 min-w-0">
+          <div class="flex items-center gap-1.5 min-w-0 flex-1 sm:flex-initial">
+            <span class="text-[11px] font-medium text-slate-400 shrink-0">Từ</span>
+            <input type="date" id="start-date-input" onchange="ReportApp.onDateRangeChange()" class="bg-transparent text-xs font-medium text-slate-800 focus:outline-none cursor-pointer font-mono min-w-0 w-full sm:w-auto">
+          </div>
+          <span class="text-slate-300 shrink-0">→</span>
+          <div class="flex items-center gap-1.5 min-w-0 flex-1 sm:flex-initial">
+            <span class="text-[11px] font-medium text-slate-400 shrink-0">Đến</span>
+            <input type="date" id="end-date-input" onchange="ReportApp.onDateRangeChange()" class="bg-transparent text-xs font-medium text-slate-800 focus:outline-none cursor-pointer font-mono min-w-0 w-full sm:w-auto">
+          </div>
+        </div>
       </div>
 
-      <!-- Date Range: Từ ngày -> Đến ngày -->
-      <div class="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-btn px-2.5 py-1.5">
-        <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider font-condensed">Từ:</span>
-        <input type="date" id="start-date-input" onchange="ReportApp.onDateRangeChange()" class="bg-transparent text-xs font-bold text-slate-900 focus:outline-hidden cursor-pointer font-mono">
-        <span class="text-slate-300">→</span>
-        <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider font-condensed">Đến:</span>
-        <input type="date" id="end-date-input" onchange="ReportApp.onDateRangeChange()" class="bg-transparent text-xs font-bold text-slate-900 focus:outline-hidden cursor-pointer font-mono">
+      <!-- Quick Range Segmented Control -->
+      <div class="grid grid-cols-4 lg:inline-flex items-center p-0.5 bg-white border border-slate-200/90 rounded-xl shrink-0" id="quick-range-group">
+        <button type="button" id="btn-range-this-week" onclick="ReportApp.setQuickRange('this_week')" class="h-8 px-2 lg:px-2.5 rounded-lg text-[11px] font-medium text-slate-600 hover:text-slate-900 transition-all cursor-pointer truncate" title="Chu kỳ: Thứ Bảy tuần trước → Thứ Sáu tuần này">Tuần này</button>
+        <button type="button" id="btn-range-last-week" onclick="ReportApp.setQuickRange('last_week')" class="h-8 px-2 lg:px-2.5 rounded-lg text-[11px] font-medium text-slate-600 hover:text-slate-900 transition-all cursor-pointer truncate" title="Chu kỳ: Thứ Bảy → Thứ Sáu tuần trước">Tuần trước</button>
+        <button type="button" id="btn-range-this-month" onclick="ReportApp.setQuickRange('this_month')" class="h-8 px-2 lg:px-2.5 rounded-lg text-[11px] font-medium text-slate-600 hover:text-slate-900 transition-all cursor-pointer truncate">Tháng này</button>
+        <button type="button" id="btn-range-last-month" onclick="ReportApp.setQuickRange('last_month')" class="h-8 px-2 lg:px-2.5 rounded-lg text-[11px] font-medium text-slate-600 hover:text-slate-900 transition-all cursor-pointer truncate">Tháng trước</button>
       </div>
-
-      <!-- Quick Shortcuts -->
-      <div class="flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-btn p-1" id="quick-range-group">
-        <button type="button" id="btn-range-this-week" onclick="ReportApp.setQuickRange('this_week')" class="px-2.5 py-1 rounded-md text-[11px] font-bold text-slate-700 hover:text-brand-600 hover:bg-white transition-colors cursor-pointer" title="Chu kỳ: Thứ Bảy tuần trước → Thứ Sáu tuần này">Tuần này (T7 → T6)</button>
-        <button type="button" id="btn-range-last-week" onclick="ReportApp.setQuickRange('last_week')" class="px-2.5 py-1 rounded-md text-[11px] font-bold text-slate-700 hover:text-brand-600 hover:bg-white transition-colors cursor-pointer" title="Chu kỳ: Thứ Bảy → Thứ Sáu tuần trước">Tuần trước</button>
-        <button type="button" id="btn-range-this-month" onclick="ReportApp.setQuickRange('this_month')" class="px-2.5 py-1 rounded-md text-[11px] font-bold text-slate-700 hover:text-brand-600 hover:bg-white transition-colors cursor-pointer">Tháng này</button>
-        <button type="button" id="btn-range-last-month" onclick="ReportApp.setQuickRange('last_month')" class="px-2.5 py-1 rounded-md text-[11px] font-bold text-slate-700 hover:text-brand-600 hover:bg-white transition-colors cursor-pointer">Tháng trước</button>
-      </div>
-
-      <!-- Zoom Toggle (Fit screen vs 100%) -->
-      <button type="button" onclick="ReportApp.toggleFitMode()" id="btn-fit-toggle" class="px-3 py-2 rounded-btn bg-slate-100 hover:bg-slate-200 border border-slate-200 text-xs font-semibold text-slate-700 transition-colors flex items-center gap-1.5 cursor-pointer" title="Chuyển đổi kích thước hiển thị">
-        <svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>
-        <span id="fit-toggle-label">Vừa màn hình</span>
-      </button>
-
-      <!-- Nút Sao Chép Ảnh (Clipboard) -->
-      <button type="button" onclick="ReportApp.exportImage('copy')" class="px-3.5 py-2 rounded-btn bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs shadow-xs flex items-center gap-1.5 transition-all cursor-pointer">
-        <svg class="w-3.5 h-3.5 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/></svg>
-        <span>Copy ảnh (Ctrl+V)</span>
-      </button>
-
-      <!-- Nút Tải Ảnh PNG HD -->
-      <button type="button" onclick="ReportApp.exportImage('download')" id="btn-export-download" class="px-4 py-2 rounded-btn bg-brand-600 hover:bg-brand-700 active:bg-brand-800 text-white font-extrabold text-xs shadow-md shadow-brand-900/10 flex items-center gap-1.5 transition-all cursor-pointer" style="background-color: #213664;">
-        <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-        <span>Tải ảnh HD 16:9</span>
-      </button>
     </div>
   </header>
 
   <!-- ======================================================== -->
   <!-- 🖼️ CANVAS VIEWPORT WRAPPER (Auto Scale to Fit Viewport)  -->
   <!-- ======================================================== -->
-  <main class="flex-1 flex items-start justify-center p-3 sm:p-6 overflow-auto">
+  <main class="flex-1 flex items-start justify-center p-2.5 sm:p-6 overflow-auto">
     <div id="canvas-scaler" class="transition-transform duration-200 origin-top">
 
       <!-- ======================================================== -->
@@ -186,7 +180,7 @@
         <!-- ====================================================== -->
         <div class="flex items-center justify-between pb-2 h-[80px] shrink-0">
           <div>
-            <div class="text-base font-extrabold uppercase text-brand-600 font-condensed tracking-wider">
+            <div class="text-base font-extrabold uppercase text-slate-900 font-condensed tracking-wider">
               Phúc Sinh Group • K-Workspace
             </div>
             <h2 class="text-4xl font-black font-condensed text-slate-900 mt-0.5 uppercase tracking-tight">
@@ -233,22 +227,22 @@
             <div class="grid grid-cols-1 gap-3 flex-1">
               
               <!-- Metric 1: Ca hoàn thành (Brand Navy #213664) -->
-              <div class="bg-gradient-to-r from-brand-50/70 to-white rounded-2xl px-6 py-4 border border-brand-100/90 shadow-2xs flex items-center justify-between">
+              <div class="bg-gradient-to-r from-slate-100/70 to-white rounded-2xl px-6 py-4 border border-slate-200/90 shadow-2xs flex items-center justify-between">
                 <div class="flex items-center gap-4 min-w-0">
-                  <div class="w-14 h-14 rounded-2xl bg-brand-50 text-brand-600 flex items-center justify-center border border-brand-200/60 shrink-0">
+                  <div class="w-14 h-14 rounded-2xl bg-slate-100 text-slate-900 flex items-center justify-center border border-slate-200 shrink-0">
                     <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
                   </div>
                   <div class="min-w-0">
                     <span class="text-base font-black text-slate-700 uppercase font-condensed tracking-wider block">Task Hoàn Thành</span>
                   </div>
                 </div>
-                <div id="stat-completed-count" class="text-4xl font-black font-condensed text-brand-600 tracking-tight shrink-0 font-mono">0 task</div>
+                <div id="stat-completed-count" class="text-4xl font-black font-condensed text-slate-900 tracking-tight shrink-0 font-mono">0 task</div>
               </div>
 
               <!-- Metric 2: Giờ trực thực tế (Brand Corporate Navy #213664 & Slate-900) -->
               <div class="bg-gradient-to-r from-slate-50/80 to-white rounded-2xl px-6 py-4 border border-slate-200/80 shadow-2xs flex items-center justify-between">
                 <div class="flex items-center gap-4 min-w-0">
-                  <div class="w-14 h-14 rounded-2xl bg-brand-50 text-brand-600 flex items-center justify-center border border-brand-200/60 shrink-0" style="color: #213664;">
+                  <div class="w-14 h-14 rounded-2xl bg-slate-100 text-slate-900 flex items-center justify-center border border-slate-200 shrink-0">
                     <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                   </div>
                   <div class="min-w-0">
@@ -293,7 +287,7 @@
             <div class="p-4 rounded-2xl bg-slate-50/90 border border-slate-200 text-base text-slate-800 space-y-2 shrink-0">
               <div class="flex items-center justify-between">
                 <span class="font-bold text-slate-600">Tần suất làm việc:</span>
-                <span id="summary-work-days" class="font-condensed font-black text-lg text-brand-700">0 / 0 ngày (0%)</span>
+                <span id="summary-work-days" class="font-condensed font-black text-lg text-slate-900">0 / 0 ngày (0%)</span>
               </div>
               <div class="flex items-center justify-between">
                 <span class="font-bold text-slate-600">Thời lượng trung bình:</span>
@@ -322,7 +316,7 @@
               <div>Thứ Năm</div>
               <div>Thứ Sáu</div>
               <div>Thứ Bảy</div>
-              <div class="text-burgundy-800" style="color: #800020;">Chủ Nhật</div>
+              <div class="text-rose-600 font-bold">Chủ Nhật</div>
             </div>
 
             <!-- Smart Adaptive Grid Container (100% full height stretch - zero empty whitespace) -->
@@ -415,7 +409,7 @@
         const eInput = document.getElementById('end-date-input');
         if (sInput) sInput.value = this.startDate;
         if (eInput) eInput.value = this.endDate;
-        this.updateActiveQuickButton();
+        this.updateActiveQuickButton((!paramStart && !paramEnd) ? 'this_week' : null);
 
         // 1. RENDER NGAY LẬP TỨC (0ms) với dữ liệu đệm cục bộ / localStorage / BookingData
         this.populateTechDropdown(paramTech);
@@ -614,8 +608,8 @@
           'last_month': document.getElementById('btn-range-last-month'),
         };
 
-        const activeClasses = ['bg-brand-600', 'text-white', 'shadow-2xs'];
-        const inactiveClasses = ['text-slate-700', 'hover:text-brand-600', 'hover:bg-white'];
+        const activeClasses = ['bg-slate-900', 'text-white', 'font-semibold', 'shadow-2xs'];
+        const inactiveClasses = ['text-slate-600', 'hover:text-slate-900', 'hover:bg-slate-50', 'font-medium'];
 
         Object.entries(btnMap).forEach(([type, btn]) => {
           if (!btn) return;
@@ -1034,11 +1028,11 @@
                   </div>
                 `;
               } else {
-                cellBg = 'bg-brand-50/50';
+                cellBg = 'bg-slate-100/50';
                 cellBorder = 'border border-brand-200';
                 shiftDisplayHtml = `
-                  <span class="text-4xl font-black font-condensed text-brand-600 tracking-tight font-mono leading-none flex items-baseline gap-1">
-                    ${shiftCount} <span class="text-xl font-black uppercase text-brand-600/80 font-condensed">task</span>
+                  <span class="text-4xl font-black font-condensed text-slate-900 tracking-tight font-mono leading-none flex items-baseline gap-1">
+                    ${shiftCount} <span class="text-xl font-black uppercase text-slate-900/80 font-condensed">task</span>
                   </span>
                 `;
               }
@@ -1049,12 +1043,12 @@
               activeWorkDays++;
               const weekdayHasOt = shifts.some(b => b._isOutOfHours);
               if (weekdayHasOt) {
-                cellBg = 'bg-brand-50/60';
+                cellBg = 'bg-slate-100/60';
                 cellBorder = 'border border-amber-300';
                 shiftDisplayHtml = `
                   <div class="flex flex-col items-center justify-center leading-none text-center">
-                    <span class="text-4xl font-black font-condensed text-brand-700 tracking-tight font-mono leading-none flex items-baseline gap-1">
-                      ${shiftCount} <span class="text-lg font-black uppercase text-brand-700 font-condensed">task</span>
+                    <span class="text-4xl font-black font-condensed text-slate-900 tracking-tight font-mono leading-none flex items-baseline gap-1">
+                      ${shiftCount} <span class="text-lg font-black uppercase text-slate-900 font-condensed">task</span>
                     </span>
                     <span class="mt-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider font-condensed bg-amber-100 text-amber-800 border border-amber-200 flex items-center gap-1">
                       <span>⚡</span> Có giờ OT
@@ -1062,11 +1056,11 @@
                   </div>
                 `;
               } else if (shiftCount > 1) {
-                cellBg = 'bg-brand-50/40';
+                cellBg = 'bg-slate-100/40';
                 cellBorder = 'border border-brand-200';
                 shiftDisplayHtml = `
-                  <span class="text-4xl font-black font-condensed text-brand-600 tracking-tight font-mono leading-none flex items-baseline gap-1">
-                    ${shiftCount} <span class="text-xl font-black uppercase text-brand-600/80 font-condensed">task</span>
+                  <span class="text-4xl font-black font-condensed text-slate-900 tracking-tight font-mono leading-none flex items-baseline gap-1">
+                    ${shiftCount} <span class="text-xl font-black uppercase text-slate-900/80 font-condensed">task</span>
                   </span>
                 `;
               } else {
@@ -1082,7 +1076,7 @@
               // ========================================================
               // 0 TASK TRONG NGÀY: SẠCH SẼ, KHÔNG HIỆN TEXT RỐI MẮT
               // ========================================================
-              cellBg = isSunday ? 'bg-burgundy-50/20' : (isSaturday ? 'bg-slate-50/40' : 'bg-white');
+              cellBg = isSunday ? 'bg-rose-50/40' : (isSaturday ? 'bg-slate-50/40' : 'bg-white');
               cellBorder = 'border border-slate-200/70';
               shiftDisplayHtml = '';
             }
@@ -1093,7 +1087,7 @@
             cellsHtml += `
               <div class="${cellBg} ${cellBorder} rounded-xl p-3 flex flex-col justify-between shadow-2xs transition-all h-full">
                 <div class="flex items-center justify-between">
-                  <span class="text-sm font-extrabold font-condensed leading-none ${isSunday ? 'text-burgundy-800' : 'text-slate-500'}">${dayNum}</span>
+                  <span class="text-sm font-extrabold font-condensed leading-none ${isSunday ? 'text-rose-600 font-bold' : 'text-slate-500'}">${dayNum}</span>
                   ${monthTag}
                 </div>
                 <div class="my-auto py-1 flex items-center justify-center">

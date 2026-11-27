@@ -34,14 +34,58 @@ const BookingUI = {
     }
     const isSuper = u?.role === 'admin' || (isCurrentUser && BookingData.isSuperAdmin());
     const isApprover = u?.role === 'approver';
-    const bgClass = isSuper ? 'bg-amber-500 text-white' : (isApprover ? 'bg-brand-50 text-brand-700' : 'bg-slate-200 text-slate-700');
+    const bgClass = isSuper ? 'bg-amber-500 text-white' : (isApprover ? 'bg-slate-100 text-slate-900' : 'bg-slate-200 text-slate-700');
     return `<div class="${size} rounded-full ${bgClass} font-bold ${textSize} flex items-center justify-center flex-shrink-0 shadow-2xs border border-black/5">${initials}</div>`;
+  },
+
+  // Helper: Render Minimal Personnel Cell (Coordinator Avatar -> Assignee Avatar + Name)
+  renderPersonnelCellHtml(tech, reqEmail, reqName) {
+    const techName = tech ? tech.name : 'Chưa gán kỹ sư';
+    const shortTechName = tech ? tech.name.split(' ').slice(-2).join(' ') : 'Chưa gán';
+    const techAvatar = tech?.avatar || '';
+    const cleanReqName = reqName || 'Hệ thống';
+    const tooltipText = `Điều phối: ${cleanReqName}${reqEmail ? ' (' + reqEmail + ')' : ''} → Kỹ sư: ${techName}${tech?.phone ? ' (SĐT: ' + tech.phone + ')' : ''}`;
+
+    return `
+      <td class="py-2.5 px-3.5 whitespace-nowrap">
+        <div class="inline-flex items-center gap-1.5 transition-colors cursor-help" title="${tooltipText}">
+          <!-- 1. Avatar Người điều phối (Giao việc) -->
+          <div class="relative flex-shrink-0" title="Người điều phối: ${cleanReqName}">
+            ${this.getUserAvatarHtml(reqEmail, cleanReqName, 'w-6 h-6', 'text-[9px]')}
+          </div>
+
+          <!-- Mũi tên luồng giao nhận việc -->
+          <svg class="w-3 h-3 text-slate-300 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+          </svg>
+
+          <!-- 2. Avatar + Tên Kỹ sư nhận việc -->
+          <div class="flex items-center gap-1.5 min-w-0" title="Kỹ sư nhận việc: ${techName}">
+            <div class="relative flex-shrink-0">
+              ${techAvatar
+                ? `<img src="${techAvatar}" alt="${techName}" class="w-6 h-6 rounded-full object-cover flex-shrink-0">`
+                : `<div class="w-6 h-6 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[9px] flex items-center justify-center">KS</div>`
+              }
+              <span class="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-500 ring-1 ring-white"></span>
+            </div>
+            <span class="text-xs font-medium text-slate-800">${shortTechName}</span>
+          </div>
+        </div>
+      </td>
+    `;
   },
   currentYear: 2026,
   currentMonth: 10, // 0-indexed (10 = Tháng 11)
-  selectedTechId: 'all', // 'all' | 'TECH-001' | ...
+  selectedTechId: null, // Default auto-selects 1st active technician
   selectedSkill: 'all',
   searchQuery: '',
+  myBookingsFilter: 'ALL', // 'ALL' | 'PENDING' | 'IN_PROGRESS' | 'APPROVED' | 'OVERDUE' | 'COMPLETED'
+
+  setMyBookingsFilter(newFilter) {
+    this.myBookingsFilter = newFilter;
+    if (this.pagination.myBookings) this.pagination.myBookings.page = 1;
+    this.renderMyBookings();
+  },
 
   // Unified Pagination State for All List-based Pages (20 items / page)
   pagination: {
@@ -94,7 +138,7 @@ const BookingUI = {
         <button type="button" onclick="BookingUI.setPage('${moduleName}', ${p})"
                 class="min-w-[34px] h-8 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                   isActive
-                    ? 'bg-brand-600 text-white shadow-2xs'
+                    ? 'bg-slate-900 text-white shadow-2xs'
                     : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                 }">
           ${p}
@@ -139,8 +183,76 @@ const BookingUI = {
     this.initCalendarPicker();
     this.initCustomTechDropdown();
     this.initCustomDatePicker();
-    // Render initial active tab (default 'overview') immediately on first load
-    this.switchTab(this.activeTab || 'overview');
+    this.consumeUrlIntent();
+    // Render initial active tab (default 'overview' or requested ?tab / #hash) immediately on first load
+    this.switchTab(this.activeTab || 'overview', { skipHistory: true });
+    this.resolvePendingDeepLink();
+  },
+
+  _pendingDeepLinkBookingId: null,
+  _pendingDeepLinkAction: null,
+
+  consumeUrlIntent() {
+    try {
+      const url = new URL(window.location.href);
+      const validTabs = ['overview', 'timeline', 'approval', 'my-bookings', 'technicians', 'users', 'email-settings'];
+      const tabParam = url.searchParams.get('tab');
+      const hashTab = (url.hash || '').replace(/^#/, '');
+      if (tabParam && validTabs.includes(tabParam)) {
+        this.activeTab = tabParam;
+      } else if (hashTab && validTabs.includes(hashTab)) {
+        this.activeTab = hashTab;
+      }
+
+      const bookingParam = url.searchParams.get('booking');
+      if (bookingParam) {
+        this._pendingDeepLinkBookingId = bookingParam;
+      }
+
+      const actionParam = url.searchParams.get('action');
+      if (actionParam === 'new-booking') {
+        this._pendingDeepLinkAction = 'new-booking';
+      }
+
+      if (tabParam || bookingParam || actionParam) {
+        url.searchParams.delete('tab');
+        url.searchParams.delete('booking');
+        url.searchParams.delete('action');
+        if (window.history && window.history.replaceState) {
+          const cleanHash = this.activeTab ? `#${this.activeTab}` : url.hash;
+          window.history.replaceState({ kTab: this.activeTab || 'overview' }, '', url.pathname + url.search + cleanHash);
+        }
+      }
+    } catch (_) {}
+  },
+
+  openBookingFromDeepLink(bookingId) {
+    if (!bookingId) return;
+    const found = (BookingData.bookings || []).find(b => String(b.booking_id) === String(bookingId));
+    if (found) {
+      this._pendingDeepLinkBookingId = null;
+      this.openDetailModal(found.booking_id);
+      return true;
+    }
+    this._pendingDeepLinkBookingId = String(bookingId);
+    return false;
+  },
+
+  resolvePendingDeepLink() {
+    if (this._pendingDeepLinkAction === 'new-booking') {
+      this._pendingDeepLinkAction = null;
+      if (BookingData.hasPermission('create_booking')) {
+        setTimeout(() => this.openBookingModal(), 120);
+      }
+    }
+    if (this._pendingDeepLinkBookingId) {
+      const targetId = this._pendingDeepLinkBookingId;
+      const found = (BookingData.bookings || []).find(b => String(b.booking_id) === String(targetId));
+      if (found) {
+        this._pendingDeepLinkBookingId = null;
+        setTimeout(() => this.openDetailModal(found.booking_id), 120);
+      }
+    }
   },
 
   initDates() {
@@ -206,7 +318,7 @@ const BookingUI = {
       if (sDate === eDate && sTime && eTime && sTime > eTime) {
         if (timeOrderHint) {
           timeOrderHint.classList.remove('hidden');
-          timeOrderHint.innerHTML = `<span>⚠️ Giờ kết thúc <strong>(${eTime})</strong> sớm hơn giờ bắt đầu <strong>(${sTime})</strong>. Hệ thống sẽ tự động hoán đổi lại đúng trình tự khi lưu.</span>`;
+          timeOrderHint.innerHTML = `<span class="flex items-center gap-1.5"><svg class="w-4 h-4 text-amber-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg><span>Giờ kết thúc <strong>(${eTime})</strong> sớm hơn giờ bắt đầu <strong>(${sTime})</strong>. Hệ thống sẽ tự động hoán đổi lại đúng trình tự khi lưu.</span></span>`;
         }
       } else {
         if (timeOrderHint) {
@@ -320,10 +432,8 @@ const BookingUI = {
     const user = BookingData.currentUser;
     const isTechnician = user?.role === 'technician' || Boolean(user?.is_technician);
 
-    // Lock calendar filter strictly to the technician's own tech_id
-    if (isTechnician && user?.tech_id) {
-      this.selectedTechId = user.tech_id;
-    }
+    // Lock calendar filter to own tech_id (if technician) or default to 1st active technician
+    this.ensureSelectedTechId();
 
     const setElemVisible = (el, visible) => {
       if (!el) return;
@@ -349,12 +459,18 @@ const BookingUI = {
     const mobileUsers = document.getElementById('mobile-tab-users');
     const mobileEmailSettings = document.getElementById('mobile-tab-email-settings');
 
-    const isAdmin = BookingData.currentUser?.role === 'admin';
+    const userRole = (BookingData.currentUser?.role || '').toLowerCase();
+    const isAdmin = userRole === 'admin';
+    const isApprover = userRole === 'approver' || userRole === 'lead' || userRole === 'manager';
+    const isRequester = userRole === 'requester' || userRole === 'user' || userRole === 'pm';
+    const canUseExtensions = !isTechnician && (isAdmin || isApprover || isRequester || userRole !== 'technician');
     const canViewExtensions = isAdmin;
 
     // 1. Sidebar & Mobile Tabs Visibility
     setElemVisible(tabTimeline, canViewSchedule);
     setElemVisible(mobileTimeline, canViewSchedule);
+    const mobileBottomTimeline = document.getElementById('mobile-bottom-tab-timeline');
+    if (mobileBottomTimeline) mobileBottomTimeline.classList.toggle('hidden', !canViewSchedule);
 
     setElemVisible(tabMyBookings, true);
 
@@ -367,8 +483,8 @@ const BookingUI = {
     const myPanelSub = document.getElementById('my-bookings-panel-subtitle');
     if (myPanelTitle) {
       myPanelTitle.textContent = isTechnician
-        ? `Lịch Điều Phối Cá Nhân (${user?.tech_id || 'Kỹ Sư'})`
-        : 'Lịch điều phối Kỹ Thuật';
+        ? `Danh sách nhiệm vụ (${user?.tech_id || 'Kỹ sư'})`
+        : 'Danh sách yêu cầu';
     }
     if (myPanelSub) {
       myPanelSub.textContent = isTechnician
@@ -399,7 +515,13 @@ const BookingUI = {
 
     // 2. Action Buttons Visibility across panels
     const btnQuickNew = document.getElementById('btn-quick-new-booking');
-    if (btnQuickNew) btnQuickNew.classList.toggle('hidden', !canCreateBooking);
+    if (btnQuickNew) {
+      btnQuickNew.classList.add('hidden');
+      btnQuickNew.classList.toggle('lg:inline-flex', canCreateBooking);
+    }
+
+    const sidebarQuickCard = document.getElementById('sidebar-quick-booking-card');
+    if (sidebarQuickCard) sidebarQuickCard.classList.toggle('hidden', !canCreateBooking);
 
     const btnOverviewNew = document.getElementById('btn-overview-new-booking');
     if (btnOverviewNew) btnOverviewNew.classList.toggle('hidden', !canCreateBooking);
@@ -433,10 +555,14 @@ const BookingUI = {
       this.switchTab(targetTab);
     }
 
-    // 4. Extensions Visibility (User bình thường & Kỹ sư không thấy)
+    // 4. Extensions Visibility (Chỉ hiển thị trên Desktop >= 1024px cho Admin, Vận hành/Lead, PM/Requester)
     const sideExt = document.getElementById('sidebar-extensions-group');
+    const mobileExt = document.getElementById('mobile-extensions-group');
     const overExt = document.getElementById('overview-extensions-group');
-    if (sideExt) sideExt.classList.toggle('hidden', !canViewExtensions);
+    const overTools = document.getElementById('overview-quick-tools-group');
+    if (sideExt) sideExt.classList.toggle('hidden', !canUseExtensions);
+    if (mobileExt) mobileExt.classList.add('hidden');
+    if (overTools) overTools.classList.toggle('hidden', !canUseExtensions);
     if (overExt) overExt.classList.toggle('hidden', !canViewExtensions);
 
     if (targetTab === 'email-settings' && !canViewExtensions) {
@@ -449,8 +575,12 @@ const BookingUI = {
       : false;
     const bubbleContainer = document.getElementById('admin-role-bubble-container');
     if (bubbleContainer) {
-      bubbleContainer.classList.toggle('hidden', !canAccessBubble);
-      bubbleContainer.classList.toggle('flex', canAccessBubble);
+      bubbleContainer.classList.add('hidden');
+      bubbleContainer.classList.remove('flex');
+    }
+    const topMenuRoleSection = document.getElementById('top-menu-role-section');
+    if (topMenuRoleSection) {
+      topMenuRoleSection.classList.toggle('hidden', !canAccessBubble);
     }
   },
 
@@ -476,10 +606,12 @@ const BookingUI = {
         e.stopPropagation();
         const isHidden = dropdown.classList.contains('hidden');
         if (isHidden) {
-          dropdown.classList.remove('hidden');
+          if (window.App && App.togglePopoverEl) App.togglePopoverEl(dropdown, true);
+          else dropdown.classList.remove('hidden');
           btnBell.setAttribute('aria-expanded', 'true');
         } else {
-          dropdown.classList.add('hidden');
+          if (window.App && App.togglePopoverEl) App.togglePopoverEl(dropdown, false);
+          else dropdown.classList.add('hidden');
           btnBell.setAttribute('aria-expanded', 'false');
         }
       });
@@ -487,8 +619,9 @@ const BookingUI = {
       // Close dropdown on click outside
       document.addEventListener('click', (e) => {
         const wrapper = document.getElementById('notification-wrapper');
-        if (wrapper && !wrapper.contains(e.target)) {
-          dropdown.classList.add('hidden');
+        if (wrapper && !wrapper.contains(e.target) && !dropdown.classList.contains('hidden')) {
+          if (window.App && App.togglePopoverEl) App.togglePopoverEl(dropdown, false);
+          else dropdown.classList.add('hidden');
           btnBell.setAttribute('aria-expanded', 'false');
         }
       });
@@ -496,7 +629,8 @@ const BookingUI = {
       // Close on Escape key
       document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape' && !dropdown.classList.contains('hidden')) {
-          dropdown.classList.add('hidden');
+          if (window.App && App.togglePopoverEl) App.togglePopoverEl(dropdown, false);
+          else dropdown.classList.add('hidden');
           btnBell.setAttribute('aria-expanded', 'false');
         }
       });
@@ -589,10 +723,10 @@ const BookingUI = {
     if (unreadCountEl) {
       if (unreadCount > 0) {
         unreadCountEl.textContent = `${unreadCount} mới`;
-        unreadCountEl.className = 'px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-burgundy-100 text-burgundy-800 font-condensed';
+        unreadCountEl.className = 'px-2 py-0.5 rounded-md text-[10px] font-bold bg-rose-50 text-rose-700 font-display whitespace-nowrap shrink-0';
       } else {
         unreadCountEl.textContent = '0 mới';
-        unreadCountEl.className = 'px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-500 font-condensed';
+        unreadCountEl.className = 'px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 text-slate-500 font-display whitespace-nowrap shrink-0';
       }
     }
 
@@ -600,7 +734,7 @@ const BookingUI = {
     if (filterAllBtn) {
       filterAllBtn.textContent = `Tất cả (${allNotifications.length})`;
       if (this.notificationFilter === 'all') {
-        filterAllBtn.className = 'px-2.5 py-1 rounded-lg bg-white shadow-2xs border border-slate-200 text-brand-600 font-semibold cursor-pointer transition-all';
+        filterAllBtn.className = 'px-2.5 py-1 rounded-lg bg-white shadow-2xs border border-slate-200 text-slate-900 font-semibold cursor-pointer transition-all';
       } else {
         filterAllBtn.className = 'px-2.5 py-1 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-white/60 transition-all cursor-pointer';
       }
@@ -608,7 +742,7 @@ const BookingUI = {
     if (filterUnreadBtn) {
       filterUnreadBtn.textContent = `Chưa đọc (${unreadCount})`;
       if (this.notificationFilter === 'unread') {
-        filterUnreadBtn.className = 'px-2.5 py-1 rounded-lg bg-white shadow-2xs border border-slate-200 text-brand-600 font-semibold cursor-pointer transition-all';
+        filterUnreadBtn.className = 'px-2.5 py-1 rounded-lg bg-white shadow-2xs border border-slate-200 text-slate-900 font-semibold cursor-pointer transition-all';
       } else {
         filterUnreadBtn.className = 'px-2.5 py-1 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-white/60 transition-all cursor-pointer';
       }
@@ -670,14 +804,14 @@ const BookingUI = {
              class="group p-3.5 flex items-start gap-3 transition-colors cursor-pointer relative ${unreadBg}">
           ${iconMarkup}
           <div class="flex-1 min-w-0 pr-1">
-            <div class="flex items-center justify-between gap-1 mb-0.5">
-              <h4 class="text-xs font-bold text-slate-800 truncate">${item.title}</h4>
-              <span class="text-[10px] text-slate-400 font-medium whitespace-nowrap">${item.time}</span>
+            <div class="flex items-center justify-between gap-2 mb-0.5">
+              <h4 class="text-xs font-semibold text-slate-900 truncate">${String(item.title || '').replace(/^[\u26A0\uFE0F\s]+/g, '')}</h4>
+              <span class="text-[10px] text-slate-400 font-medium whitespace-nowrap shrink-0">${item.time}</span>
             </div>
             <p class="text-[11px] text-slate-600 leading-relaxed line-clamp-2">${item.message}</p>
           </div>
           <div class="flex items-center gap-1.5 flex-shrink-0 mt-0.5">
-            ${!item.read ? '<span class="w-2 h-2 rounded-full bg-brand-500 flex-shrink-0"></span>' : ''}
+            ${!item.read ? '<span class="w-2 h-2 rounded-full bg-slate-900 flex-shrink-0"></span>' : ''}
             <button type="button" onclick="BookingUI.deleteNotificationItem('${item.id}', event)" class="p-1 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-all cursor-pointer opacity-70 hover:opacity-100" title="Xóa thông báo">
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
             </button>
@@ -812,7 +946,7 @@ const BookingUI = {
     gridEl.innerHTML = monthNames.map((name, idx) => {
       const isSelected = this.currentMonth === idx && this.currentYear === this.pickerYear;
       const activeClass = isSelected
-        ? 'bg-brand-600 text-white font-bold shadow-xs'
+        ? 'bg-slate-900 text-white font-bold shadow-xs'
         : 'text-slate-700 hover:bg-slate-100 font-semibold hover:text-slate-900';
       return `
         <button type="button" onclick="BookingUI.selectCalendarMonth(${this.pickerYear}, ${idx})" class="py-2.5 px-1.5 rounded-xl text-center text-xs transition-all cursor-pointer ${activeClass}">
@@ -887,7 +1021,7 @@ const BookingUI = {
       const isSelected = t.tech_id === selectedTechId;
       return `
         <div onclick="BookingUI.selectCustomTech('${t.tech_id}')"
-             class="p-2.5 flex items-center justify-between gap-3 hover:bg-slate-50 cursor-pointer transition-colors ${isSelected ? 'bg-brand-50/70 font-semibold' : ''}">
+             class="p-2.5 flex items-center justify-between gap-3 hover:bg-slate-50 cursor-pointer transition-colors ${isSelected ? 'bg-slate-100 font-semibold' : ''}">
           <div class="flex items-center gap-2.5 min-w-0">
             <img src="${t.avatar}" class="w-8 h-8 rounded-full object-cover border border-slate-200 shadow-2xs flex-shrink-0" alt="${t.name}">
             <div class="min-w-0">
@@ -898,7 +1032,7 @@ const BookingUI = {
               <p class="text-[10px] text-slate-400 truncate mt-0.5">${t.skills.join(' • ')}</p>
             </div>
           </div>
-          ${isSelected ? `<svg class="w-4 h-4 text-brand-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>` : ''}
+          ${isSelected ? `<svg class="w-4 h-4 text-slate-900 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>` : ''}
         </div>
       `;
     }).join('');
@@ -960,14 +1094,14 @@ const BookingUI = {
       if (rangeSublabel) rangeSublabel.textContent = 'Task 1 ngày • Nhấp để đổi hoặc chọn dải ngày';
       if (durationTag) {
         durationTag.textContent = '1 ngày';
-        durationTag.className = 'text-[11px] font-bold text-brand-600 font-condensed bg-brand-50 px-2 py-0.5 rounded-full border border-brand-100';
+        durationTag.className = 'text-[11px] font-bold text-slate-900 font-condensed bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200';
       }
     } else {
       if (rangeLabel) rangeLabel.textContent = `${this.formatDateDisplay(sDate)} → ${this.formatDateDisplay(eDate)}`;
       if (rangeSublabel) rangeSublabel.textContent = `Task liên ngày (${diffDays} ngày) • Nhấp để đổi lịch`;
       if (durationTag) {
         durationTag.textContent = `${diffDays} ngày`;
-        durationTag.className = 'text-[11px] font-bold text-brand-700 font-condensed bg-brand-50 px-2 py-0.5 rounded-full border border-brand-100';
+        durationTag.className = 'text-[11px] font-bold text-slate-900 font-condensed bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200';
       }
     }
 
@@ -1130,9 +1264,9 @@ const BookingUI = {
         if (instructionDot) instructionDot.className = 'w-1.5 h-1.5 rounded-full bg-amber-500 flex-shrink-0 animate-ping';
       } else {
         badge.textContent = '1 Lịch chọn dải ngày';
-        badge.className = 'px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-brand-50 text-brand-700 font-condensed border border-brand-100';
+        badge.className = 'px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-slate-100 text-slate-900 font-condensed border border-slate-200';
         instructionText.textContent = 'Nhấp 1 ngày để chọn task 1 ngày. Nhấp ngày thứ 2 để đặt task liên ngày.';
-        if (instructionDot) instructionDot.className = 'w-1.5 h-1.5 rounded-full bg-brand-500 flex-shrink-0 animate-pulse';
+        if (instructionDot) instructionDot.className = 'w-1.5 h-1.5 rounded-full bg-slate-900 flex-shrink-0 animate-pulse';
       }
     }
 
@@ -1164,14 +1298,14 @@ const BookingUI = {
         const isHoverEnd = this.hoverDate && dayStr === this.hoverDate && dayStr > startDateVal;
 
         if (isStart) {
-          cellClass += 'bg-brand-600 text-white font-extrabold shadow-xs cursor-pointer rounded-xl ring-2 ring-brand-300 ';
+          cellClass += 'bg-slate-900 text-white font-extrabold shadow-xs cursor-pointer rounded-xl ring-2 ring-slate-400 ';
         } else if (isHoverEnd) {
-          cellClass += 'bg-brand-600 text-white font-extrabold shadow-xs cursor-pointer rounded-r-xl ';
+          cellClass += 'bg-slate-900 text-white font-extrabold shadow-xs cursor-pointer rounded-r-xl ';
         } else if (isHover) {
-          cellClass += 'bg-brand-50 text-brand-700 font-bold hover:bg-brand-100 cursor-pointer rounded-none ';
+          cellClass += 'bg-slate-100 text-slate-900 font-bold hover:bg-slate-200 cursor-pointer rounded-none ';
         } else {
           cellClass += 'text-slate-800 hover:bg-slate-100 rounded-xl cursor-pointer ';
-          if (isToday) cellClass += 'ring-1 ring-brand-500/50 text-brand-600 ';
+          if (isToday) cellClass += 'ring-1 ring-slate-400 text-slate-900 ';
         }
       } else {
         // Idle mode (confirmed range)
@@ -1181,16 +1315,16 @@ const BookingUI = {
         const isInRange = startDateVal && endDateVal && dayStr > startDateVal && dayStr < endDateVal;
 
         if (isSingle) {
-          cellClass += 'bg-brand-600 text-white font-extrabold shadow-xs cursor-pointer rounded-xl ';
+          cellClass += 'bg-slate-900 text-white font-extrabold shadow-xs cursor-pointer rounded-xl ';
         } else if (isStart) {
-          cellClass += 'bg-brand-600 text-white font-extrabold shadow-xs cursor-pointer rounded-l-xl rounded-r-none ';
+          cellClass += 'bg-slate-900 text-white font-extrabold shadow-xs cursor-pointer rounded-l-xl rounded-r-none ';
         } else if (isEnd) {
-          cellClass += 'bg-brand-600 text-white font-extrabold shadow-xs cursor-pointer rounded-r-xl rounded-l-none ';
+          cellClass += 'bg-slate-900 text-white font-extrabold shadow-xs cursor-pointer rounded-r-xl rounded-l-none ';
         } else if (isInRange) {
-          cellClass += 'bg-brand-50 text-brand-700 font-bold hover:bg-brand-100 cursor-pointer rounded-none ';
+          cellClass += 'bg-slate-100 text-slate-900 font-bold hover:bg-slate-200 cursor-pointer rounded-none ';
         } else {
           cellClass += 'text-slate-800 hover:bg-slate-100 rounded-xl cursor-pointer ';
-          if (isToday) cellClass += 'ring-1 ring-brand-500/50 text-brand-600 ';
+          if (isToday) cellClass += 'ring-1 ring-slate-400 text-slate-900 ';
         }
       }
 
@@ -1313,67 +1447,112 @@ const BookingUI = {
     this.closeCustomDatePicker();
   },
 
-  switchTab(tabName) {
+  syncHeaderBackButton() {
+    const backBtn = document.getElementById('btn-header-back');
+    if (!backBtn) return;
+    const isSubUserView = this.activeTab === 'users' && (
+      !document.getElementById('user-detail-view')?.classList.contains('hidden') ||
+      !document.getElementById('user-add-view')?.classList.contains('hidden')
+    );
+    const shouldShow = (this.activeTab && this.activeTab !== 'overview') || isSubUserView;
+    backBtn.classList.toggle('hidden', !shouldShow);
+    backBtn.classList.toggle('inline-flex', shouldShow);
+    backBtn.classList.toggle('lg:hidden', shouldShow && !isSubUserView);
+  },
+
+  goBack() {
+    if (this.activeTab === 'users') {
+      const detailView = document.getElementById('user-detail-view');
+      const addView = document.getElementById('user-add-view');
+      if ((detailView && !detailView.classList.contains('hidden')) || (addView && !addView.classList.contains('hidden'))) {
+        this.showUsersList();
+        return;
+      }
+    }
+    if (!Array.isArray(this.tabHistory)) this.tabHistory = ['overview'];
+    while (this.tabHistory.length > 0 && this.tabHistory[this.tabHistory.length - 1] === this.activeTab) {
+      this.tabHistory.pop();
+    }
+    const prevTab = this.tabHistory.pop() || 'overview';
+    this.switchTab(prevTab, { isBack: true });
+  },
+
+  switchTab(tabName, opts = {}) {
     const canViewSchedule = BookingData.hasPermission('view_schedule');
     const canViewApproval = BookingData.hasPermission('view_approval_queue');
     const canViewTechs = BookingData.hasPermission('view_technicians');
     const canViewUsers = BookingData.hasPermission('view_users');
 
-    // 🛡️ BẢO VỆ PHÂN QUYỀN
+    // BAO VE PHAN QUYEN
     if (tabName === 'timeline' && !canViewSchedule) tabName = 'my-bookings';
     if (tabName === 'approval' && !canViewApproval) tabName = canViewSchedule ? 'timeline' : 'my-bookings';
     if (tabName === 'technicians' && !canViewTechs) tabName = canViewSchedule ? 'timeline' : 'my-bookings';
     if (tabName === 'users' && (!canViewUsers || BookingData.currentUser?.role !== 'admin')) tabName = canViewSchedule ? 'timeline' : 'my-bookings';
     if (tabName === 'email-settings' && BookingData.currentUser?.role !== 'admin') tabName = 'my-bookings';
 
-    this.activeTab = tabName;
+    const prevActiveTab = this.activeTab;
+    if (!Array.isArray(this.tabHistory)) this.tabHistory = ['overview'];
+    if (!opts?.isBack && prevActiveTab && prevActiveTab !== tabName) {
+      this.tabHistory.push(prevActiveTab);
+      if (this.tabHistory.length > 15) this.tabHistory.shift();
+    }
 
-    // 1. Cập nhật trạng thái Active tab mà KHÔNG ghi đè làm mất class 'hidden'
+    this.activeTab = tabName;
+    this.syncHeaderBackButton();
+
+    if (!opts?.skipHistory && window.history && window.history.pushState) {
+      const targetHash = `#${tabName}`;
+      if (window.location.hash !== targetHash) {
+        try {
+          window.history.pushState({ kTab: tabName }, '', `${window.location.pathname}${window.location.search}${targetHash}`);
+        } catch (_) {}
+      }
+    }
+
+    // 1. Cập nhật trạng thái Active tab theo chuẩn Tonal Surface (elevated white pill on #f2f4f7)
     document.querySelectorAll('.booking-nav-tab').forEach(btn => {
       const isCurrent = btn.dataset.tab === tabName;
       if (isCurrent) {
-        btn.classList.add('bg-brand-600', 'text-white', 'shadow-xs', 'font-semibold');
-        btn.classList.remove('bg-slate-900', 'text-slate-600', 'hover:text-slate-900', 'hover:bg-slate-100', 'font-medium');
+        btn.classList.add('bg-white', 'text-slate-900', 'font-semibold', 'shadow-2xs');
+        btn.classList.remove('bg-slate-100', 'bg-slate-900', 'text-white', 'text-slate-500', 'text-slate-600', 'hover:text-slate-900', 'hover:bg-white/70', 'hover:bg-white/60', 'hover:bg-slate-50', 'hover:bg-slate-100', 'font-medium', 'font-bold', 'shadow-xs', 'border', 'border-slate-200/70');
       } else {
-        btn.classList.remove('bg-brand-600', 'bg-slate-900', 'text-white', 'shadow-xs', 'font-semibold');
-        btn.classList.add('text-slate-600', 'hover:text-slate-900', 'hover:bg-slate-100', 'font-medium');
+        btn.classList.remove('bg-white', 'bg-slate-100', 'bg-slate-900', 'text-white', 'text-slate-900', 'shadow-2xs', 'shadow-xs', 'border', 'border-slate-200/70', 'font-bold', 'font-semibold');
+        btn.classList.add('text-slate-600', 'hover:text-slate-900', 'hover:bg-white/60', 'font-medium');
       }
     });
 
     this.applyRolePermissions();
 
-    // 2. Dynamic Page Titles & Subtitles matching Monty Style
+    // 2. Dynamic Page Titles & Subtitles matching Single-Sheet SaaS Header
     const titleEl = document.getElementById('page-main-title');
+    const subEl = document.getElementById('page-main-subtitle');
+    const mobileTitleEl = document.getElementById('mobile-page-main-title');
     const breadcrumbCurrentEl = document.getElementById('page-breadcrumb-current');
     [titleEl, document.getElementById('notification-wrapper'), document.getElementById('top-user-menu-wrapper')].forEach(element => {
       if (!element) return;
       element.classList.remove('hidden', 'lg:block');
     });
 
-    if (tabName === 'overview') {
-      if (titleEl) titleEl.textContent = 'Tổng quan';
-      if (breadcrumbCurrentEl) breadcrumbCurrentEl.textContent = 'Tổng Quan';
-    } else if (tabName === 'timeline') {
-      if (titleEl) titleEl.textContent = 'Lịch trực';
-      if (breadcrumbCurrentEl) breadcrumbCurrentEl.textContent = 'Lịch trực';
-    } else if (tabName === 'approval') {
-      if (titleEl) titleEl.textContent = 'Duyệt Yêu Cầu';
-      if (breadcrumbCurrentEl) breadcrumbCurrentEl.textContent = 'Duyệt Yêu Cầu';
-    } else if (tabName === 'my-bookings') {
-      const curUser = BookingData.currentUser;
-      const isTech = curUser?.role === 'technician' || Boolean(curUser?.is_technician);
-      if (titleEl) titleEl.textContent = isTech ? 'Lịch của tôi' : 'Lịch điều phối';
-      if (breadcrumbCurrentEl) breadcrumbCurrentEl.textContent = isTech ? 'Lịch Điều Phối Của Tôi' : 'Lịch điều phối';
-    } else if (tabName === 'technicians') {
-      if (titleEl) titleEl.textContent = 'Đội ngũ kỹ sư';
-      if (breadcrumbCurrentEl) breadcrumbCurrentEl.textContent = 'Kỹ Sư & Năng Lực';
-    } else if (tabName === 'users') {
-      if (titleEl) titleEl.textContent = 'Người Dùng & Phân Quyền';
-      if (breadcrumbCurrentEl) breadcrumbCurrentEl.textContent = 'Quản Trị Người Dùng';
-    } else if (tabName === 'email-settings') {
-      if (titleEl) titleEl.textContent = 'Email & lịch mời';
-      if (breadcrumbCurrentEl) breadcrumbCurrentEl.textContent = 'Cấu Hình Email & ICS';
-    }
+    const curUser = BookingData.currentUser;
+    const isTechTitle = curUser?.role === 'technician' || Boolean(curUser?.is_technician);
+    const titleMap = {
+      overview: ['Tổng quan điều phối', 'Tổng quan', 'Theo dõi trực ca & điều phối kỹ thuật theo thời gian thực.'],
+      timeline: ['Lịch trực kỹ sư', 'Lịch trực', 'Lập kế hoạch và phân bổ lịch làm việc theo kỹ sư.'],
+      approval: ['Duyệt yêu cầu', 'Duyệt yêu cầu', 'Phê duyệt hoặc từ chối điều phối kỹ thuật nhanh.'],
+      'my-bookings': [
+        isTechTitle ? 'Nhiệm vụ của tôi' : 'Lịch điều phối',
+        isTechTitle ? 'Nhiệm vụ của tôi' : 'Lịch điều phối',
+        isTechTitle ? 'Theo dõi các task được phân công cho bạn.' : 'Quản lý danh sách yêu cầu và tiến độ xử lý.'
+      ],
+      technicians: ['Đội ngũ kỹ sư', 'Đội ngũ kỹ sư', 'Hồ sơ năng lực, khối lượng task và trạng thái sẵn sàng.'],
+      users: ['Người dùng & quyền', 'Người dùng & quyền', 'Phân quyền vai trò và tài khoản truy cập hệ thống.'],
+      'email-settings': ['Cấu hình Email & ICS', 'Email & lịch mời', 'Tùy chỉnh mẫu thông báo và lời mời Google Calendar.']
+    };
+    const [resolvedTitle, resolvedCrumb, resolvedSub] = titleMap[tabName] || ['Tổng quan điều phối', 'Tổng quan', ''];
+    if (titleEl) titleEl.textContent = resolvedTitle;
+    if (subEl) subEl.textContent = resolvedSub || '';
+    if (mobileTitleEl) mobileTitleEl.textContent = resolvedTitle;
+    if (breadcrumbCurrentEl) breadcrumbCurrentEl.textContent = resolvedCrumb;
 
     const overviewPanel = document.getElementById('panel-overview');
     const timelinePanel = document.getElementById('panel-timeline');
@@ -1383,13 +1562,30 @@ const BookingUI = {
     const usersPanel = document.getElementById('panel-users');
     const emailSettingsPanel = document.getElementById('panel-email-settings');
 
-    if (overviewPanel) overviewPanel.classList.toggle('hidden', tabName !== 'overview');
-    if (timelinePanel) timelinePanel.classList.toggle('hidden', tabName !== 'timeline');
-    if (approvalPanel) approvalPanel.classList.toggle('hidden', tabName !== 'approval');
-    if (myBookingsPanel) myBookingsPanel.classList.toggle('hidden', tabName !== 'my-bookings');
-    if (techniciansPanel) techniciansPanel.classList.toggle('hidden', tabName !== 'technicians');
-    if (usersPanel) usersPanel.classList.toggle('hidden', tabName !== 'users');
-    if (emailSettingsPanel) emailSettingsPanel.classList.toggle('hidden', tabName !== 'email-settings');
+    const panelMap = {
+      overview: overviewPanel,
+      timeline: timelinePanel,
+      approval: approvalPanel,
+      'my-bookings': myBookingsPanel,
+      technicians: techniciansPanel,
+      users: usersPanel,
+      'email-settings': emailSettingsPanel
+    };
+    const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    Object.entries(panelMap).forEach(([key, el]) => {
+      if (!el) return;
+      const shouldShow = key === tabName;
+      const wasHidden = el.classList.contains('hidden');
+      el.classList.toggle('hidden', !shouldShow);
+      if (shouldShow && wasHidden && !reduceMotion) {
+        el.classList.add('transition-all', 'duration-150', 'ease-out', 'opacity-0', 'translate-y-1');
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            el.classList.remove('opacity-0', 'translate-y-1');
+          });
+        });
+      }
+    });
 
     // Update Mobile Bottom Bar Active States
     const mobActionBtn = document.getElementById('mobile-bottom-tab-action');
@@ -1423,21 +1619,45 @@ const BookingUI = {
     document.querySelectorAll('.mobile-bottom-tab').forEach(btn => {
       const t = btn.getAttribute('data-mobile-tab');
       const isActive = t === tabName;
-      btn.classList.toggle('text-brand-600', isActive);
-      btn.classList.toggle('font-bold', isActive);
-      btn.classList.toggle('text-slate-500', !isActive);
+      btn.classList.toggle('text-slate-900', isActive);
+      btn.classList.toggle('font-semibold', isActive);
+      btn.classList.toggle('bg-[#f7f8fa]', isActive);
+      btn.classList.toggle('rounded-xl', isActive);
+      btn.classList.toggle('text-slate-400', !isActive);
+      btn.classList.toggle('text-slate-500', false);
+      btn.classList.toggle('font-medium', !isActive);
     });
 
     this.render();
+    if (prevActiveTab !== tabName) {
+      window.scrollTo({ top: 0, behavior: 'auto' });
+    }
+  },
+
+  ensureSelectedTechId() {
+    const user = BookingData.currentUser;
+    const isTechnician = user?.role === 'technician' || Boolean(user?.is_technician);
+    if (isTechnician) {
+      this.selectedTechId = user?.tech_id || '__none__';
+      return this.selectedTechId;
+    }
+    const allTechs = BookingData.technicians || [];
+    const activeTechs = allTechs.filter(t => t.is_active);
+    const pool = activeTechs.length > 0 ? activeTechs : allTechs;
+    if (!this.selectedTechId || this.selectedTechId === 'all' || !pool.some(t => t.tech_id === this.selectedTechId)) {
+      this.selectedTechId = pool[0]?.tech_id || null;
+    }
+    return this.selectedTechId;
   },
 
   selectTech(techId) {
     const user = BookingData.currentUser;
     if (user?.role === 'technician' || user?.is_technician) {
       this.selectedTechId = user.tech_id || null;
-    } else {
+    } else if (techId && techId !== 'all') {
       this.selectedTechId = techId;
     }
+    this.ensureSelectedTechId();
     this.renderHorizontalTechList();
     this.render28DaysView();
   },
@@ -1470,6 +1690,13 @@ const BookingUI = {
     this.renderNotifications();
   },
 
+  overviewChartRange: '12m',
+
+  setOverviewChartRange(range) {
+    this.overviewChartRange = range || '12m';
+    this.renderOverview();
+  },
+
   // 0. OVERVIEW DASHBOARD VIEW CONTROLLER
   renderOverview() {
     const user = BookingData.currentUser;
@@ -1477,29 +1704,25 @@ const BookingUI = {
     const isTechnician = user.role === 'technician' || Boolean(user.is_technician);
     const techId = user.tech_id || null;
 
+    const now = new Date();
+    const hour = now.getHours();
+    let timeGreeting = 'Chào buổi sáng';
+    if (hour >= 12 && hour < 18) {
+      timeGreeting = 'Chào buổi chiều';
+    } else if (hour >= 18 || hour < 5) {
+      timeGreeting = 'Chào buổi tối';
+    }
+
     // 1. Personalized Greeting & Role-Aware Subtitle
     const greetingNameEl = document.getElementById('overview-user-name');
     if (greetingNameEl) {
-      greetingNameEl.textContent = BookingData.cleanUserName(user.full_name) || 'Người dùng';
-    }
-
-    const greetingSubEl = document.getElementById('overview-user-subtitle');
-    if (greetingSubEl) {
-      if (isTechnician) {
-        greetingSubEl.textContent = 'Theo dõi lịch trực cá nhân và các task điều phối được giao cho bạn.';
-      } else if (user.role === 'admin') {
-        greetingSubEl.textContent = 'Tổng quan vận hành, nhân sự kỹ thuật và lịch điều phối.';
-      } else if (user.role === 'approver') {
-        greetingSubEl.textContent = 'Xử lý yêu cầu chờ duyệt và điều phối lịch kỹ sư.';
-      } else {
-        greetingSubEl.textContent = 'Đặt lịch kỹ thuật và theo dõi tiến độ phê duyệt.';
-      }
+      const cleanName = BookingData.cleanUserName(user.full_name) || 'Bạn';
+      greetingNameEl.textContent = cleanName;
     }
 
     // 2. Today's Date Badge
     const todayBadge = document.getElementById('overview-today-badge');
-    const now = new Date();
-    const dayNames = ['Chủ Nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
+    const dayNames = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
     const todayStr = BookingData.formatDateStr(now);
     const dateFormatted = `${dayNames[now.getDay()]}, ${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()}`;
     if (todayBadge) {
@@ -1507,21 +1730,36 @@ const BookingUI = {
     }
 
     // 3. Stats Calculation (Role-aware)
-    const totalTechs = (BookingData.technicians || []).length;
+    const activeTechRecords = (BookingData.technicians || []).filter(t => t.is_active !== false);
+    const activeTechIdSet = new Set(activeTechRecords.map(t => t.tech_id));
+    const totalTechs = activeTechRecords.length;
     const totalUsers = (BookingData.users || []).length;
     const busyTodayTechIds = new Set(
-      BookingData.bookings
-        .filter(b => b.booking_date <= todayStr && (b.end_date || b.booking_date) >= todayStr && (b.status === 'APPROVED' || b.status === 'PENDING'))
+      (BookingData.bookings || [])
+        .filter(b => activeTechIdSet.has(b.tech_id) && b.booking_date <= todayStr && (b.end_date || b.booking_date) >= todayStr && (b.status === 'APPROVED' || b.status === 'PENDING'))
         .map(b => b.tech_id)
     );
     const availableTechs = Math.max(totalTechs - busyTodayTechIds.size, 0);
-    const pendingCount = BookingData.bookings.filter(b => b.status === 'PENDING').length;
+    const pendingCount = (BookingData.bookings || []).filter(b => b.status === 'PENDING').length;
+
+    const greetingSubEl = document.getElementById('overview-user-subtitle');
+    if (greetingSubEl) {
+      if (isTechnician) {
+        greetingSubEl.textContent = `${timeGreeting}! Theo dõi ca trực cá nhân và các nhiệm vụ điều phối hôm nay.`;
+      } else if (user.role === 'admin') {
+        greetingSubEl.textContent = `${timeGreeting}! Tổng quan nhân sự kỹ thuật, lịch trực chiến và tình trạng điều phối.`;
+      } else if (user.role === 'approver') {
+        greetingSubEl.textContent = `${timeGreeting}! Có ${pendingCount} yêu cầu chờ phê duyệt và ${availableTechs} kỹ sư sẵn sàng nhận việc.`;
+      } else {
+        greetingSubEl.textContent = `${timeGreeting}! Tạo yêu cầu điều phối kỹ thuật và theo dõi tiến độ phê duyệt đơn.`;
+      }
+    }
 
     // 30-Day Rolling Window for Dispatched Shifts
     const nowTime = Date.now();
     const thirtyDaysAgoTime = nowTime - (30 * 24 * 60 * 60 * 1000);
     const thirtyDaysFutureTime = nowTime + (30 * 24 * 60 * 60 * 1000);
-    const shifts30Days = BookingData.bookings.filter(b => {
+    const shifts30Days = (BookingData.bookings || []).filter(b => {
       if (b.status !== 'APPROVED' && b.status !== 'COMPLETED') return false;
       if (isTechnician && techId && b.tech_id !== techId) return false;
       const dStr = b.booking_date || b.date;
@@ -1533,8 +1771,8 @@ const BookingUI = {
     const approvedCount = shifts30Days.length;
     const userEmailLower = (user?.email || '').toLowerCase().trim();
     const myBookings = isTechnician
-      ? BookingData.bookings.filter(b => Boolean(techId) && b.tech_id === techId)
-      : BookingData.bookings.filter(b =>
+      ? (BookingData.bookings || []).filter(b => Boolean(techId) && b.tech_id === techId)
+      : (BookingData.bookings || []).filter(b =>
           ((b.requester_email || '').toLowerCase().trim() === userEmailLower) ||
           ((b.created_by || '').toLowerCase().trim() === userEmailLower)
         );
@@ -1557,104 +1795,456 @@ const BookingUI = {
     const elUsersSub = document.getElementById('overview-stat-users-sub');
     const cardUsers = document.getElementById('overview-card-users');
 
+    const elAvailSub = document.getElementById('overview-stat-available-sub');
+    const availBar = document.getElementById('overview-available-progress-bar');
+    const pendingPill = document.getElementById('overview-pending-smart-pill');
+    const elApprovedSub = document.getElementById('overview-stat-approved-sub');
+    const sparklineEl = document.getElementById('overview-task-sparkline');
+    const avatarStackEl = document.getElementById('overview-users-avatar-stack');
+
+    const activeSampleShift = (BookingData.bookings || []).find(b =>
+      b.booking_date <= todayStr &&
+      (b.end_date || b.booking_date) >= todayStr &&
+      (b.status === 'APPROVED' || b.status === 'PENDING')
+    );
+
     if (isTechnician) {
       const hasShiftToday = Boolean(techId) && busyTodayTechIds.has(techId);
       if (elAvail) elAvail.textContent = hasShiftToday ? 'Đang trực' : 'Sẵn sàng';
+      if (availBar) {
+        availBar.style.width = '100%';
+        availBar.className = `h-full rounded-full transition-all duration-300 ${hasShiftToday ? 'bg-amber-400' : 'bg-emerald-500'}`;
+      }
+      if (elAvailSub) elAvailSub.textContent = hasShiftToday ? 'Đang thực hiện ca hôm nay' : 'Sẵn sàng nhận nhiệm vụ';
       if (cardAvail) cardAvail.setAttribute('onclick', "BookingUI.switchTab('timeline')");
     } else {
       if (elAvail) elAvail.textContent = `${availableTechs}/${totalTechs}`;
+      const availPct = totalTechs > 0 ? Math.round((availableTechs / totalTechs) * 100) : 0;
+      if (availBar) {
+        availBar.style.width = `${availPct > 0 ? Math.max(availPct, 12) : 100}%`;
+        availBar.className = `h-full rounded-full transition-all duration-300 ${totalTechs === 0 ? 'bg-slate-200' : (availableTechs > 0 ? 'bg-emerald-500' : 'bg-amber-400')}`;
+      }
+      if (elAvailSub) {
+        if (totalTechs === 0) {
+          elAvailSub.textContent = 'Chưa có kỹ sư';
+        } else {
+          elAvailSub.textContent = availableTechs === totalTechs
+            ? 'Tất cả sẵn sàng nhận ca'
+            : (activeSampleShift ? `Đang trực · ${activeSampleShift.location || activeSampleShift.title}` : `${busyTodayTechIds.size} đang thực hiện ca`);
+        }
+      }
       if (cardAvail) cardAvail.setAttribute('onclick', "BookingUI.switchTab('technicians')");
     }
 
+    const displayPendingVal = canViewApproval ? pendingCount : myPendingCount;
     if (canViewApproval) {
       if (elPending) elPending.textContent = pendingCount;
       if (elPendingLabel) elPendingLabel.textContent = 'Chờ phê duyệt';
-      if (elPendingSub) elPendingSub.textContent = 'Đơn cần xử lý';
       if (cardPending) cardPending.setAttribute('onclick', "BookingUI.switchTab('approval')");
     } else if (isTechnician) {
       if (elPending) elPending.textContent = myPendingCount;
       if (elPendingLabel) elPendingLabel.textContent = 'Task chờ duyệt';
-      if (elPendingSub) elPendingSub.textContent = 'Đang chờ xác nhận';
       if (cardPending) cardPending.setAttribute('onclick', "BookingUI.switchTab('my-bookings')");
     } else {
       if (elPending) elPending.textContent = myPendingCount;
       if (elPendingLabel) elPendingLabel.textContent = 'Đơn chờ duyệt';
-      if (elPendingSub) elPendingSub.textContent = 'Đang đợi phê duyệt';
       if (cardPending) cardPending.setAttribute('onclick', "BookingUI.switchTab('my-bookings')");
+    }
+
+    if (pendingPill) {
+      if (displayPendingVal > 0) {
+        pendingPill.textContent = 'Cần xử lý';
+        pendingPill.className = 'inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10.5px] font-medium bg-amber-50 text-amber-800 whitespace-nowrap';
+      } else {
+        pendingPill.textContent = 'Sạch hàng đợi';
+        pendingPill.className = 'inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10.5px] font-medium bg-emerald-50 text-emerald-700 whitespace-nowrap';
+      }
+    }
+    if (elPendingSub) {
+      elPendingSub.textContent = displayPendingVal > 0
+        ? `${displayPendingVal} yêu cầu đang đợi xử lý`
+        : 'Không có đơn tồn đọng';
     }
 
     if (elApproved) elApproved.textContent = approvedCount;
 
+    // 7-day Mini SVG Sparkline from real bookings
+    const scopedBookings = (isTechnician && techId)
+      ? (BookingData.bookings || []).filter(b => b.tech_id === techId)
+      : (BookingData.bookings || []);
+    const sparkCounts = [];
+    for (let offset = 6; offset >= 0; offset--) {
+      const d = new Date(now);
+      d.setDate(now.getDate() - offset);
+      const dKey = BookingData.formatDateStr(d);
+      const dayTotal = scopedBookings.filter(b =>
+        b.status !== 'CANCELLED' &&
+        b.status !== 'REJECTED' &&
+        (b.booking_date || '') <= dKey &&
+        (b.end_date || b.booking_date || '') >= dKey
+      ).length;
+      sparkCounts.push(dayTotal);
+    }
+    const weekTotal = sparkCounts.reduce((sum, n) => sum + n, 0);
+    if (elApprovedSub) {
+      elApprovedSub.textContent = `30 ngày · ${weekTotal} lượt 7 ngày qua`;
+    }
+    if (sparklineEl) {
+      const maxS = Math.max(...sparkCounts, 1);
+      const pts = sparkCounts.map((val, i) => {
+        const sx = Math.round((i / 6) * 66) + 3;
+        const sy = Math.round(21 - (val / maxS) * 16);
+        return [sx, sy];
+      });
+      const polyPoints = pts.map(p => `${p[0]},${p[1]}`).join(' ');
+      const areaPath = `M${pts[0][0]},23 L${pts.map(p => `${p[0]},${p[1]}`).join(' L')} L${pts[pts.length - 1][0]},23 Z`;
+      const lastPt = pts[pts.length - 1];
+      sparklineEl.innerHTML = `
+        <svg viewBox="0 0 72 24" class="w-full h-full overflow-visible" aria-hidden="true">
+          <path d="${areaPath}" fill="#10b981" fill-opacity="0.1" />
+          <polyline fill="none" stroke="#10b981" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" points="${polyPoints}" />
+          <circle cx="${lastPt[0]}" cy="${lastPt[1]}" r="2.2" fill="#059669" />
+        </svg>
+      `;
+    }
+
     if (canViewUsers) {
+      const usersList = BookingData.users || [];
+      const adminC = usersList.filter(u => u.role === 'admin').length;
+      const appC = usersList.filter(u => u.role === 'approver').length;
+      const reqC = usersList.filter(u => u.role === 'requester').length;
       if (elUsers) elUsers.textContent = totalUsers;
       if (elUsersLabel) elUsersLabel.textContent = 'Thành viên';
-      if (elUsersSub) elUsersSub.textContent = 'Phân quyền hệ thống';
+      if (elUsersSub) elUsersSub.textContent = `${adminC} Admin · ${appC} Vận hành · ${reqC} PM`;
+      if (avatarStackEl) {
+        const previewUsers = usersList.slice(0, 4);
+        const extraUsers = usersList.length - previewUsers.length;
+        avatarStackEl.innerHTML = previewUsers.map(u => {
+          const initials = (u.full_name || 'U').trim().split(/\s+/).filter(Boolean).map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'U';
+          return u.avatar
+            ? `<img src="${u.avatar}" alt="${u.full_name || ''}" class="w-6 h-6 rounded-full object-cover ring-2 ring-white flex-shrink-0" title="${u.full_name || u.email || ''}">`
+            : `<span class="w-6 h-6 rounded-full bg-slate-100 text-slate-700 font-semibold text-[9px] flex items-center justify-center ring-2 ring-white flex-shrink-0" title="${u.full_name || u.email || ''}">${initials}</span>`;
+        }).join('') + (extraUsers > 0 ? `<span class="w-6 h-6 rounded-full bg-slate-900 text-white font-semibold text-[9px] flex items-center justify-center ring-2 ring-white flex-shrink-0">+${extraUsers}</span>` : '');
+      }
       if (cardUsers) cardUsers.setAttribute('onclick', "BookingUI.switchTab('users')");
     } else if (isTechnician) {
       if (elUsers) elUsers.textContent = myActiveShiftsCount;
       if (elUsersLabel) elUsersLabel.textContent = 'Tổng task của bạn';
       if (elUsersSub) elUsersSub.textContent = 'Task được phân công';
+      if (avatarStackEl) avatarStackEl.innerHTML = '';
       if (cardUsers) cardUsers.setAttribute('onclick', "BookingUI.switchTab('my-bookings')");
     } else {
       if (elUsers) elUsers.textContent = myBookings.length;
       if (elUsersLabel) elUsersLabel.textContent = 'Đơn đã tạo';
       if (elUsersSub) elUsersSub.textContent = 'Lịch sử đặt lịch';
+      if (avatarStackEl) avatarStackEl.innerHTML = '';
       if (cardUsers) cardUsers.setAttribute('onclick', "BookingUI.switchTab('my-bookings')");
     }
 
-    // Role-Aware Quick Access Row 2 (Divided List Row, Zero Nested Card)
-    const quickMod2 = document.getElementById('overview-quick-mod-approval');
-    if (quickMod2) {
-      if (canViewApproval) {
-        quickMod2.innerHTML = `
-          <div class="flex items-center gap-3 min-w-0">
-            <div class="w-9 h-9 rounded-xl bg-accent-50 text-accent-700 flex items-center justify-center flex-shrink-0 group-hover:bg-accent-600 group-hover:text-white transition-colors">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-            </div>
-            <div class="min-w-0">
-              <p class="text-xs font-bold text-slate-900 group-hover:text-accent-700">Duyệt yêu cầu đặt lịch</p>
-              <p class="text-[11px] text-slate-500 truncate">Phê duyệt nhanh 1 chạm (${pendingCount} chờ duyệt)</p>
-            </div>
-          </div>
-          <svg class="w-4 h-4 text-slate-400 group-hover:text-accent-600 group-hover:translate-x-0.5 transition-all flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-        `;
-        quickMod2.setAttribute('onclick', "BookingUI.switchTab('approval')");
-      } else if (isTechnician) {
-        quickMod2.innerHTML = `
-          <div class="flex items-center gap-3 min-w-0">
-            <div class="w-9 h-9 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center flex-shrink-0 group-hover:bg-brand-600 group-hover:text-white transition-colors">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
-            </div>
-            <div class="min-w-0">
-              <p class="text-xs font-bold text-slate-900 group-hover:text-brand-700">Lịch điều phối của tôi</p>
-              <p class="text-[11px] text-slate-500 truncate">Danh sách các task được phân công cho bạn</p>
-            </div>
-          </div>
-          <svg class="w-4 h-4 text-slate-400 group-hover:text-brand-600 group-hover:translate-x-0.5 transition-all flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-        `;
-        quickMod2.setAttribute('onclick', "BookingUI.switchTab('my-bookings')");
+    // 3b. Dynamic Technician Dots (Truthful data matching active technicians)
+
+    const dotsContainer = document.getElementById('overview-stat-tech-dots');
+    if (dotsContainer) {
+      const activeTechList = (BookingData.technicians || []).filter(t => t.is_active !== false);
+      if (activeTechList.length > 0) {
+        dotsContainer.innerHTML = activeTechList.map(t => {
+          const isBusy = busyTodayTechIds.has(t.tech_id);
+          const barColor = isBusy ? 'bg-amber-400' : 'bg-emerald-500';
+          return `<span class="w-1.5 h-2.5 rounded-[2px] ${barColor} transition-colors" title="${t.name}: ${isBusy ? 'Đang trực ca' : 'Sẵn sàng'}"></span>`;
+        }).join('');
       } else {
-        quickMod2.innerHTML = `
-          <div class="flex items-center gap-3 min-w-0">
-            <div class="w-9 h-9 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center flex-shrink-0 group-hover:bg-brand-600 group-hover:text-white transition-colors">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
-            </div>
-            <div class="min-w-0">
-              <p class="text-xs font-bold text-slate-900 group-hover:text-brand-700">Lịch sử đặt lịch của bạn</p>
-              <p class="text-[11px] text-slate-500 truncate">Theo dõi trạng thái & chi tiết đơn đã tạo</p>
-            </div>
-          </div>
-          <svg class="w-4 h-4 text-slate-400 group-hover:text-brand-600 group-hover:translate-x-0.5 transition-all flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-        `;
-        quickMod2.setAttribute('onclick', "BookingUI.switchTab('my-bookings')");
+        dotsContainer.innerHTML = '<span class="w-1.5 h-2.5 rounded-[2px] bg-slate-200"></span>';
       }
     }
 
-    // 5. Today's, Overdue and Upcoming Tasks List (Divided Scannable Rows)
+    // 4. Operational Health Legend & Dynamic Interactive Bar Chart
+    const elLegOverdue = document.getElementById('overview-legend-overdue');
+    const elLegPending = document.getElementById('overview-legend-pending');
+    const elLegAvail = document.getElementById('overview-legend-available');
+    const elChartTotal = document.getElementById('overview-chart-total-count');
+    const elChartYearBadge = document.getElementById('overview-chart-year-badge');
+    const elTechHeadline = document.getElementById('overview-total-technicians-headline');
+
+    const overdueBookingsList = BookingData.getOverdueTasks(isTechnician ? techId : null);
+    if (elLegOverdue) elLegOverdue.textContent = `${overdueBookingsList.length} ca`;
+    if (elLegPending) elLegPending.textContent = `${pendingCount} ca`;
+    if (elLegAvail) elLegAvail.textContent = `${availableTechs} kỹ sư`;
+    if (elTechHeadline) elTechHeadline.textContent = totalTechs;
+
+    // Sync active chart range pill button state
+    const chartRange = this.overviewChartRange || '12m';
+    document.querySelectorAll('[data-chart-range]').forEach(btn => {
+      const isActiveRange = btn.getAttribute('data-chart-range') === chartRange;
+      if (isActiveRange) {
+        btn.className = 'px-2.5 py-1 rounded-lg bg-white text-slate-900 font-semibold shadow-2xs transition-all cursor-pointer';
+      } else {
+        btn.className = 'px-2.5 py-1 rounded-lg text-slate-500 hover:text-slate-900 font-medium transition-all cursor-pointer';
+      }
+    });
+
+    // Dynamic SVG Bar Chart from real BookingData.bookings
+    const barsGroup = document.getElementById('overview-chart-bars-group');
+    const gridGroup = document.getElementById('overview-chart-grid-group');
+    const curYear = now.getFullYear();
+    const curMonth = now.getMonth() + 1; // 1..12
+    const monthlyCounts = Array(12).fill(0);
+
+    (BookingData.bookings || []).forEach(b => {
+      if (b.status === 'CANCELLED' || b.status === 'REJECTED') return;
+      if (isTechnician && techId && b.tech_id !== techId) return;
+      const dStr = b.booking_date || '';
+      if (dStr.startsWith(String(curYear))) {
+        const m = parseInt(dStr.slice(5, 7), 10);
+        if (m >= 1 && m <= 12) {
+          monthlyCounts[m - 1]++;
+        }
+      }
+    });
+
+    // Determine visible months slice based on selected range ('3m', '6m', '12m')
+    let visibleMonths = [];
+    if (chartRange === '3m') {
+      const startM = Math.max(1, curMonth - 2);
+      for (let m = startM; m <= curMonth; m++) visibleMonths.push(m);
+    } else if (chartRange === '6m') {
+      const startM = Math.max(1, curMonth - 5);
+      for (let m = startM; m <= curMonth; m++) visibleMonths.push(m);
+    } else {
+      for (let m = 1; m <= 12; m++) visibleMonths.push(m);
+    }
+
+    const visibleTotal = visibleMonths.reduce((sum, m) => sum + (monthlyCounts[m - 1] || 0), 0);
+    if (elChartTotal) {
+      elChartTotal.textContent = chartRange === '12m'
+        ? `${monthlyCounts[curMonth - 1] || 0} ca`
+        : `${visibleTotal} ca`;
+    }
+    if (elChartYearBadge) {
+      elChartYearBadge.textContent = chartRange === '3m'
+        ? '3 tháng gần đây'
+        : chartRange === '6m'
+          ? '6 tháng gần đây'
+          : `Tháng ${curMonth}/${curYear}`;
+    }
+
+    const maxCount = Math.max(...visibleMonths.map(m => monthlyCounts[m - 1]), 2);
+
+    if (gridGroup) {
+      const midVal = Math.round(maxCount / 2);
+      gridGroup.innerHTML = `
+        <text x="0" y="135" fill="#94a3b8" font-size="10" font-family="Inter, sans-serif" font-weight="500">0</text>
+        <line x1="26" y1="132" x2="612" y2="132" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="3 3" />
+        <text x="0" y="75" fill="#94a3b8" font-size="10" font-family="Inter, sans-serif" font-weight="500">${midVal}</text>
+        <line x1="26" y1="72" x2="612" y2="72" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="3 3" />
+        <text x="0" y="18" fill="#94a3b8" font-size="10" font-family="Inter, sans-serif" font-weight="500">${maxCount}</text>
+        <line x1="26" y1="15" x2="612" y2="15" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="3 3" />
+      `;
+    }
+
+    if (barsGroup) {
+      const maxHeight = 108;
+      const baseLineY = 132;
+      const plotXStart = 36;
+      const plotWidth = 570;
+      const countLen = visibleMonths.length;
+      const slotW = plotWidth / countLen;
+      const barWidth = Math.min(34, Math.max(20, Math.round(slotW * 0.56)));
+
+      let barsHtml = '';
+
+      // Dashed average baseline across visible months
+      const avgCount = countLen > 0 ? visibleTotal / countLen : 0;
+      if (avgCount > 0) {
+        const avgY = baseLineY - Math.max(Math.round((avgCount / maxCount) * maxHeight), 6);
+        const avgLabel = Number.isInteger(avgCount) ? avgCount : avgCount.toFixed(1);
+        barsHtml += `
+          <g class="pointer-events-none">
+            <line x1="26" y1="${avgY}" x2="612" y2="${avgY}" stroke="#10b981" stroke-opacity="0.35" stroke-width="1" stroke-dasharray="4 4" />
+            <text x="612" y="${Math.max(avgY - 4, 10)}" fill="#10b981" fill-opacity="0.85" font-size="9.5" font-family="Inter, sans-serif" font-weight="600" text-anchor="end">TB ${avgLabel}</text>
+          </g>
+        `;
+      }
+
+      visibleMonths.forEach((m, idx) => {
+        const count = monthlyCounts[m - 1];
+        const isCurrent = m === curMonth;
+        const centerX = plotXStart + idx * slotW + slotW / 2;
+        const x = Math.round(centerX - barWidth / 2);
+        const barHeight = count > 0 ? Math.max(Math.round((count / maxCount) * maxHeight), 10) : 5;
+        const y = baseLineY - barHeight;
+        const hitX = Math.round(centerX - slotW / 2);
+        const pillY = Math.max(y - 25, 2);
+        const pillTextY = Math.max(y - 12, 15);
+
+        if (isCurrent) {
+          barsHtml += `
+            <g class="group cursor-pointer">
+              <rect x="${hitX}" y="0" width="${Math.round(slotW)}" height="${baseLineY + 12}" fill="transparent" />
+              <rect x="${x}" y="${y}" width="${barWidth}" height="${barHeight}" rx="6" fill="#10b981" class="group-hover:fill-[#059669] transition-colors" />
+              <text x="${centerX}" y="${Math.max(y - 7, 12)}" fill="#059669" font-size="10.5" font-family="Plus Jakarta Sans, Inter, sans-serif" font-weight="700" text-anchor="middle" class="group-hover:opacity-0 transition-opacity">${count}</text>
+              <g class="opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                <rect x="${centerX - 25}" y="${pillY}" width="50" height="19" rx="9.5" fill="#0f172a" />
+                <text x="${centerX}" y="${pillTextY}" fill="#ffffff" font-size="10" font-family="Plus Jakarta Sans, Inter, sans-serif" font-weight="600" text-anchor="middle">${count} ca</text>
+              </g>
+            </g>
+          `;
+        } else {
+          barsHtml += `
+            <g class="group cursor-pointer">
+              <rect x="${hitX}" y="0" width="${Math.round(slotW)}" height="${baseLineY + 12}" fill="transparent" />
+              <rect x="${x}" y="${y}" width="${barWidth}" height="${barHeight}" rx="5" fill="${count > 0 ? 'url(#orvenDiagonalHatch)' : '#f1f5f9'}" stroke="${count > 0 ? '#cbd5e1' : '#e2e8f0'}" stroke-width="1" class="group-hover:stroke-slate-400 transition-colors" />
+              ${count > 0 ? `<circle cx="${centerX}" cy="${y}" r="2.5" fill="#64748b" class="group-hover:fill-slate-900 transition-colors" />` : ''}
+              <g class="opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                <rect x="${centerX - 25}" y="${pillY}" width="50" height="19" rx="9.5" fill="#0f172a" />
+                <text x="${centerX}" y="${pillTextY}" fill="#ffffff" font-size="10" font-family="Plus Jakarta Sans, Inter, sans-serif" font-weight="600" text-anchor="middle">${count} ca</text>
+              </g>
+            </g>
+          `;
+        }
+
+        const textWeight = isCurrent ? '600' : '500';
+        const textColor = isCurrent ? '#0f172a' : '#94a3b8';
+        barsHtml += `
+          <text x="${centerX}" y="152" fill="${textColor}" font-size="11" font-family="Inter, sans-serif" font-weight="${textWeight}" text-anchor="middle">T${m}</text>
+        `;
+      });
+      barsGroup.innerHTML = barsHtml;
+    }
+
+    const techRosterEl = document.getElementById('overview-tech-roster');
+    const techCountBadge = document.getElementById('overview-tech-count-badge');
+    if (techRosterEl) {
+      const activeTechs = (BookingData.technicians || []).filter(t => t.is_active !== false);
+      if (techCountBadge) {
+        techCountBadge.textContent = `${availableTechs}/${totalTechs} sẵn sàng`;
+      }
+
+      if (activeTechs.length === 0) {
+        techRosterEl.innerHTML = `
+          <div class="py-2 px-2 text-center w-full text-slate-400 text-xs">
+            Chưa có thông tin kỹ sư trực ca hôm nay
+          </div>
+        `;
+      } else {
+        techRosterEl.innerHTML = activeTechs.map(t => {
+          const todayBooking = BookingData.bookings.find(b => 
+            String(b.tech_id) === String(t.tech_id) &&
+            b.booking_date <= todayStr && (b.end_date || b.booking_date) >= todayStr &&
+            b.status !== 'CANCELLED' && b.status !== 'REJECTED'
+          );
+
+          const isOff = todayBooking && (/off|nghỉ|leave/i.test(todayBooking.title || '') || todayBooking.type === 'OFF');
+          const isBusy = Boolean(todayBooking) && !isOff;
+          const statusDot = isOff 
+            ? 'bg-slate-400' 
+            : (isBusy ? 'bg-amber-400 animate-pulse' : 'bg-emerald-500');
+          const statusText = isOff 
+            ? 'Nghỉ ca (OFF)' 
+            : (isBusy ? (todayBooking.location || todayBooking.title || 'Đang trực ca') : 'Sẵn sàng');
+
+          const avatarUrl = t.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(t.name || 'KS')}&background=0f172a&color=fff&bold=true`;
+
+          return `
+            <div onclick="BookingUI.openBookingModal('${t.tech_id}')" class="flex-shrink-0 flex items-center gap-2 p-1.5 pr-3 rounded-xl bg-white hover:bg-slate-50 border border-slate-100 hover:border-slate-200 transition-all cursor-pointer group" title="${t.name} • ${statusText} (Nhấn để giao việc nhanh)">
+              <div class="relative flex-shrink-0">
+                <img src="${avatarUrl}" alt="${t.name}" class="w-7 h-7 rounded-full object-cover border border-white">
+                <span class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full ${statusDot} ring-2 ring-white"></span>
+              </div>
+              <div class="min-w-0">
+                <h4 class="text-xs font-semibold text-slate-800 truncate leading-tight group-hover:text-slate-900">${t.name}</h4>
+                <p class="text-[10px] text-slate-400 truncate leading-none mt-0.5">${statusText}</p>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+    }
+
+    // 5. Urgent Action Stream (Tonal Surface Alert Bar)
+    const urgentStreamContainer = document.getElementById('overview-urgent-stream-container');
+    if (urgentStreamContainer) {
+      const pendingApprovalList = canViewApproval 
+        ? BookingData.bookings.filter(b => b.status === 'PENDING').slice(0, 3) 
+        : [];
+      
+      const hasUrgentItems = pendingApprovalList.length > 0;
+
+      if (!hasUrgentItems) {
+        urgentStreamContainer.classList.add('hidden');
+        urgentStreamContainer.innerHTML = '';
+      } else {
+        urgentStreamContainer.classList.remove('hidden');
+        urgentStreamContainer.innerHTML = `
+          <div class="bg-[#f8f9fb] rounded-xl p-4 sm:p-5">
+            <div class="flex items-center justify-between gap-3 mb-3.5">
+              <div class="flex items-center gap-2.5">
+                <span class="w-6 h-6 rounded-lg bg-amber-100 text-amber-800 flex items-center justify-center flex-shrink-0 text-xs font-semibold font-display">
+                  ${pendingCount}
+                </span>
+                <div>
+                  <h3 class="text-sm font-semibold font-display text-slate-900">
+                    Cần phê duyệt ngay (${pendingCount} yêu cầu)
+                  </h3>
+                  <p class="text-xs text-slate-500">Xử lý trực tiếp 1 chạm không cần chuyển trang</p>
+                </div>
+              </div>
+              <button onclick="BookingUI.switchTab('approval')" class="text-xs font-medium text-slate-600 hover:text-slate-900 flex items-center gap-1 cursor-pointer">
+                <span>Xem tất cả (${pendingCount})</span>
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+              </button>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              ${pendingApprovalList.map(b => {
+                const tech = BookingData.technicians.find(t => t.tech_id === b.tech_id);
+                const reqUser = (BookingData.users || []).find(u => (u.email || '').toLowerCase() === (b.requester_email || b.created_by || '').toLowerCase());
+                const reqName = reqUser?.full_name || b.requester_name || b.created_by || 'Người yêu cầu';
+                const dateDisplay = BookingUI.formatDateDisplay(b.booking_date);
+
+                return `
+                  <div class="bg-slate-50/90 rounded-xl p-3.5 flex flex-col justify-between gap-3">
+                    <div>
+                      <div class="flex items-center justify-between gap-2 mb-1.5">
+                        <span class="px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 text-[11px] font-medium">Chờ duyệt</span>
+                        <span class="text-[11px] text-slate-400 font-medium">${dateDisplay}</span>
+                      </div>
+                      <h4 class="text-xs font-semibold text-slate-900 line-clamp-1 mb-1" title="${b.title}">${b.title}</h4>
+                      <div class="flex items-center gap-1.5 text-[11px] text-slate-500">
+                        <span class="truncate">${reqName}</span>
+                        <svg class="w-3 h-3 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+                        <span class="font-medium text-slate-700 truncate">${tech ? tech.name : 'Chưa gán KS'}</span>
+                      </div>
+                    </div>
+
+                    <div class="flex items-center gap-2 pt-2 border-t border-slate-200/50">
+                      <button type="button" onclick="BookingUI.handleApprove('${b.booking_id}')" class="flex-1 h-8 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-medium flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-2xs">
+                        <svg class="w-3.5 h-3.5 text-emerald-400" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                        <span>Duyệt</span>
+                      </button>
+                      <button type="button" onclick="BookingUI.openDetailModal('${b.booking_id}')" class="h-8 px-2.5 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-200/60 text-xs font-medium flex items-center justify-center transition-all cursor-pointer">
+                        Chi tiết
+                      </button>
+                    </div>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    // Role-Aware Quick Access compatibility hook
+    const quickMod2 = document.getElementById('overview-quick-mod-approval');
+    if (quickMod2) {
+      quickMod2.setAttribute('onclick', canViewApproval ? "BookingUI.switchTab('approval')" : "BookingUI.switchTab('my-bookings')");
+    }
+
+    // 6. Orven "Operational Signals" Structured 12-Column List
     const shiftsContainer = document.getElementById('overview-shifts-list');
     const shiftsTitleEl = document.getElementById('overview-shifts-title');
     if (shiftsTitleEl) {
-      shiftsTitleEl.textContent = isTechnician ? 'Task của bạn hôm nay & cần xử lý' : 'Task hôm nay & Cần xử lý';
+      shiftsTitleEl.textContent = isTechnician ? 'Tín hiệu & task của bạn hôm nay' : 'Tín hiệu điều phối & nhiệm vụ';
     }
     if (!shiftsContainer) return;
 
@@ -1669,7 +2259,6 @@ const BookingUI = {
       })
       .sort((a, b) => a.booking_date.localeCompare(b.booking_date));
 
-    // Combine overdue tasks first, then upcoming tasks (up to 8 items total)
     const combinedBookings = [...overdueBookings];
     upcomingBookings.forEach(b => {
       if (!combinedBookings.some(x => String(x.booking_id) === String(b.booking_id))) {
@@ -1680,16 +2269,16 @@ const BookingUI = {
 
     if (displayList.length === 0) {
       shiftsContainer.innerHTML = `
-        <div class="py-10 px-4 text-center">
-          <div class="w-11 h-11 rounded-2xl bg-slate-50 text-slate-400 border border-slate-200/80 flex items-center justify-center mx-auto mb-2.5">
-            <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+        <div class="py-12 px-4 text-center">
+          <div class="w-11 h-11 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-3">
+            <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
           </div>
-          <p class="text-xs font-bold text-slate-700">${isTechnician ? 'Bạn chưa có task nào hôm nay & sắp tới' : 'Chưa có task nào hôm nay & sắp tới'}</p>
-          <p class="text-[11px] text-slate-400 mt-0.5">${isTechnician ? 'Khi có task mới được phân công, thông tin sẽ hiển thị tại đây.' : 'Nhấn Đặt lịch để phân công kỹ sư.'}</p>
+          <p class="text-xs font-semibold text-slate-700">${isTechnician ? 'Bạn chưa có task nào hôm nay & sắp tới' : 'Chưa có task nào hôm nay & sắp tới'}</p>
+          <p class="text-[11px] text-slate-400 mt-1">${isTechnician ? 'Khi có task mới được phân công, thông tin sẽ hiển thị tại đây.' : 'Nhấn Đặt lịch để phân công kỹ sư.'}</p>
           ${canCreateBooking ? `
-            <button onclick="BookingUI.openBookingModal()" class="mt-3 inline-flex px-3.5 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold font-condensed uppercase tracking-wider transition-all items-center gap-1.5 cursor-pointer shadow-2xs">
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
-              <span>Tạo Task Mới</span>
+            <button onclick="BookingUI.openBookingModal()" class="mt-3.5 inline-flex px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-medium transition-all items-center gap-1.5 cursor-pointer shadow-xs">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+              <span>Tạo task mới</span>
             </button>
           ` : ''}
         </div>
@@ -1698,17 +2287,17 @@ const BookingUI = {
     }
 
     const alertBannerHtml = overdueBookings.length > 0 ? `
-      <div class="p-3 sm:p-3.5 bg-rose-50 border-b border-rose-200/90 flex items-center justify-between gap-3">
+      <div class="px-5 py-3 bg-rose-50/70 border-b border-rose-100 flex items-center justify-between gap-3">
         <div class="flex items-center gap-2.5 min-w-0">
-          <span class="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-rose-100 text-rose-700 flex items-center justify-center shrink-0">
+          <span class="w-7 h-7 rounded-lg bg-rose-100 text-rose-700 flex items-center justify-center shrink-0">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
           </span>
           <div class="min-w-0">
-            <h4 class="text-xs font-bold text-rose-900 font-condensed uppercase tracking-wider truncate">Có ${overdueBookings.length} task đã qua ngày cần hoàn thành</h4>
-            <p class="text-[11px] text-rose-700 truncate hidden sm:block">Các task đã tới hạn hoặc quá hạn thực hiện nhưng chưa bấm hoàn tất.</p>
+            <h4 class="text-xs font-semibold text-rose-900 truncate">Có ${overdueBookings.length} task đã qua ngày cần hoàn thành</h4>
+            <p class="text-[11px] text-rose-700/80 truncate hidden sm:block">Các task đã tới hạn nhưng chưa xác nhận hoàn tất.</p>
           </div>
         </div>
-        <button type="button" onclick="BookingUI.openDetailModal('${overdueBookings[0].booking_id}')" class="px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold font-condensed uppercase tracking-wider shrink-0 transition-all cursor-pointer shadow-2xs whitespace-nowrap">
+        <button type="button" onclick="BookingUI.openDetailModal('${overdueBookings[0].booking_id}')" class="px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-medium shrink-0 transition-all cursor-pointer shadow-2xs whitespace-nowrap">
           Hoàn tất ngay
         </button>
       </div>
@@ -1719,61 +2308,65 @@ const BookingUI = {
       const isOverdue = BookingData.isPendingCompletion(b);
       const isCompleted = b.status === 'COMPLETED';
       const isApproved = b.status === 'APPROVED';
-      const isTodayShift = b.booking_date <= todayStr && (b.end_date || b.booking_date) >= todayStr;
-      const parts = (b.booking_date || '').split('-');
-      const dayStr = parts[2] || '--';
-      const monthStr = parts[1] ? `T${parseInt(parts[1], 10)}` : '';
+      const isInProgress = b.status === 'IN_PROGRESS';
       const bDurationStr = b.end_date && b.end_date !== b.booking_date
         ? `${this.formatDateDisplay(b.booking_date)} → ${this.formatDateDisplay(b.end_date)}`
         : this.formatDateDisplay(b.booking_date);
+      const timeRange = b.start_time ? `${b.start_time.slice(0, 5)}–${(b.end_time || '').slice(0, 5) || '17:00'}` : 'Cả ngày';
 
       const isOff = /off|nghỉ|leave/i.test(b.title || '') || /off|nghỉ|leave/i.test(b.notes || '') || b.type === 'OFF';
-      let dateBadgeClass = 'bg-slate-50 border-slate-200/80 text-slate-800';
-      let dateTopLabel = isTodayShift ? 'H.NAY' : monthStr;
-      let statusBadgeHtml = '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold font-condensed uppercase tracking-wide bg-amber-50 text-amber-800 border border-amber-200">Chờ duyệt</span>';
+      let statusBadgeHtml = '<span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-amber-50 text-amber-700">Chờ duyệt</span>';
       
       if (isOff) {
-        dateBadgeClass = 'bg-slate-100 border-slate-300 text-slate-700';
-        statusBadgeHtml = '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold font-condensed uppercase tracking-wide bg-slate-100 text-slate-700 border border-slate-300">Nghỉ (OFF)</span>';
+        statusBadgeHtml = '<span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-slate-100 text-slate-600">Nghỉ (OFF)</span>';
       } else if (isOverdue) {
-        dateBadgeClass = 'bg-rose-50 border-rose-300 text-rose-800 animate-pulse';
-        dateTopLabel = 'QUÁ HẠN';
-        statusBadgeHtml = '<span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold font-condensed uppercase tracking-wide bg-rose-50 text-rose-700 border border-rose-300 flex items-center gap-1 shadow-2xs"><span class="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping"></span>Cần hoàn thành</span>';
+        statusBadgeHtml = '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium bg-rose-50 text-rose-700"><span class="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping"></span>Quá hạn</span>';
+      } else if (isInProgress) {
+        statusBadgeHtml = '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium bg-emerald-50 text-emerald-700"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>Đang làm</span>';
       } else if (isCompleted) {
-        dateBadgeClass = 'bg-blue-50 border-blue-200 text-blue-800';
-        statusBadgeHtml = '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold font-condensed uppercase tracking-wide bg-blue-50 text-blue-700 border border-blue-200">Hoàn thành</span>';
+        statusBadgeHtml = '<span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-sky-50 text-sky-700">Hoàn thành</span>';
       } else if (isApproved) {
-        dateBadgeClass = isTodayShift ? 'bg-accent-50 border-accent-200 text-accent-800' : 'bg-slate-50 border-slate-200/80 text-slate-800';
-        statusBadgeHtml = '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold font-condensed uppercase tracking-wide bg-accent-50 text-accent-700 border border-accent-200">Đã duyệt</span>';
+        statusBadgeHtml = '<span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-emerald-50 text-emerald-700">Đã duyệt</span>';
       }
 
-      const rowBorderClass = isOverdue ? 'border-l-4 border-l-rose-500 bg-rose-50/20' : '';
+      const techAvatarHtml = tech?.avatar
+        ? `<img src="${tech.avatar}" alt="${tech.name}" class="w-5 h-5 rounded-full object-cover flex-shrink-0">`
+        : `<span class="w-5 h-5 rounded-full bg-slate-100 text-slate-800 text-[9px] font-semibold flex items-center justify-center flex-shrink-0">${(tech?.name || 'KS').slice(0, 1)}</span>`;
 
       return `
-        <div onclick="BookingUI.openDetailModal('${b.booking_id}')" class="px-4 py-3 flex items-center justify-between gap-3 hover:bg-slate-50/90 transition-colors cursor-pointer group ${rowBorderClass}">
-          <div class="flex items-center gap-3 min-w-0">
-            <!-- Date Badge (Roboto Condensed) -->
-            <div class="w-11 h-11 rounded-xl ${dateBadgeClass} border flex flex-col items-center justify-center flex-shrink-0 font-condensed">
-              <span class="text-[9px] font-bold uppercase leading-none opacity-85 truncate px-0.5">${dateTopLabel}</span>
-              <span class="text-base font-black leading-tight">${dayStr}</span>
-            </div>
+        <div onclick="BookingUI.openDetailModal('${b.booking_id}')" class="px-4 sm:px-5 py-3.5 grid grid-cols-[1fr_auto] lg:grid-cols-12 items-start lg:items-center gap-x-3 gap-y-2 lg:gap-3 hover:bg-slate-50/70 transition-colors cursor-pointer group ${isOverdue ? 'bg-rose-50/20' : ''}">
+          <!-- Task & Location (Mobile Row 1 Left | Desktop Col 1-5) -->
+          <div class="lg:col-span-5 lg:order-1 min-w-0">
+            <p class="text-[13px] font-semibold text-slate-900 truncate group-hover:text-slate-950 leading-snug">${b.title}</p>
+            <p class="text-[11px] text-slate-400 truncate mt-0.5">${b.location || b.booking_id}</p>
+          </div>
 
-            <div class="min-w-0">
-              <div class="flex items-center gap-1.5 mb-0.5">
-                <p class="text-xs sm:text-sm font-bold text-slate-900 group-hover:text-brand-700 truncate">${b.title}</p>
-              </div>
-              <div class="flex items-center gap-1.5 text-[11px] text-slate-500 flex-wrap">
-                <span class="font-semibold text-slate-700 truncate">${tech ? tech.name : b.tech_id}</span>
-                <span>•</span>
-                <span class="font-condensed font-semibold text-slate-600">${bDurationStr}</span>
-                ${b.location ? `<span class="hidden sm:inline">•</span><span class="truncate text-slate-400 hidden sm:inline">${b.location}</span>` : ''}
-              </div>
+          <!-- Status Pill (Mobile Row 1 Right | Desktop Col 8-9) -->
+          <div class="lg:col-span-2 lg:order-3 flex items-center justify-self-end lg:justify-self-start pt-0.5 lg:pt-0">
+            ${statusBadgeHtml}
+          </div>
+
+          <!-- Technician (Mobile Row 2 Left | Desktop Col 10-11) -->
+          <div class="lg:col-span-2 lg:order-4 flex items-center gap-2 min-w-0">
+            ${techAvatarHtml}
+            <span class="text-xs font-medium text-slate-700 truncate">${tech ? tech.name : b.tech_id}</span>
+          </div>
+
+          <!-- Date & Time (Mobile Row 2 Right | Desktop Col 6-7) -->
+          <div class="lg:col-span-2 lg:order-2 flex items-center justify-self-end lg:justify-self-start gap-1.5 text-xs text-slate-600 text-right lg:text-left tabular-nums">
+            <svg class="hidden lg:block w-3.5 h-3.5 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke-width="1.8"/><path stroke-linecap="round" stroke-width="1.8" d="M12 6v6l4 2"/></svg>
+            <div class="flex items-center gap-1.5 lg:block min-w-0">
+              <span class="font-medium text-slate-600 lg:text-slate-700 text-[11px] lg:text-xs leading-tight whitespace-nowrap">${bDurationStr}</span>
+              <span class="text-slate-300 lg:hidden">•</span>
+              <span class="text-[10.5px] text-slate-400 font-mono leading-tight whitespace-nowrap lg:block">${timeRange}</span>
             </div>
           </div>
 
-          <div class="flex items-center gap-2 flex-shrink-0">
-            ${statusBadgeHtml}
-            <svg class="w-4 h-4 text-slate-300 group-hover:text-slate-600 group-hover:translate-x-0.5 transition-all hidden sm:block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+          <!-- Hover-Emphasized Action (+) Button (Desktop Col 12) -->
+          <div class="hidden lg:flex lg:col-span-1 lg:order-5 justify-end">
+            <button type="button" onclick="event.stopPropagation(); BookingUI.openDetailModal('${b.booking_id}')" class="w-7 h-7 rounded-lg bg-slate-100 text-slate-500 group-hover:bg-slate-900 group-hover:text-white flex items-center justify-center transition-all active:scale-95 cursor-pointer shrink-0" title="Xem chi tiết ca trực">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+            </button>
           </div>
         </div>
       `;
@@ -1869,14 +2462,14 @@ const BookingUI = {
         const avatarSrc = ownTech.avatar || getFallbackAvatar(ownTech.name);
         const fallbackSrc = getFallbackAvatar(ownTech.name);
         container.innerHTML = `
-          <div class="relative w-10 h-10 lg:w-auto lg:h-9 lg:pl-1.5 lg:pr-3 rounded-full bg-brand-50 border border-brand-200 text-brand-800 text-xs font-bold inline-flex items-center justify-center lg:justify-start gap-2 flex-shrink-0"
+          <div class="relative w-11 h-11 lg:w-auto lg:h-9 p-0.5 lg:pl-1.5 lg:pr-3 lg:py-0 rounded-full bg-white lg:bg-slate-100 border border-slate-200 text-slate-900 text-xs font-semibold inline-flex items-center justify-center lg:justify-start gap-2 flex-shrink-0"
                title="${ownTech.name} (${ownCount} task trong tháng)">
             <img src="${avatarSrc}" alt="${ownTech.name}"
                  onerror="this.onerror=null;this.src='${fallbackSrc}'"
-                 class="w-9 h-9 lg:w-6 lg:h-6 rounded-full object-cover ring-2 ring-brand-600 lg:ring-0 flex-shrink-0" />
+                 class="w-full h-full lg:w-6 lg:h-6 rounded-full object-cover flex-shrink-0" />
             <span class="hidden lg:inline whitespace-nowrap">${ownTech.name}</span>
-            <span class="hidden lg:inline-flex px-1.5 py-0.5 rounded-full text-[10px] font-condensed font-black bg-brand-600 text-white leading-none">${ownCount} task</span>
-            <span class="lg:hidden absolute -bottom-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-condensed font-bold leading-none flex items-center justify-center bg-brand-600 text-white border border-white shadow-2xs">${ownCount}</span>
+            <span class="hidden lg:inline-flex px-1.5 py-0.5 rounded-full text-[10px] font-display font-bold bg-slate-900 text-white leading-none">${ownCount} task</span>
+            <span class="lg:hidden absolute -bottom-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-display font-bold leading-none flex items-center justify-center bg-slate-900 text-white border-[1.5px] border-white shadow-xs">${ownCount}</span>
           </div>
         `;
       } else {
@@ -1886,52 +2479,41 @@ const BookingUI = {
     }
 
     const techs = BookingData.technicians.filter(t => t.is_active);
-    const isAllActive = this.selectedTechId === 'all';
-    let html = `
-      <button type="button" onclick="BookingUI.selectTech('all')"
-              class="hidden lg:inline-flex h-9 px-3.5 rounded-full text-xs font-bold font-condensed uppercase tracking-wider transition-all items-center gap-1.5 flex-shrink-0 cursor-pointer border ${
-                isAllActive
-                  ? 'bg-brand-600 text-white border-brand-600 shadow-2xs'
-                  : 'bg-white text-slate-700 hover:bg-slate-100 border-slate-200/90'
-              }"
-              title="Xem lịch tất cả kỹ sư">
-        <span>Tất cả</span>
-        <span class="px-1.5 py-0.5 rounded-full text-[10px] leading-none ${isAllActive ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'}">${activeMonthBookings.length}</span>
-      </button>
-    `;
+    this.ensureSelectedTechId();
+    let html = '';
 
     techs.forEach(tech => {
       const isSelected = this.selectedTechId === tech.tech_id;
-      const isDimmed = !isAllActive && !isSelected;
+      const isDimmed = !isSelected;
       const shortName = tech.name.split(' ').slice(-2).join(' ');
       const techMonthShifts = activeMonthBookings.filter(b => b.tech_id === tech.tech_id).length;
       const avatarSrc = tech.avatar || getFallbackAvatar(tech.name);
       const fallbackSrc = getFallbackAvatar(tech.name);
 
       html += `
-        <button type="button" onclick="BookingUI.selectTech(BookingUI.selectedTechId === '${tech.tech_id}' ? 'all' : '${tech.tech_id}')"
+        <button type="button" onclick="BookingUI.selectTech('${tech.tech_id}')"
                 aria-label="${tech.name} (${techMonthShifts} task)"
                 aria-pressed="${isSelected}"
-                class="relative w-10 h-10 lg:w-auto lg:h-9 p-0.5 lg:pl-1.5 lg:pr-3 lg:py-0 rounded-full transition-all flex-shrink-0 inline-flex items-center justify-center lg:justify-start gap-2 cursor-pointer border ${
+                class="relative w-11 h-11 lg:w-auto lg:h-9 p-0.5 lg:pl-1.5 lg:pr-3 lg:py-0 rounded-full transition-all flex-shrink-0 inline-flex items-center justify-center lg:justify-start gap-2 cursor-pointer border ${
                   isSelected
-                    ? 'bg-brand-600 text-white border-brand-600 ring-2 ring-brand-600 ring-offset-1 lg:ring-0 shadow-xs'
+                    ? 'bg-white lg:bg-slate-900 text-slate-900 lg:text-white border-emerald-500 ring-2 ring-emerald-500/20 lg:ring-0 lg:border-slate-900 shadow-2xs'
                     : isDimmed
-                      ? 'bg-white text-slate-600 border-slate-200/80 opacity-50 hover:opacity-90 lg:opacity-100 lg:hover:bg-slate-100'
+                      ? 'bg-white text-slate-600 border-slate-200/90 opacity-55 hover:opacity-95 lg:opacity-100 lg:hover:bg-slate-100'
                       : 'bg-white text-slate-700 hover:bg-slate-100 border-slate-200/90 shadow-2xs'
                 }"
-                title="${tech.name} (${techMonthShifts} task trong tháng) • Nhấn để lọc">
+                title="${tech.name} (${techMonthShifts} task trong tháng)">
           <img src="${avatarSrc}" alt="${tech.name}"
                onerror="this.onerror=null;this.src='${fallbackSrc}'"
-               class="w-9 h-9 lg:w-6 lg:h-6 rounded-full object-cover flex-shrink-0 ${isSelected ? 'ring-1 ring-white/40' : ''}" />
+               class="w-full h-full lg:w-6 lg:h-6 rounded-full object-cover flex-shrink-0" />
           <span class="hidden lg:inline text-xs font-semibold whitespace-nowrap">${shortName}</span>
-          <span class="hidden lg:inline-flex px-1.5 py-0.5 rounded-full text-[10px] font-condensed font-bold leading-none ${
+          <span class="hidden lg:inline-flex px-1.5 py-0.5 rounded-full text-[10px] font-display font-bold leading-none ${
             isSelected ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
           }">${techMonthShifts}</span>
-          <span class="lg:hidden absolute -bottom-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-condensed font-bold leading-none flex items-center justify-center border border-white shadow-2xs ${
+          <span class="lg:hidden absolute -bottom-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-display font-bold leading-none flex items-center justify-center border-[1.5px] border-white shadow-xs ${
             isSelected
-              ? 'bg-accent-600 text-white'
+              ? 'bg-slate-900 text-white'
               : techMonthShifts > 0
-                ? 'bg-brand-600 text-white'
+                ? 'bg-slate-700 text-white'
                 : 'bg-slate-200 text-slate-600'
           }">${techMonthShifts}</span>
         </button>
@@ -1950,8 +2532,8 @@ const BookingUI = {
     const calGridContainer = document.getElementById('calendar-28days-container');
 
     if (gridBtn && listBtn) {
-      const activeClass = 'px-2.5 py-1 rounded-lg text-[11px] font-bold font-condensed uppercase tracking-wider bg-white text-slate-900 shadow-2xs transition-all cursor-pointer flex items-center gap-1';
-      const inactiveClass = 'px-2.5 py-1 rounded-lg text-[11px] font-bold font-condensed uppercase tracking-wider text-slate-500 hover:text-slate-900 transition-all cursor-pointer flex items-center gap-1';
+      const activeClass = 'w-8 h-7 rounded-lg bg-white text-slate-900 shadow-2xs transition-all cursor-pointer flex items-center justify-center';
+      const inactiveClass = 'w-8 h-7 rounded-lg text-slate-500 hover:text-slate-900 transition-all cursor-pointer flex items-center justify-center';
       gridBtn.className = this.calendarViewMode === 'grid' ? activeClass : inactiveClass;
       listBtn.className = this.calendarViewMode === 'list' ? activeClass : inactiveClass;
     }
@@ -1971,9 +2553,7 @@ const BookingUI = {
 
     const user = BookingData.currentUser;
     const isTechnician = user?.role === 'technician' || Boolean(user?.is_technician);
-    if (isTechnician) {
-      this.selectedTechId = user?.tech_id || '__none__';
-    }
+    this.ensureSelectedTechId();
     const canCreateBooking = BookingData.hasPermission('create_booking');
 
     // First day of current selected month
@@ -2026,7 +2606,7 @@ const BookingUI = {
         return bStart <= weekDateStrs[6] && bEnd >= weekDateStrs[0];
       });
 
-      if (this.selectedTechId !== 'all') {
+      if (this.selectedTechId && this.selectedTechId !== 'all') {
         weekBookings = weekBookings.filter(b => b.tech_id === this.selectedTechId);
       }
 
@@ -2112,8 +2692,9 @@ const BookingUI = {
           if (laneToBooking.has(l)) cellMaxLane = l;
         }
 
+        const prefillTech = (this.selectedTechId && this.selectedTechId !== 'all' && this.selectedTechId !== '__none__') ? this.selectedTechId : '';
         const cellClickAttr = canCreateBooking
-          ? `onclick="BookingUI.openBookingModal('${this.selectedTechId !== 'all' ? this.selectedTechId : ''}', '${dateStr}')"`
+          ? `onclick="BookingUI.openBookingModal('${prefillTech}', '${dateStr}')"`
           : '';
 
         html += `
@@ -2122,18 +2703,18 @@ const BookingUI = {
                ondragenter="BookingUI.handleDragEnter(event, this, '${dateStr}')"
                ondragleave="BookingUI.handleDragLeave(event, this)"
                ondrop="BookingUI.handleDrop(event, '${dateStr}', this)"
-               class="min-h-[78px] sm:min-h-[126px] p-1 sm:p-1.5 flex flex-col justify-start gap-0.5 sm:gap-1 transition-all relative group/cell ${canCreateBooking ? 'cursor-pointer' : 'cursor-default'} ${
+               class="min-h-[72px] sm:min-h-[126px] p-0.5 sm:p-1.5 flex flex-col justify-start gap-0.5 sm:gap-1 transition-all relative group/cell ${canCreateBooking ? 'cursor-pointer' : 'cursor-default'} ${
                  isToday
-                   ? 'bg-brand-50/25 ring-1 ring-inset ring-brand-400 z-10'
+                   ? 'bg-slate-50/90 ring-1 ring-inset ring-slate-900/20 z-10'
                    : dayInfo.isCurrentMonth
-                     ? 'bg-white hover:bg-slate-50/70'
+                     ? (isSunday ? 'bg-slate-50/55 hover:bg-slate-100/60' : 'bg-white hover:bg-slate-50/70')
                      : 'bg-slate-50/40 hover:bg-slate-100/50'
                }">
 
-            <!-- Date Number (Roboto Condensed) -->
-            <div class="h-5 sm:h-6 flex items-center justify-between px-0.5 select-none mb-0.5">
+            <!-- Date Number -->
+            <div class="h-5 sm:h-6 flex items-center justify-between px-0.5 select-none mb-0.5 tabular-nums">
               ${isToday ? `
-                <span class="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-brand-600 text-white flex items-center justify-center text-[10px] sm:text-xs font-bold font-condensed shadow-2xs">
+                <span class="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-slate-900 text-white flex items-center justify-center text-[10px] sm:text-xs font-bold font-condensed shadow-2xs">
                   ${dayNum}
                 </span>
               ` : `
@@ -2141,7 +2722,7 @@ const BookingUI = {
                   !dayInfo.isCurrentMonth
                     ? 'text-slate-300 font-normal'
                     : isSunday
-                      ? 'text-burgundy-800 font-bold'
+                      ? 'text-rose-700 font-bold'
                       : 'text-slate-700 font-bold'
                 }">
                   ${showMonthTag ? `<span class="sm:hidden">${dayNum}/${monthNum}</span><span class="hidden sm:inline">${dayNum} thg ${monthNum}</span>` : dayNum}
@@ -2150,11 +2731,11 @@ const BookingUI = {
             </div>
 
             <!-- Shifts Container with Fixed Height Lanes -->
-            <div class="flex-1 flex flex-col gap-1 relative">
+            <div class="flex-1 flex flex-col gap-0.5 sm:gap-1 relative">
               ${cellMaxLane >= 0 ? Array.from({ length: cellMaxLane + 1 }).map((_, laneIdx) => {
                 const b = laneToBooking.get(laneIdx);
                 if (!b) {
-                  return `<div class="h-6 sm:h-8 w-full invisible pointer-events-none"></div>`;
+                  return `<div class="h-5 sm:h-7 w-full invisible pointer-events-none"></div>`;
                 }
 
                 const tech = BookingData.technicians.find(t => t.tech_id === b.tech_id);
@@ -2165,40 +2746,49 @@ const BookingUI = {
                 const isStart = bStart === dateStr;
                 const isEnd = bEnd === dateStr;
                 const isSingleDay = isStart && isEnd;
-                const techShortName = tech ? tech.name.split(' ').slice(-2).join(' ') : b.tech_id;
-                const bTimeShort = b.start_time ? b.start_time.slice(0, 5) : '';
-                const bTimeFull = (b.start_time && b.end_time) ? `${b.start_time.slice(0, 5)}-${b.end_time.slice(0, 5)}` : bTimeShort;
+                let sTimeStr = b.start_time ? b.start_time.slice(0, 5) : '';
+                let eTimeStr = b.end_time ? b.end_time.slice(0, 5) : '';
+                if (isSingleDay && sTimeStr && eTimeStr && sTimeStr > eTimeStr) {
+                  [sTimeStr, eTimeStr] = [eTimeStr, sTimeStr];
+                }
+                const bTimeFull = (sTimeStr && eTimeStr) ? `${sTimeStr} - ${eTimeStr}` : (sTimeStr || '08:00 - 17:00');
 
                 const isOff = /off|nghỉ|leave/i.test(b.title || '') || /off|nghỉ|leave/i.test(b.notes || '') || b.type === 'OFF';
                 const isInProgress = b.status === 'IN_PROGRESS';
                 const isOverdue = BookingData.isPendingCompletion(b);
-                let baseBg = 'bg-orange-500 hover:bg-orange-600';
-                let borderColor = 'border-orange-400/60';
+                let baseBg = 'bg-amber-50/90 hover:bg-amber-100/80 text-amber-950';
+                let leftAccent = 'border-l-[3px] border-l-amber-400';
+                let iconTextColor = 'text-amber-700';
                 let statusLabel = 'Chờ duyệt';
+
                 if (isOff) {
-                  baseBg = 'bg-slate-500 hover:bg-slate-600';
-                  borderColor = 'border-slate-400/80';
+                  baseBg = 'bg-slate-100/90 hover:bg-slate-200/80 text-slate-700';
+                  leftAccent = 'border-l-[3px] border-l-slate-400';
+                  iconTextColor = 'text-slate-600';
                   statusLabel = 'Nghỉ (OFF)';
                 } else if (isOverdue) {
-                  baseBg = 'bg-rose-600 hover:bg-rose-700 animate-pulse';
-                  borderColor = 'border-rose-400';
-                  statusLabel = '⚠️ CẦN HOÀN THÀNH (Quá hạn)';
+                  baseBg = 'bg-rose-50/90 hover:bg-rose-100/80 text-rose-950';
+                  leftAccent = 'border-l-[3px] border-l-rose-500';
+                  iconTextColor = 'text-rose-600';
+                  statusLabel = 'Cần hoàn thành (Quá hạn)';
                 } else if (isInProgress) {
-                  baseBg = 'bg-emerald-600 hover:bg-emerald-700';
-                  borderColor = 'border-emerald-500/70';
-                  statusLabel = '🟢 Đang thực hiện';
+                  baseBg = 'bg-emerald-600 hover:bg-emerald-700 text-white';
+                  leftAccent = '';
+                  iconTextColor = 'text-white';
+                  statusLabel = 'Đang thực hiện';
                 } else if (isCompleted) {
-                  baseBg = 'bg-blue-600 hover:bg-blue-700';
-                  borderColor = 'border-blue-500/60';
+                  baseBg = 'bg-sky-50/90 hover:bg-sky-100/80 text-sky-950';
+                  leftAccent = 'border-l-[3px] border-l-sky-500';
+                  iconTextColor = 'text-sky-600';
                   statusLabel = 'Đã hoàn thành';
                 } else if (isApproved) {
-                  baseBg = 'bg-accent-600 hover:bg-accent-700';
-                  borderColor = 'border-accent-500/60';
+                  baseBg = 'bg-emerald-50/90 hover:bg-emerald-100/80 text-emerald-950';
+                  leftAccent = 'border-l-[3px] border-l-emerald-500';
+                  iconTextColor = 'text-emerald-600';
                   statusLabel = 'Đã duyệt';
                 }
 
-                // Tính thời gian làm việc thực tế của ca (VD: 08:00 - 12:00 -> 4h; 08:00 - 17:00 -> 8h/9h)
-                // Riêng trạng thái OFF hiển thị chữ "OFF" rõ ràng, dễ hiểu
+                // Tính thời gian làm việc thực tế của ca
                 let shiftDurationText = '';
                 if (isOff) {
                   shiftDurationText = 'OFF';
@@ -2206,13 +2796,12 @@ const BookingUI = {
                   let [sh, sm] = b.start_time.split(':').map(Number);
                   let [eh, em] = b.end_time.split(':').map(Number);
                   if (!isNaN(sh) && !isNaN(eh)) {
-                    // Tự động đảo nếu cùng ngày bị nhập ngược
                     if (isSingleDay && (sh * 60 + (sm || 0)) > (eh * 60 + (em || 0))) {
                       [sh, eh] = [eh, sh];
                       [sm, em] = [em, sm];
                     }
                     let diffMin = (eh * 60 + (em || 0)) - (sh * 60 + (sm || 0));
-                    if (diffMin < 0) diffMin += 24 * 60; // xử lý ca qua đêm
+                    if (diffMin < 0) diffMin += 24 * 60;
                     const hours = diffMin / 60;
                     shiftDurationText = Number.isInteger(hours) ? `${hours}h` : `${parseFloat(hours.toFixed(1))}h`;
                   }
@@ -2221,26 +2810,19 @@ const BookingUI = {
                   shiftDurationText = isOff ? 'OFF' : (b.duration ? `${b.duration}h` : '8h');
                 }
 
-                const bTimeBadge = isOff
-                  ? `<span class="text-[8.5px] sm:text-[9px] font-mono font-black bg-black/30 px-1.5 py-0.5 rounded text-white leading-none shrink-0 tracking-wider">OFF</span>`
-                  : `
-                    <span class="text-[8.5px] sm:text-[9px] font-mono font-bold bg-black/25 px-1 py-0.5 rounded text-white leading-none shrink-0" title="Thời gian ca: ${bTimeFull || ''} (${shiftDurationText})">
-                      <span class="sm:hidden font-black">${shiftDurationText}</span>
-                      <span class="hidden sm:inline">${bTimeFull || shiftDurationText}</span>
-                    </span>
-                  `;
+                const desktopTimeText = isOff ? 'OFF' : bTimeFull;
+                const mobileTimeText = isOff ? 'OFF' : shiftDurationText;
 
                 const canDrag = BookingData.hasPermission('drag_reschedule') && !isCompleted;
                 const dragAttrs = canDrag ? `draggable="true" ondragstart="BookingUI.handleDragStart(event, '${b.booking_id}')" ondragend="BookingUI.handleDragEnd(event)"` : '';
-                const dragCursorClass = canDrag ? 'cursor-grab active:cursor-grabbing hover:brightness-95' : 'cursor-pointer';
+                const dragCursorClass = canDrag ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer';
                 const dragHint = canDrag ? ' • Kéo thả để dời ngày' : '';
 
                 const isFirstCol = dayIdx === 0;
                 const isLastCol = dayIdx === 6;
 
-                const overdueIcon = isOverdue ? `<span class="w-3.5 h-3.5 rounded-full bg-white/25 flex items-center justify-center shrink-0 text-white" title="Cần hoàn thành"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg></span>` : '';
-                const liveProgressIcon = isInProgress ? `<span class="relative flex h-2 w-2 shrink-0 mr-1"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-90"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-white"></span></span>` : '';
-                const completedIcon = isCompleted ? `<span class="hidden sm:flex w-3.5 h-3.5 rounded-full bg-white/25 items-center justify-center shrink-0 text-white" title="Đã hoàn thành"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg></span>` : '';
+                const overdueIcon = isOverdue ? `<span class="w-3 h-3 sm:w-3.5 sm:h-3.5 rounded-full bg-rose-200/80 flex items-center justify-center shrink-0 ${iconTextColor}" title="Cần hoàn thành"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01"/></svg></span>` : '';
+                const liveProgressIcon = isInProgress ? `<span class="relative flex h-2 w-2 shrink-0 mr-0.5"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-90"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-white"></span></span>` : '';
 
                 const extendRight = !isLastCol && !isEnd;
                 const extendLeft = !isFirstCol && !isStart;
@@ -2248,61 +2830,63 @@ const BookingUI = {
                 if (isSingleDay) {
                   return `
                     <div onclick="event.stopPropagation(); if (!BookingUI.justDropped) BookingUI.openDetailModal('${b.booking_id}')"
+                         onmouseenter="BookingUI.showQuickPeek(event, '${b.booking_id}')"
+                         onmouseleave="BookingUI.hideQuickPeek()"
                          ${dragAttrs}
-                         class="h-6 sm:h-8 w-full max-w-full overflow-hidden px-1 sm:px-2 rounded-lg ${baseBg} border ${borderColor} text-white transition-all flex items-center justify-between gap-0.5 sm:gap-1 shadow-2xs ${dragCursorClass}"
-                         title="${tech ? tech.name : ''}: ${b.title} (${b.location || 'Văn phòng'}) [${bTimeFull || '08:00 - 17:00'}] • ${statusLabel}${dragHint}">
-                      <div class="flex items-center gap-1 min-w-0 max-w-full overflow-hidden">
-                        ${overdueIcon}
-                        ${liveProgressIcon}
-                        ${completedIcon}
-                        ${bTimeBadge}
-                        <span class="text-[10px] sm:text-xs font-bold font-condensed tracking-tight text-white truncate leading-none select-none">${techShortName}</span>
-                        <span class="hidden sm:inline text-[10px] text-white/90 truncate font-sans">• ${b.title}</span>
-                      </div>
+                         class="h-5 sm:h-7 w-full max-w-full overflow-hidden px-1 sm:px-2 rounded-md sm:rounded-lg ${baseBg} ${leftAccent} transition-all flex items-center justify-center sm:justify-start gap-1 ${dragCursorClass}"
+                         title="${tech ? tech.name : ''}: ${b.title} (${b.location || 'Văn phòng'}) [${bTimeFull}] • ${statusLabel}${dragHint}">
+                      ${overdueIcon}
+                      ${liveProgressIcon}
+                      <span class="text-[10px] sm:text-[11px] font-mono tabular-nums font-semibold tracking-tight truncate leading-none select-none">
+                        <span class="sm:hidden">${mobileTimeText}</span>
+                        <span class="hidden sm:inline">${desktopTimeText}</span>
+                      </span>
                     </div>
                   `;
                 } else if (isStart || (isFirstCol && !isEnd)) {
                   const isWeekContinuation = isFirstCol && !isStart;
-                  const rightMargin = extendRight ? 'w-[calc(100%+0.25rem+2px)] sm:w-[calc(100%+0.375rem+2px)] -mr-[calc(0.25rem+2px)] sm:-mr-[calc(0.375rem+2px)] rounded-r-none border-r-0' : 'w-full mr-0 rounded-r-lg border-r';
+                  const rightMargin = extendRight ? 'w-[calc(100%+0.125rem+2px)] sm:w-[calc(100%+0.375rem+2px)] -mr-[calc(0.125rem+2px)] sm:-mr-[calc(0.375rem+2px)] rounded-r-none' : 'w-full mr-0 rounded-r-md sm:rounded-r-lg';
                   return `
                     <div onclick="event.stopPropagation(); if (!BookingUI.justDropped) BookingUI.openDetailModal('${b.booking_id}')"
+                         onmouseenter="BookingUI.showQuickPeek(event, '${b.booking_id}')"
+                         onmouseleave="BookingUI.hideQuickPeek()"
                          ${dragAttrs}
-                         class="h-6 sm:h-8 ${rightMargin} overflow-hidden px-1 sm:px-2 rounded-l-lg ${baseBg} border-y border-l ${borderColor} text-white flex items-center gap-1 z-20 shadow-2xs transition-all ${dragCursorClass}"
-                         title="${tech ? tech.name : ''}: ${b.title} (${bStart} đến ${bEnd}) [${bTimeFull || '08:00 - 17:00'}] • ${statusLabel}${dragHint}">
-                      <div class="flex items-center gap-1 min-w-0 max-w-full overflow-hidden">
-                        ${overdueIcon}
-                        ${liveProgressIcon}
-                        ${completedIcon}
-                        ${bTimeBadge}
-                        <span class="text-[10px] sm:text-xs font-bold font-condensed tracking-tight text-white truncate leading-none select-none">
-                          ${isWeekContinuation ? `↳ ${techShortName}` : techShortName}
-                        </span>
-                        <span class="hidden sm:inline text-[10px] text-white/90 truncate font-sans">• ${b.title}</span>
-                      </div>
+                         class="h-5 sm:h-7 ${rightMargin} overflow-hidden px-1 sm:px-2 rounded-l-md sm:rounded-l-lg ${baseBg} ${!isWeekContinuation ? leftAccent : ''} flex items-center justify-center sm:justify-start gap-1 z-20 transition-all ${dragCursorClass}"
+                         title="${tech ? tech.name : ''}: ${b.title} (${bStart} đến ${bEnd}) [${bTimeFull}] • ${statusLabel}${dragHint}">
+                      ${overdueIcon}
+                      ${liveProgressIcon}
+                      <span class="text-[10px] sm:text-[11px] font-mono tabular-nums font-semibold tracking-tight truncate leading-none select-none">
+                        <span class="sm:hidden">${isWeekContinuation ? `↳${mobileTimeText}` : mobileTimeText}</span>
+                        <span class="hidden sm:inline">${isWeekContinuation ? `↳ ${desktopTimeText}` : desktopTimeText}</span>
+                      </span>
                     </div>
                   `;
                 } else if (isEnd || (isLastCol && !isStart)) {
-                  const leftMargin = extendLeft ? 'w-[calc(100%+0.25rem+2px)] sm:w-[calc(100%+0.375rem+2px)] -ml-[calc(0.25rem+2px)] sm:-ml-[calc(0.375rem+2px)] rounded-l-none border-l-0' : 'w-full ml-0 rounded-l-lg border-l';
+                  const leftMargin = extendLeft ? 'w-[calc(100%+0.125rem+2px)] sm:w-[calc(100%+0.375rem+2px)] -ml-[calc(0.125rem+2px)] sm:-ml-[calc(0.375rem+2px)] rounded-l-none' : 'w-full ml-0 rounded-l-md sm:rounded-l-lg';
                   return `
                     <div onclick="event.stopPropagation(); if (!BookingUI.justDropped) BookingUI.openDetailModal('${b.booking_id}')"
+                         onmouseenter="BookingUI.showQuickPeek(event, '${b.booking_id}')"
+                         onmouseleave="BookingUI.hideQuickPeek()"
                          ${dragAttrs}
-                         class="h-6 sm:h-8 ${leftMargin} px-1.5 rounded-r-lg ${baseBg} border-y border-r ${borderColor} text-white flex items-center justify-end z-20 shadow-2xs transition-all ${dragCursorClass}"
-                         title="${tech ? tech.name : ''}: ${b.title} (${isEnd ? `Hết ca ${bEnd}` : 'Tiếp tục tuần sau'}) [${bTime || '08:00 - 17:00'}] • ${statusLabel}${dragHint}">
+                         class="h-5 sm:h-7 ${leftMargin} px-1.5 rounded-r-md sm:rounded-r-lg ${baseBg} flex items-center justify-end z-20 transition-all ${dragCursorClass}"
+                         title="${tech ? tech.name : ''}: ${b.title} (${isEnd ? `Hết ca ${bEnd}` : 'Tiếp tục tuần sau'}) [${bTimeFull || '08:00 - 17:00'}] • ${statusLabel}${dragHint}">
                     </div>
                   `;
                 } else {
-                  let spanClass = 'w-full rounded-none border-x-0';
+                  let spanClass = 'w-full rounded-none';
                   if (extendLeft && extendRight) {
-                    spanClass = 'w-[calc(100%+0.5rem+4px)] sm:w-[calc(100%+0.75rem+4px)] -ml-[calc(0.25rem+2px)] sm:-ml-[calc(0.375rem+2px)] -mr-[calc(0.25rem+2px)] sm:-mr-[calc(0.375rem+2px)] rounded-none border-x-0';
+                    spanClass = 'w-[calc(100%+0.25rem+4px)] sm:w-[calc(100%+0.75rem+4px)] -ml-[calc(0.125rem+2px)] sm:-ml-[calc(0.375rem+2px)] -mr-[calc(0.125rem+2px)] sm:-mr-[calc(0.375rem+2px)] rounded-none';
                   } else if (extendLeft) {
-                    spanClass = 'w-[calc(100%+0.25rem+2px)] sm:w-[calc(100%+0.375rem+2px)] -ml-[calc(0.25rem+2px)] sm:-ml-[calc(0.375rem+2px)] mr-0 rounded-none border-l-0 border-r';
+                    spanClass = 'w-[calc(100%+0.125rem+2px)] sm:w-[calc(100%+0.375rem+2px)] -ml-[calc(0.125rem+2px)] sm:-ml-[calc(0.375rem+2px)] mr-0 rounded-none';
                   } else if (extendRight) {
-                    spanClass = 'w-[calc(100%+0.25rem+2px)] sm:w-[calc(100%+0.375rem+2px)] ml-0 -mr-[calc(0.25rem+2px)] sm:-mr-[calc(0.375rem+2px)] rounded-none border-l border-r-0';
+                    spanClass = 'w-[calc(100%+0.125rem+2px)] sm:w-[calc(100%+0.375rem+2px)] ml-0 -mr-[calc(0.125rem+2px)] sm:-mr-[calc(0.375rem+2px)] rounded-none';
                   }
                   return `
                     <div onclick="event.stopPropagation(); if (!BookingUI.justDropped) BookingUI.openDetailModal('${b.booking_id}')"
+                         onmouseenter="BookingUI.showQuickPeek(event, '${b.booking_id}')"
+                         onmouseleave="BookingUI.hideQuickPeek()"
                          ${dragAttrs}
-                         class="h-6 sm:h-8 ${spanClass} ${baseBg} border-y ${borderColor} text-white flex items-center justify-center z-20 shadow-2xs transition-all ${dragCursorClass}"
+                         class="h-5 sm:h-7 ${spanClass} ${baseBg} flex items-center justify-center z-20 transition-all ${dragCursorClass}"
                          title="${tech ? tech.name : ''}: ${b.title} (${bStart} đến ${bEnd}) • ${statusLabel}${dragHint}">
                     </div>
                   `;
@@ -2333,6 +2917,8 @@ const BookingUI = {
       agendaContainer.className = 'block bg-white';
     }
 
+    this.ensureSelectedTechId();
+
     const monthStart = `${this.currentYear}-${String(this.currentMonth + 1).padStart(2, '0')}-01`;
     const daysInMonth = new Date(this.currentYear, this.currentMonth + 1, 0).getDate();
     const monthEnd = `${this.currentYear}-${String(this.currentMonth + 1).padStart(2, '0')}-${String(daysInMonth).padStart(2, '0')}`;
@@ -2344,7 +2930,7 @@ const BookingUI = {
       return bStart <= monthEnd && bEnd >= monthStart;
     });
 
-    if (this.selectedTechId !== 'all') {
+    if (this.selectedTechId && this.selectedTechId !== 'all') {
       monthBookings = monthBookings.filter(b => b.tech_id === this.selectedTechId);
     }
 
@@ -2386,9 +2972,9 @@ const BookingUI = {
     const pagedList = monthBookings.slice((curPage - 1) * pageSize, curPage * pageSize);
 
     agendaContainer.innerHTML = `
-      <div class="px-4 py-2.5 bg-slate-50/70 border-b border-slate-100 flex items-center justify-between">
-        <span class="text-[11px] font-bold font-condensed uppercase tracking-wider text-slate-500">Danh sách task tháng ${this.currentMonth + 1}/${this.currentYear}</span>
-        <span class="text-[11px] font-bold font-condensed text-brand-600">${monthBookings.length} task</span>
+      <div class="px-4 py-2.5 bg-[#f7f8fa] border-b border-slate-100 flex items-center justify-between">
+        <span class="text-xs font-medium text-slate-500">Danh sách task tháng ${this.currentMonth + 1}/${this.currentYear}</span>
+        <span class="text-xs font-semibold text-slate-900">${monthBookings.length} task</span>
       </div>
       <div class="divide-y divide-slate-100">
         ${pagedList.map(b => {
@@ -2405,61 +2991,63 @@ const BookingUI = {
             : `${this.formatDateDisplay(b.booking_date)} → ${this.formatDateDisplay(bEnd)}`;
 
           const isOff = /off|nghỉ|leave/i.test(b.title || '') || /off|nghỉ|leave/i.test(b.notes || '') || b.type === 'OFF';
-          let agendaBadgeClass = 'bg-orange-50 text-orange-700 border border-orange-200';
+          let agendaBadgeClass = 'bg-amber-50 text-amber-800 border border-amber-200/80';
           let agendaStatusText = 'Chờ duyệt';
-          let agendaDateBoxClass = 'bg-orange-50 text-orange-800 border border-orange-200/80';
+          let agendaDateBoxClass = 'bg-amber-50 text-amber-800 border border-amber-200/80';
           if (isOff) {
-            agendaBadgeClass = 'bg-slate-100 text-slate-700 border border-slate-300 font-bold';
+            agendaBadgeClass = 'bg-slate-100 text-slate-700 border border-slate-200/90';
             agendaStatusText = 'Nghỉ (OFF)';
-            agendaDateBoxClass = 'bg-slate-100 text-slate-700 border border-slate-300';
+            agendaDateBoxClass = 'bg-slate-100 text-slate-700 border border-slate-200/90';
           } else if (b.status === 'IN_PROGRESS') {
-            agendaBadgeClass = 'bg-emerald-50 text-emerald-800 border border-emerald-300 font-extrabold';
-            agendaStatusText = '🟢 Đang thực hiện';
-            agendaDateBoxClass = 'bg-emerald-50 text-emerald-800 border border-emerald-300';
+            agendaBadgeClass = 'bg-emerald-50 text-emerald-700 border border-emerald-200/90';
+            agendaStatusText = 'Đang thực hiện';
+            agendaDateBoxClass = 'bg-emerald-50 text-emerald-700 border border-emerald-200/90';
           } else if (isCompleted) {
-            agendaBadgeClass = 'bg-blue-50 text-blue-700 border border-blue-200';
+            agendaBadgeClass = 'bg-sky-50 text-sky-700 border border-sky-200/80';
             agendaStatusText = 'Hoàn thành';
-            agendaDateBoxClass = 'bg-blue-50 text-blue-800 border border-blue-200/80';
+            agendaDateBoxClass = 'bg-sky-50 text-sky-700 border border-sky-200/80';
           } else if (isApproved) {
-            agendaBadgeClass = 'bg-accent-50 text-accent-700 border border-accent-200';
+            agendaBadgeClass = 'bg-emerald-50 text-emerald-700 border border-emerald-200/80';
             agendaStatusText = 'Đã duyệt';
-            agendaDateBoxClass = 'bg-accent-50 text-accent-800 border border-accent-200/80';
+            agendaDateBoxClass = 'bg-emerald-50 text-emerald-700 border border-emerald-200/80';
           }
 
           return `
-            <div onclick="BookingUI.openDetailModal('${b.booking_id}')" class="px-4 py-3 flex items-center justify-between gap-3 hover:bg-slate-50/90 transition-colors cursor-pointer group">
-              <div class="flex items-center gap-3 min-w-0">
-                <div class="w-10 h-10 rounded-xl ${isTodayShift ? 'bg-brand-600 text-white' : agendaDateBoxClass} flex flex-col items-center justify-center flex-shrink-0 font-condensed">
-                  <span class="text-[9px] font-bold uppercase leading-none opacity-80">${monthNum}</span>
-                  <span class="text-sm font-black leading-tight">${dayNum}</span>
-                </div>
-                <div class="min-w-0">
-                  <div class="flex items-center gap-2 flex-wrap">
-                    <span class="text-xs sm:text-sm font-bold text-slate-900 group-hover:text-brand-700 truncate">${b.title}</span>
-                    ${isOff ? `
-                      <span class="inline-flex items-center gap-1 font-mono font-bold text-slate-700 bg-slate-100 border border-slate-300 px-1.5 py-0.5 rounded text-[10px]">
-                        OFF
-                      </span>
-                    ` : `
-                      <span class="inline-flex items-center gap-1 font-mono font-bold text-brand-700 bg-brand-50 border border-brand-200/80 px-1.5 py-0.5 rounded text-[10px]">
-                        <svg class="w-3 h-3 text-brand-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 1118 0z"/></svg>
-                        ${(b.start_time || '08:00').slice(0, 5)} - ${(b.end_time || '17:00').slice(0, 5)}
-                      </span>
-                    `}
-                  </div>
-                  <div class="flex items-center gap-1.5 text-[11px] text-slate-500 mt-0.5 flex-wrap">
-                    <span class="font-bold text-slate-800">${tech ? tech.name : b.tech_id}</span>
-                    <span>•</span>
-                    <span class="font-condensed font-semibold text-slate-600">${dateRangeLabel}</span>
-                    ${b.location ? `<span>•</span><span class="truncate text-slate-500">${b.location}</span>` : ''}
-                  </div>
-                </div>
+            <div onclick="BookingUI.openDetailModal('${b.booking_id}')" class="px-4 py-3.5 flex items-start gap-3 hover:bg-[#f7f8fa] transition-colors cursor-pointer group">
+              <div class="w-10 h-10 rounded-xl ${isTodayShift ? 'bg-slate-900 text-white' : agendaDateBoxClass} flex flex-col items-center justify-center flex-shrink-0 mt-0.5">
+                <span class="text-[9px] font-medium leading-none opacity-80">${monthNum}</span>
+                <span class="text-sm font-bold leading-tight mt-0.5">${dayNum}</span>
               </div>
-              <div class="flex items-center gap-2 flex-shrink-0">
-                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold font-condensed uppercase ${agendaBadgeClass}">
-                  ${agendaStatusText}
-                </span>
-                <svg class="w-4 h-4 text-slate-300 group-hover:text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+              <div class="flex-1 min-w-0 space-y-1">
+                <!-- Row 1: Title + Time Pill Top-Right -->
+                <div class="flex items-start justify-between gap-2">
+                  <span class="text-[13px] font-semibold text-slate-900 truncate leading-snug">${b.title}</span>
+                  ${isOff ? `
+                    <span class="inline-flex items-center font-mono font-medium text-slate-600 bg-[#f7f8fa] border border-slate-200/80 px-1.5 py-0.5 rounded-md text-[10px] shrink-0">
+                      OFF
+                    </span>
+                  ` : `
+                    <span class="inline-flex items-center gap-1 font-mono font-medium text-slate-600 bg-[#f7f8fa] border border-slate-200/80 px-1.5 py-0.5 rounded-md text-[10px] shrink-0 whitespace-nowrap">
+                      <svg class="w-3 h-3 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 1118 0z"/></svg>
+                      ${(b.start_time || '08:00').slice(0, 5)}–${(b.end_time || '17:00').slice(0, 5)}
+                    </span>
+                  `}
+                </div>
+                ${b.location ? `<p class="text-[11px] text-slate-500 truncate">${b.location}</p>` : ''}
+                <!-- Row 3: Technician & Date + Status Pill & Chevron -->
+                <div class="flex items-center justify-between gap-2 pt-0.5">
+                  <div class="flex items-center gap-1.5 text-[11px] text-slate-500 min-w-0">
+                    <span class="font-medium text-slate-700 truncate">${tech ? tech.name : b.tech_id}</span>
+                    <span class="text-slate-300 shrink-0">•</span>
+                    <span class="text-slate-500 shrink-0 whitespace-nowrap">${dateRangeLabel}</span>
+                  </div>
+                  <div class="flex items-center gap-1.5 flex-shrink-0">
+                    <span class="px-2 py-0.5 rounded-md text-[10px] font-medium ${agendaBadgeClass} whitespace-nowrap">
+                      ${agendaStatusText}
+                    </span>
+                    <svg class="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                  </div>
+                </div>
               </div>
             </div>
           `;
@@ -2484,21 +3072,61 @@ const BookingUI = {
 
     if (headerCount) {
       headerCount.innerHTML = `
-        <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200 font-condensed">
+        <span class="px-2.5 py-0.5 rounded-md text-xs font-semibold bg-amber-50 text-amber-800 font-display">
           ${pendingList.length} chờ duyệt
         </span>
       `;
     }
 
     if (pendingList.length === 0) {
-      container.innerHTML = `
-        <div class="py-10 sm:py-12 px-4 text-center">
-          <div class="w-11 h-11 rounded-2xl bg-accent-50 text-accent-700 mx-auto flex items-center justify-center mb-2.5">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+      const recentProcessed = (BookingData.bookings || [])
+        .filter(b => b.status === 'APPROVED' || b.status === 'COMPLETED' || b.status === 'REJECTED')
+        .sort((a, b) => (b.booking_date || '').localeCompare(a.booking_date || ''))
+        .slice(0, 3);
+
+      const recentHtml = recentProcessed.length > 0 ? `
+        <div class="border-t border-slate-100 bg-slate-50/45 px-4 lg:px-5 py-3.5 text-left">
+          <p class="text-[11px] font-medium text-slate-400 mb-2">Đã xử lý gần đây</p>
+          <div class="divide-y divide-slate-100">
+            ${recentProcessed.map(item => {
+              const tech = BookingData.technicians.find(t => t.tech_id === item.tech_id);
+              const isRejected = item.status === 'REJECTED';
+              const statusText = isRejected ? 'Từ chối' : (item.status === 'COMPLETED' ? 'Hoàn thành' : 'Đã duyệt');
+              const statusDot = isRejected ? 'bg-rose-400' : (item.status === 'COMPLETED' ? 'bg-sky-500' : 'bg-emerald-500');
+              return `
+                <div onclick="BookingUI.openDetailModal('${item.booking_id}')" class="py-2 flex items-center justify-between gap-3 cursor-pointer hover:bg-white/70 -mx-2 px-2 rounded-lg transition-colors">
+                  <div class="flex items-center gap-2 min-w-0">
+                    <span class="w-1.5 h-1.5 rounded-full ${statusDot} flex-shrink-0"></span>
+                    <span class="text-xs font-medium text-slate-700 truncate">${item.title}</span>
+                    <span class="hidden sm:inline text-[11px] text-slate-400 font-mono tabular-nums flex-shrink-0">${item.booking_id}</span>
+                  </div>
+                  <div class="flex items-center gap-2.5 flex-shrink-0 text-[11px] text-slate-500">
+                    <span class="hidden sm:inline">${tech ? tech.name.split(' ').slice(-2).join(' ') : ''}</span>
+                    <span class="font-mono tabular-nums text-slate-400">${this.formatDateDisplay(item.booking_date)}</span>
+                    <span class="font-medium ${isRejected ? 'text-rose-600' : 'text-slate-600'}">${statusText}</span>
+                  </div>
+                </div>
+              `;
+            }).join('')}
           </div>
-          <h4 class="text-sm font-bold text-slate-900">Không có yêu cầu chờ duyệt</h4>
-          <p class="text-xs text-slate-500 mt-0.5">Tất cả yêu cầu đặt lịch đã được xử lý.</p>
         </div>
+      ` : '';
+
+      container.innerHTML = `
+        <div class="py-10 sm:py-12 px-4 text-center max-w-md mx-auto">
+          <div class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 mx-auto flex items-center justify-center mb-3">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          </div>
+          <h4 class="text-sm sm:text-base font-semibold tracking-tight text-slate-900">Không còn yêu cầu chờ duyệt</h4>
+          <p class="text-xs text-slate-500 mt-1 leading-relaxed">Tất cả yêu cầu đã được xử lý và đồng bộ lên lịch trực.</p>
+          <div class="mt-4 flex items-center justify-center gap-2">
+            <button onclick="BookingUI.switchTab('timeline')" type="button" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-medium text-slate-900 bg-slate-100 hover:bg-slate-200 transition-colors cursor-pointer">
+              <svg class="w-3.5 h-3.5 text-slate-900" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+              <span>Xem lịch trực</span>
+            </button>
+          </div>
+        </div>
+        ${recentHtml}
       `;
       return;
     }
@@ -2520,10 +3148,10 @@ const BookingUI = {
       return `
         <article class="p-4 hover:bg-slate-50/70 transition-colors space-y-2.5">
           <div class="flex items-center justify-between gap-2 flex-wrap">
-            <span class="text-xs font-black font-condensed text-brand-600 tracking-wide">${b.booking_id}</span>
+            <span class="text-xs font-semibold font-display text-slate-900 tracking-wide">${b.booking_id}</span>
             <div class="flex items-center gap-1.5 flex-wrap">
               <span class="text-xs font-bold font-condensed text-slate-700 bg-slate-100 px-2 py-0.5 rounded-md">${dateStr}</span>
-              <span class="text-[11px] font-mono font-bold text-brand-700 bg-brand-50 border border-brand-200/70 px-1.5 py-0.5 rounded-md">(${timeStr})</span>
+              <span class="text-[11px] font-mono font-bold text-slate-900 bg-slate-100 border border-slate-200 px-1.5 py-0.5 rounded-md">(${timeStr})</span>
             </div>
           </div>
           <div>
@@ -2537,10 +3165,10 @@ const BookingUI = {
             </div>
           </div>
           <div class="grid grid-cols-[1fr_1fr_auto] gap-2 pt-1">
-            <button type="button" onclick="BookingUI.handleApprove('${b.booking_id}')" class="h-9 rounded-xl bg-accent-600 text-white font-bold font-condensed uppercase tracking-wider text-xs transition-colors hover:bg-accent-700 flex items-center justify-center gap-1 cursor-pointer">
+            <button type="button" onclick="BookingUI.handleApprove('${b.booking_id}')" class="h-9 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs transition-colors flex items-center justify-center gap-1 cursor-pointer">
               ${Lucide.check} <span>Duyệt</span>
             </button>
-            <button type="button" onclick="BookingUI.openRejectModal('${b.booking_id}', 'list')" class="h-9 rounded-xl border border-rose-200 text-rose-700 font-bold font-condensed uppercase tracking-wider text-xs transition-colors hover:bg-rose-50 flex items-center justify-center gap-1 cursor-pointer">
+            <button type="button" onclick="BookingUI.openRejectModal('${b.booking_id}', 'list')" class="h-9 rounded-xl border border-rose-200 text-rose-700 font-medium text-xs transition-colors hover:bg-rose-50 flex items-center justify-center gap-1 cursor-pointer">
               ${Lucide.x} <span>Từ chối</span>
             </button>
             <button type="button" onclick="BookingUI.openApprovalDetail('${b.booking_id}')" class="h-9 rounded-xl border border-slate-200 px-3 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50 cursor-pointer">
@@ -2561,42 +3189,28 @@ const BookingUI = {
 
       return `
         <tr class="hover:bg-slate-50/70 transition-colors">
-          <td class="py-3 px-4 font-bold font-condensed text-brand-600 whitespace-nowrap">${b.booking_id}</td>
+          <td class="py-3 px-4 font-bold font-condensed text-slate-900 whitespace-nowrap">${b.booking_id}</td>
           <td class="py-3 px-3.5 min-w-[200px]">
             <p class="font-bold text-slate-900 text-sm leading-snug">${b.title}</p>
             <p class="text-slate-500 mt-0.5 flex items-center gap-1">${Lucide.mapPin} ${b.location}</p>
             ${b.notes ? `<p class="mt-0.5 text-[11px] text-slate-400 flex items-center gap-1 truncate max-w-xs leading-normal">${Lucide.fileText} <span class="truncate">${b.notes}</span></p>` : ''}
           </td>
-          <td class="py-3 px-3.5 whitespace-nowrap">
-            <div class="flex items-center gap-2">
-              ${this.getUserAvatarHtml(b.requester_email, reqName, 'w-7 h-7', 'text-[10px]')}
-              <div class="min-w-0">
-                <p class="font-bold text-slate-900 text-xs truncate leading-tight">${reqName}</p>
-                <p class="text-slate-400 text-[10px] font-mono truncate">${b.requester_email}</p>
-              </div>
-            </div>
-          </td>
-          <td class="py-3 px-3.5 whitespace-nowrap">
-            <div class="flex items-center gap-2">
-              <img src="${tech ? tech.avatar : ''}" class="w-6 h-6 rounded-full object-cover border border-slate-200">
-              <span class="font-semibold text-slate-800">${tech ? tech.name : b.tech_id}</span>
-            </div>
-          </td>
+          ${this.renderPersonnelCellHtml(tech, b.requester_email, reqName)}
           <td class="py-3 px-3.5 font-condensed whitespace-nowrap">
             <p class="font-bold text-slate-800 flex items-center">${bStart === bEnd ? bStart : `<span>${bStart}</span><span class="inline-flex items-center mx-1 text-slate-400">${Lucide.arrowRight}</span><span>${bEnd}</span>`}</p>
             <p class="text-slate-500 text-[11px] font-mono">${timeStr}</p>
           </td>
           <td class="py-3 px-3.5 whitespace-nowrap">
-            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold font-condensed uppercase bg-amber-50 text-amber-800 border border-amber-200">
+            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-amber-50 text-amber-800 border border-amber-200">
               ${Lucide.clock} Chờ duyệt
             </span>
           </td>
           <td class="py-3 px-4 text-right whitespace-nowrap">
             <div class="flex items-center justify-end gap-1.5">
-              <button onclick="BookingUI.handleApprove('${b.booking_id}')" class="px-3 py-1.5 rounded-lg bg-accent-600 hover:bg-accent-700 text-white font-bold font-condensed uppercase tracking-wider text-xs transition-colors flex items-center gap-1 shadow-2xs cursor-pointer">
+              <button onclick="BookingUI.handleApprove('${b.booking_id}')" class="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs transition-colors flex items-center gap-1.5 shadow-2xs cursor-pointer">
                 ${Lucide.check} Duyệt
               </button>
-              <button onclick="BookingUI.openRejectModal('${b.booking_id}', 'list')" class="px-2.5 py-1.5 rounded-lg border border-rose-200 text-rose-700 hover:bg-rose-50 font-bold font-condensed uppercase tracking-wider text-xs transition-colors flex items-center gap-1 cursor-pointer">
+              <button onclick="BookingUI.openRejectModal('${b.booking_id}', 'list')" class="px-2.5 py-1.5 rounded-lg border border-rose-200 text-rose-700 hover:bg-rose-50 font-medium text-xs transition-colors flex items-center gap-1 cursor-pointer">
                 ${Lucide.x} Từ chối
               </button>
               <button type="button" onclick="BookingUI.openApprovalDetail('${b.booking_id}')" class="px-2.5 py-1.5 rounded-lg text-slate-600 hover:bg-slate-100 font-medium text-xs transition-colors cursor-pointer">
@@ -2617,15 +3231,14 @@ const BookingUI = {
       <!-- Desktop View (Table) -->
       <div class="hidden lg:block overflow-x-auto">
         <table class="w-full text-left text-xs text-slate-600" style="min-width: 840px;">
-          <thead class="text-[11px] font-bold font-condensed uppercase tracking-wider text-slate-400 bg-slate-50/70 border-b border-slate-100">
+          <thead class="text-[11px] font-medium text-slate-400 bg-slate-50/70 border-b border-slate-100">
             <tr>
-              <th class="py-3 px-4">Mã Đơn</th>
-              <th class="py-3 px-3.5">Nhiệm Vụ & Địa Điểm</th>
-              <th class="py-3 px-3.5">Người Yêu Cầu</th>
-              <th class="py-3 px-3.5">Kỹ Sư Đề Xuất</th>
-              <th class="py-3 px-3.5">Thời Gian</th>
-              <th class="py-3 px-3.5">Trạng Thái</th>
-              <th class="py-3 px-4 text-right">Thao Tác</th>
+              <th class="py-3 px-4 font-medium">Mã đơn</th>
+              <th class="py-3 px-3.5 font-medium">Nhiệm vụ &amp; địa điểm</th>
+              <th class="py-3 px-3.5 font-medium whitespace-nowrap">Điều phối → Kỹ sư</th>
+              <th class="py-3 px-3.5 font-medium">Thời gian</th>
+              <th class="py-3 px-3.5 font-medium">Trạng thái</th>
+              <th class="py-3 px-4 text-right font-medium">Thao tác</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-100">
@@ -2671,28 +3284,81 @@ const BookingUI = {
             ((b.created_by || '').toLowerCase().trim() === curEmailLower)
           );
 
+    const counts = {
+      ALL: list.length,
+      PENDING: list.filter(b => b.status === 'PENDING').length,
+      IN_PROGRESS: list.filter(b => b.status === 'IN_PROGRESS').length,
+      APPROVED: list.filter(b => b.status === 'APPROVED' && !BookingData.isPendingCompletion(b)).length,
+      OVERDUE: list.filter(b => BookingData.isPendingCompletion(b)).length,
+      COMPLETED: list.filter(b => b.status === 'COMPLETED').length
+    };
+
     if (headerCount) {
-      headerCount.innerHTML = `
-        <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200 font-condensed">
-          Tổng: ${list.length} đơn
-        </span>
-      `;
+      headerCount.innerHTML = '';
     }
 
-    if (list.length === 0) {
+    const curFilter = this.myBookingsFilter || 'ALL';
+    const filteredList = list.filter(b => {
+      if (curFilter === 'ALL') return true;
+      if (curFilter === 'OVERDUE') return BookingData.isPendingCompletion(b);
+      if (curFilter === 'APPROVED') return b.status === 'APPROVED' && !BookingData.isPendingCompletion(b);
+      return b.status === curFilter;
+    });
+
+    const filterChips = [
+      { id: 'ALL', label: 'Tất cả', count: counts.ALL, dot: '' },
+      { id: 'PENDING', label: 'Chờ duyệt', count: counts.PENDING, dot: 'bg-amber-500' },
+      { id: 'IN_PROGRESS', label: 'Đang làm', count: counts.IN_PROGRESS, dot: 'bg-emerald-500' },
+      { id: 'APPROVED', label: 'Đã duyệt', count: counts.APPROVED, dot: 'bg-accent-500' },
+      { id: 'OVERDUE', label: 'Cần hoàn thành', count: counts.OVERDUE, dot: 'bg-rose-500' },
+      { id: 'COMPLETED', label: 'Hoàn thành', count: counts.COMPLETED, dot: 'bg-sky-500' }
+    ];
+
+    const filterTabsHtml = filterChips.map(c => {
+      const isActive = curFilter === c.id;
+      const tabClass = isActive
+        ? 'py-2.5 lg:py-3.5 text-xs font-semibold text-slate-900 border-b-2 border-slate-900 whitespace-nowrap cursor-pointer inline-flex items-center gap-1.5 transition-colors'
+        : 'py-2.5 lg:py-3.5 text-xs font-medium text-slate-500 hover:text-slate-900 border-b-2 border-transparent whitespace-nowrap cursor-pointer inline-flex items-center gap-1.5 transition-colors';
+      const countClass = isActive
+        ? 'text-[11px] font-display font-semibold text-slate-900'
+        : 'text-[11px] font-display text-slate-400';
+      return `
+        <button onclick="BookingUI.setMyBookingsFilter('${c.id}')" type="button" class="${tabClass}">
+          ${c.dot ? `<span class="w-1.5 h-1.5 rounded-full ${c.dot}"></span>` : ''}
+          <span>${c.label}</span>
+          <span class="${countClass}">${c.count}</span>
+        </button>
+      `;
+    }).join('');
+
+    const filterSlot = document.getElementById('my-bookings-filter-slot');
+    const inlineFilterBarHtml = filterSlot ? '' : `<div class="px-4 lg:px-5 border-b border-slate-100 flex items-center gap-4 overflow-x-auto no-scrollbar">${filterTabsHtml}</div>`;
+    if (filterSlot) {
+      filterSlot.innerHTML = filterTabsHtml;
+    }
+
+    if (filteredList.length === 0) {
       container.innerHTML = `
-        <div class="py-10 sm:py-12 px-4 text-center">
-          <p class="text-sm font-semibold text-slate-800">${isApprover ? 'Chưa có lịch cần xử lý.' : (isTechnician ? 'Chưa có task được phân công.' : 'Chưa có yêu cầu đặt lịch.')}</p>
+        ${inlineFilterBarHtml}
+        <div class="py-14 sm:py-16 px-4 text-center max-w-sm mx-auto">
+          <div class="w-14 h-14 rounded-2xl bg-slate-100 text-slate-400 mx-auto flex items-center justify-center mb-3">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/></svg>
+          </div>
+          <h4 class="text-sm font-semibold text-slate-900">Không có task nào khớp bộ lọc</h4>
+          <p class="text-xs text-slate-500 mt-1 leading-relaxed">Không tìm thấy task ở trạng thái này. Bạn có thể chọn "Tất cả" để xem toàn bộ lịch.</p>
+          <button onclick="BookingUI.setMyBookingsFilter('ALL')" type="button" class="mt-3.5 inline-flex items-center gap-1.5 h-9 px-3.5 rounded-xl text-xs font-medium text-slate-800 bg-slate-100 hover:bg-slate-200 transition-colors cursor-pointer">
+            <span>Xem tất cả (${counts.ALL})</span>
+          </button>
         </div>
       `;
       return;
     }
 
     const { page, pageSize } = this.pagination.myBookings;
-    const totalPages = Math.ceil(list.length / pageSize) || 1;
+    const totalPages = Math.ceil(filteredList.length / pageSize) || 1;
     const curPage = Math.min(Math.max(1, page), totalPages);
     this.pagination.myBookings.page = curPage;
-    const pagedList = list.slice((curPage - 1) * pageSize, curPage * pageSize);
+    const pagedList = filteredList.slice((curPage - 1) * pageSize, curPage * pageSize);
 
     const canCancelBooking = !isTechnician && BookingData.hasPermission('cancel_own_booking');
     const showRequester = isApprover || isTechnician;
@@ -2713,38 +3379,38 @@ const BookingUI = {
       const isOff = /off|nghỉ|leave/i.test(b.title || '') || /off|nghỉ|leave/i.test(b.notes || '') || b.type === 'OFF';
       let badge = '';
       if (isOff) {
-        badge = `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold font-condensed uppercase bg-slate-100 text-slate-700 border border-slate-300">Nghỉ (OFF)</span>`;
+        badge = `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10.5px] font-medium bg-slate-100 text-slate-700">Nghỉ (OFF)</span>`;
       } else if (isOverdue) {
-        badge = `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold font-condensed uppercase bg-rose-50 text-rose-700 border border-rose-300 animate-pulse shadow-2xs"><span class="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping"></span>Cần hoàn thành</span>`;
+        badge = `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10.5px] font-medium bg-rose-50 text-rose-700"><span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>Cần hoàn thành</span>`;
       } else if (b.status === 'COMPLETED') {
-        badge = `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold font-condensed uppercase bg-blue-50 text-blue-700 border border-blue-200">${Lucide.check} Đã hoàn thành</span>`;
+        badge = `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10.5px] font-medium bg-sky-50 text-sky-700">${Lucide.check} Hoàn thành</span>`;
       } else if (b.status === 'APPROVED') {
-        badge = `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold font-condensed uppercase bg-accent-50 text-accent-800 border border-accent-200">${Lucide.check} Đã duyệt</span>`;
+        badge = `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10.5px] font-medium bg-emerald-50 text-emerald-700">${Lucide.check} Đã duyệt</span>`;
       } else if (b.status === 'PENDING') {
-        badge = `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold font-condensed uppercase bg-amber-50 text-amber-800 border border-amber-200">${Lucide.clock} Chờ duyệt</span>`;
+        badge = `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10.5px] font-medium bg-amber-50 text-amber-800">${Lucide.clock} Chờ duyệt</span>`;
       } else if (b.status === 'REJECTED') {
-        badge = `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold font-condensed uppercase bg-burgundy-50 text-burgundy-800 border border-burgundy-200">${Lucide.x} Từ chối</span>`;
+        badge = `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10.5px] font-medium bg-rose-50 text-rose-700">${Lucide.x} Từ chối</span>`;
       } else {
-        badge = `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold font-condensed uppercase bg-slate-100 text-slate-600 border border-slate-200">Đã hủy</span>`;
+        badge = `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10.5px] font-medium bg-slate-100 text-slate-600">Đã hủy</span>`;
       }
 
       return `
-        <div onclick="BookingUI.openDetailModal('${b.booking_id}')" class="p-4 hover:bg-slate-50/70 transition-colors space-y-2 cursor-pointer">
+        <div onclick="BookingUI.openDetailModal('${b.booking_id}')" class="p-3.5 sm:p-4 hover:bg-slate-50/70 transition-colors space-y-2 cursor-pointer">
           <div class="flex items-center justify-between gap-2">
-            <div class="flex items-center gap-2 flex-wrap">
-              <span class="font-black font-condensed text-brand-600 text-xs">${b.booking_id}</span>
+            <div class="flex items-center gap-1.5 flex-wrap min-w-0">
+              <span class="font-semibold font-mono text-slate-500 text-[11px]">${b.booking_id}</span>
               <span class="text-slate-300">•</span>
-              <span class="font-bold font-condensed text-slate-700 text-xs">${dateStr}</span>
-              <span class="text-slate-400 text-[11px] font-mono">(${isOff ? 'OFF' : timeStr})</span>
+              <span class="font-medium text-slate-700 text-xs">${dateStr}</span>
+              <span class="text-slate-400 text-[11px] font-mono">${isOff ? 'OFF' : timeStr}</span>
             </div>
             ${badge}
           </div>
           <div>
-            <h4 class="font-bold text-slate-900 text-sm leading-snug">${b.title}</h4>
+            <h4 class="font-semibold text-slate-900 text-[14px] leading-snug">${b.title}</h4>
             <div class="mt-1 flex items-center justify-between gap-2 text-xs text-slate-500">
               <span class="truncate flex items-center gap-1">${Lucide.mapPin} ${b.location || 'Văn phòng'}</span>
-              <span class="flex items-center gap-1.5 flex-shrink-0 font-semibold text-slate-800">
-                ${tech && tech.avatar ? `<img src="${tech.avatar}" alt="" class="w-5 h-5 shrink-0 rounded-full object-cover border border-slate-200">` : ''}
+              <span class="flex items-center gap-1.5 flex-shrink-0 font-medium text-slate-800">
+                ${tech && tech.avatar ? `<img src="${tech.avatar}" alt="" class="w-4 h-4 shrink-0 rounded-full object-cover">` : ''}
                 <span>${tech ? tech.name : b.tech_id}</span>
               </span>
             </div>
@@ -2754,23 +3420,25 @@ const BookingUI = {
               </p>
             ` : ''}
           </div>
-          <div class="pt-1.5 flex items-center justify-end gap-2 flex-wrap" onclick="event.stopPropagation()">
-            ${canCompleteThis ? `
-              <button onclick="BookingUI.handleCompleteBooking('${b.booking_id}')" class="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition-colors cursor-pointer flex items-center gap-1 shadow-2xs">
-                ${Lucide.check} <span>Hoàn thành</span>
-              </button>
-            ` : ''}
-            ${canEditBooking ? `
-              <button onclick="BookingUI.openEditBookingModal('${b.booking_id}')" class="px-2.5 py-1 rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-700 font-semibold text-xs transition-colors cursor-pointer flex items-center gap-1">
-                ${Lucide.pencil} <span>Sửa</span>
-              </button>
-            ` : ''}
-            ${b.status === 'PENDING' && canCancelBooking ? `
-              <button onclick="BookingUI.handleCancel('${b.booking_id}')" class="px-3 py-1 rounded-lg border border-rose-200 hover:bg-rose-50 text-rose-600 font-semibold text-xs transition-colors cursor-pointer">
-                Hủy đơn
-              </button>
-            ` : ''}
-          </div>
+          ${(canCompleteThis || canEditBooking || (b.status === 'PENDING' && canCancelBooking)) ? `
+            <div class="pt-1 flex items-center justify-end gap-2 flex-wrap" onclick="event.stopPropagation()">
+              ${canCompleteThis ? `
+                <button onclick="BookingUI.handleCompleteBooking('${b.booking_id}')" class="h-9 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs transition-colors cursor-pointer flex items-center gap-1.5 shadow-2xs">
+                  ${Lucide.check} <span>Hoàn thành</span>
+                </button>
+              ` : ''}
+              ${canEditBooking ? `
+                <button onclick="BookingUI.openEditBookingModal('${b.booking_id}')" class="h-9 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-xs transition-colors cursor-pointer flex items-center gap-1.5">
+                  ${Lucide.pencil} <span>Sửa</span>
+                </button>
+              ` : ''}
+              ${b.status === 'PENDING' && canCancelBooking ? `
+                <button onclick="BookingUI.handleCancel('${b.booking_id}')" class="h-9 px-3 rounded-xl hover:bg-rose-50 text-rose-600 font-medium text-xs transition-colors cursor-pointer">
+                  Hủy đơn
+                </button>
+              ` : ''}
+            </div>
+          ` : ''}
         </div>
       `;
     }).join('');
@@ -2788,26 +3456,26 @@ const BookingUI = {
       const isOff = /off|nghỉ|leave/i.test(b.title || '') || /off|nghỉ|leave/i.test(b.notes || '') || b.type === 'OFF';
       let badge = '';
       if (isOff) {
-        badge = `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold font-condensed uppercase bg-slate-100 text-slate-700 border border-slate-300">Nghỉ (OFF)</span>`;
+        badge = `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[11px] font-medium bg-slate-100 text-slate-700">Nghỉ (OFF)</span>`;
       } else if (isOverdue) {
-        badge = `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-extrabold font-condensed uppercase bg-rose-50 text-rose-700 border border-rose-300 animate-pulse shadow-2xs"><span class="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping"></span>Cần hoàn thành</span>`;
+        badge = `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[11px] font-medium bg-rose-50 text-rose-700"><span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>Cần hoàn thành</span>`;
       } else if (b.status === 'COMPLETED') {
-        badge = `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold font-condensed uppercase bg-blue-50 text-blue-700 border border-blue-200">${Lucide.check} Hoàn thành</span>`;
+        badge = `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[11px] font-medium bg-sky-50 text-sky-700">${Lucide.check} Hoàn thành</span>`;
       } else if (b.status === 'APPROVED') {
-        badge = `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold font-condensed uppercase bg-accent-50 text-accent-800 border border-accent-200">${Lucide.check} Đã duyệt</span>`;
+        badge = `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[11px] font-medium bg-emerald-50 text-emerald-700">${Lucide.check} Đã duyệt</span>`;
       } else if (b.status === 'PENDING') {
-        badge = `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold font-condensed uppercase bg-amber-50 text-amber-800 border border-amber-200">${Lucide.clock} Chờ duyệt</span>`;
+        badge = `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[11px] font-medium bg-amber-50 text-amber-800">${Lucide.clock} Chờ duyệt</span>`;
       } else if (b.status === 'REJECTED') {
-        badge = `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold font-condensed uppercase bg-burgundy-50 text-burgundy-800 border border-burgundy-200">${Lucide.x} Từ chối</span>`;
+        badge = `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[11px] font-medium bg-rose-50 text-rose-700">${Lucide.x} Từ chối</span>`;
       } else {
-        badge = `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold font-condensed uppercase bg-slate-100 text-slate-600 border border-slate-200">Đã hủy</span>`;
+        badge = `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[11px] font-medium bg-slate-100 text-slate-600">Đã hủy</span>`;
       }
 
       const rowHighlightClass = isOverdue ? 'bg-rose-50/25 hover:bg-rose-50/50 border-l-4 border-l-rose-500' : 'hover:bg-slate-50/70';
 
       return `
-        <tr onclick="BookingUI.openDetailModal('${b.booking_id}')" class="${rowHighlightClass} transition-colors cursor-pointer">
-          <td class="py-3 px-4 font-bold font-condensed text-brand-600 whitespace-nowrap">${b.booking_id}</td>
+        <tr onclick="BookingUI.openDetailModal('${b.booking_id}')" class="group ${rowHighlightClass} transition-colors cursor-pointer">
+          <td class="py-3 px-4 font-bold font-condensed tabular-nums text-slate-900 whitespace-nowrap">${b.booking_id}</td>
           <td class="py-3 px-3.5 min-w-[200px]">
             <p class="font-bold text-slate-900 text-sm">${b.title}</p>
             <p class="text-slate-500 mt-0.5 flex items-center gap-1">${Lucide.mapPin} ${b.location}</p>
@@ -2817,43 +3485,37 @@ const BookingUI = {
               </p>
             ` : ''}
           </td>
-          ${showRequester ? `
-            <td class="py-3 px-3.5 whitespace-nowrap">
-              <div class="flex items-center gap-2">
-                ${this.getUserAvatarHtml(b.requester_email, reqName, 'w-7 h-7', 'text-[10px]')}
-                <div class="min-w-0">
-                  <p class="font-bold text-slate-900 text-xs truncate leading-tight">${reqName}</p>
-                  <p class="text-slate-400 text-[10px] font-mono truncate">${b.requester_email}</p>
+          ${showRequester
+            ? this.renderPersonnelCellHtml(tech, b.requester_email, reqName)
+            : `
+              <td class="py-3 px-3.5 whitespace-nowrap">
+                <div class="flex items-center gap-2">
+                  <img src="${tech ? tech.avatar : ''}" class="w-6 h-6 rounded-full object-cover">
+                  <span class="font-semibold text-slate-800">${tech ? tech.name : b.tech_id}</span>
                 </div>
-              </div>
-            </td>
-          ` : ''}
-          <td class="py-3 px-3.5 whitespace-nowrap">
-            <div class="flex items-center gap-2">
-              <img src="${tech ? tech.avatar : ''}" class="w-6 h-6 rounded-full object-cover border border-slate-200">
-              <span class="font-semibold text-slate-800">${tech ? tech.name : b.tech_id}</span>
-            </div>
-          </td>
-          <td class="py-3 px-3.5 font-condensed whitespace-nowrap">
+              </td>
+            `
+          }
+          <td class="py-3 px-3.5 font-condensed tabular-nums whitespace-nowrap">
             <p class="font-bold text-slate-800 flex items-center">${b.booking_date === (b.end_date || b.booking_date) ? b.booking_date : `<span>${b.booking_date}</span><span class="inline-flex items-center mx-1 text-slate-400">${Lucide.arrowRight}</span><span>${b.end_date}</span>`}</p>
-            <p class="text-slate-500 text-[11px] font-mono">${timeStr}</p>
+            <p class="text-slate-500 text-[11px] font-mono tabular-nums">${timeStr}</p>
           </td>
           <td class="py-3 px-3.5 whitespace-nowrap">${badge}</td>
           <td class="py-3 px-4 text-right whitespace-nowrap" onclick="event.stopPropagation()">
-            <div class="flex items-center justify-end gap-1.5 flex-wrap">
-              <button onclick="BookingUI.openDetailModal('${b.booking_id}')" class="px-2.5 py-1.5 rounded-lg text-slate-600 hover:bg-slate-100 font-medium text-xs transition-colors cursor-pointer">Chi tiết</button>
+            <div class="flex items-center justify-end gap-1 flex-wrap">
+              <button onclick="BookingUI.openDetailModal('${b.booking_id}')" class="px-2.5 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 font-medium text-xs lg:opacity-55 lg:group-hover:opacity-100 transition-all cursor-pointer">Chi tiết</button>
               ${canCompleteThis ? `
                 <button onclick="BookingUI.handleCompleteBooking('${b.booking_id}')" class="px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition-colors cursor-pointer inline-flex items-center gap-1 shadow-2xs ${isOverdue ? 'animate-pulse' : ''}">
                   ${Lucide.check} <span>${isOverdue ? 'Xác nhận hoàn thành' : 'Hoàn thành'}</span>
                 </button>
               ` : ''}
               ${canEditBooking ? `
-                <button onclick="BookingUI.openEditBookingModal('${b.booking_id}')" class="px-2.5 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-700 font-medium text-xs transition-colors cursor-pointer inline-flex items-center gap-1">
+                <button onclick="BookingUI.openEditBookingModal('${b.booking_id}')" class="px-2.5 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 font-medium text-xs lg:opacity-55 lg:group-hover:opacity-100 transition-all cursor-pointer inline-flex items-center gap-1">
                   ${Lucide.pencil} <span>Sửa</span>
                 </button>
               ` : ''}
               ${b.status === 'PENDING' && canCancelBooking ? `
-                <button onclick="BookingUI.handleCancel('${b.booking_id}')" class="px-2.5 py-1.5 rounded-lg text-rose-600 hover:bg-rose-50 font-medium text-xs transition-colors cursor-pointer">Hủy đơn</button>
+                <button onclick="BookingUI.handleCancel('${b.booking_id}')" class="px-2.5 py-1.5 rounded-lg text-rose-600 hover:bg-rose-50 font-medium text-xs lg:opacity-55 lg:group-hover:opacity-100 transition-all cursor-pointer">Hủy đơn</button>
               ` : ''}
             </div>
           </td>
@@ -2862,6 +3524,7 @@ const BookingUI = {
     }).join('');
 
     container.innerHTML = `
+      ${inlineFilterBarHtml}
       <!-- Mobile View (Divided List Rows) -->
       <div class="lg:hidden divide-y divide-slate-100">
         ${mobileRowsHtml}
@@ -2870,12 +3533,11 @@ const BookingUI = {
       <!-- Desktop View (Table) -->
       <div class="hidden lg:block overflow-x-auto">
         <table class="w-full text-left text-xs text-slate-600" style="min-width: 840px;">
-          <thead class="text-[11px] font-bold font-condensed uppercase tracking-wider text-slate-400 bg-slate-50/70 border-b border-slate-100">
+          <thead class="text-[11px] font-medium text-slate-400 bg-slate-50/70 border-b border-slate-100">
             <tr>
               <th class="py-3 px-4">Mã Đơn</th>
               <th class="py-3 px-3.5">Nhiệm Vụ & Địa Điểm</th>
-              ${showRequester ? '<th class="py-3 px-3.5">Người Yêu Cầu</th>' : ''}
-              <th class="py-3 px-3.5">Kỹ Sư Phụ Trách</th>
+              ${showRequester ? '<th class="py-3 px-3.5 whitespace-nowrap">Điều Phối → Kỹ Sư</th>' : '<th class="py-3 px-3.5">Kỹ Sư Phụ Trách</th>'}
               <th class="py-3 px-3.5">Thời Gian</th>
               <th class="py-3 px-3.5">Trạng Thái</th>
               <th class="py-3 px-4 text-right">Thao Tác</th>
@@ -2886,7 +3548,7 @@ const BookingUI = {
           </tbody>
         </table>
       </div>
-      ${this.renderPaginationHtml('myBookings', list.length, curPage, pageSize)}
+      ${this.renderPaginationHtml('myBookings', filteredList.length, curPage, pageSize)}
     `;
   },
 
@@ -2957,7 +3619,8 @@ const BookingUI = {
       if (startTimeInput) startTimeInput.value = '08:00';
       if (endTimeInput) endTimeInput.value = '17:00';
 
-      const defaultTechId = prefillTechId || techSelfId || (BookingData.technicians[0] ? BookingData.technicians[0].tech_id : '');
+      const activeCalendarTechId = (this.activeTab === 'timeline' && this.selectedTechId && this.selectedTechId !== 'all' && this.selectedTechId !== '__none__') ? this.selectedTechId : '';
+      const defaultTechId = prefillTechId || techSelfId || activeCalendarTechId || (BookingData.technicians[0] ? BookingData.technicians[0].tech_id : '');
       const techSelect = document.getElementById('modal-tech-id');
       if (techSelect) {
         techSelect.innerHTML = BookingData.technicians.map(t => `
@@ -2985,8 +3648,11 @@ const BookingUI = {
     const alertBox = document.getElementById('modal-conflict-alert');
     if (alertBox) alertBox.classList.add('hidden');
 
-    modal.classList.remove('hidden');
-    modal.classList.add('flex');
+    if (window.App && App.openModalEl) App.openModalEl(modal);
+    else {
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
   },
 
   openEditBookingModal(booking_id) {
@@ -3025,8 +3691,11 @@ const BookingUI = {
   closeBookingModal() {
     const modal = document.getElementById('booking-modal');
     if (modal) {
-      modal.classList.add('hidden');
-      modal.classList.remove('flex');
+      if (window.App && App.closeModalEl) App.closeModalEl(modal);
+      else {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }
     }
     const menu = document.getElementById('modal-tech-custom-menu');
     const trigger = document.getElementById('modal-tech-custom-trigger');
@@ -3120,9 +3789,9 @@ const BookingUI = {
     }
 
     if (res.booking.status === 'IN_PROGRESS') {
-      Toast.show(`🚀 Đã tạo và bắt đầu task ${res.booking.booking_id} ngay bây giờ!`, 'success', 'Bắt đầu task');
+      Toast.show(`Đã tạo và bắt đầu task ${res.booking.booking_id} ngay bây giờ!`, 'success', 'Bắt đầu task');
     } else if (res.booking.status === 'APPROVED') {
-      Toast.show(`🎉 Đã tạo và phê duyệt trực tiếp task ${res.booking.booking_id} thành công!`, 'success', 'Duyệt tự động');
+      Toast.show(`Đã tạo và phê duyệt trực tiếp task ${res.booking.booking_id} thành công!`, 'success', 'Duyệt tự động');
     } else {
       Toast.show(`Đã tạo yêu cầu ${res.booking.booking_id} thành công! Đang chờ duyệt.`, 'success');
 
@@ -3359,7 +4028,75 @@ const BookingUI = {
     this.render();
   },
 
+  showQuickPeek(event, bookingId) {
+    if (window.innerWidth < 1024) return;
+    const b = BookingData.bookings.find(item => String(item.booking_id) === String(bookingId));
+    const pop = document.getElementById('calendar-quick-peek');
+    const content = document.getElementById('quick-peek-content');
+    if (!b || !pop || !content) return;
+
+    const tech = BookingData.technicians.find(t => t.tech_id === b.tech_id);
+    const reqUser = (BookingData.users || []).find(u => (u.email || '').toLowerCase() === (b.requester_email || '').toLowerCase());
+    const reqName = reqUser ? BookingData.cleanUserName(reqUser.full_name) : (b.requester_name || b.requester_email || 'Hệ thống');
+
+    let badgeClass = 'bg-amber-50 text-amber-800 border-amber-200/80';
+    let statusText = 'Chờ duyệt';
+    if (b.status === 'COMPLETED') { badgeClass = 'bg-sky-50 text-sky-700 border-sky-200/80'; statusText = 'Hoàn thành'; }
+    else if (b.status === 'IN_PROGRESS') { badgeClass = 'bg-emerald-50 text-emerald-700 border-emerald-200/80'; statusText = 'Đang làm'; }
+    else if (b.status === 'APPROVED') { badgeClass = 'bg-emerald-50 text-emerald-700 border-emerald-200/80'; statusText = 'Đã duyệt'; }
+    else if (b.status === 'REJECTED') { badgeClass = 'bg-rose-50 text-rose-700 border-rose-200/80'; statusText = 'Từ chối'; }
+
+    content.innerHTML = `
+      <div class="space-y-2.5">
+        <div class="flex items-center justify-between gap-2 pb-2 border-b border-slate-100">
+          <span class="font-mono text-[11px] font-semibold text-slate-500">${b.booking_id}</span>
+          <span class="px-2 py-0.5 rounded-md text-[10px] font-medium border ${badgeClass} shrink-0">${statusText}</span>
+        </div>
+        <div>
+          <h5 class="font-semibold text-slate-900 text-[13px] leading-snug line-clamp-2">${b.title}</h5>
+          <p class="text-[11px] text-slate-500 mt-1 flex items-center gap-1.5 min-w-0">
+            <span class="text-slate-400 shrink-0">${Lucide.mapPin}</span>
+            <span class="truncate">${b.location || 'Văn phòng'}</span>
+          </p>
+        </div>
+        <div class="pt-2 border-t border-slate-100 flex items-center justify-between gap-3 text-[11px]">
+          <span class="inline-flex items-center gap-1 text-slate-500 font-mono text-[10.5px] shrink-0">
+            <span class="text-slate-400">${Lucide.clock}</span>
+            <span>${(b.start_time || '08:00').slice(0, 5)} – ${(b.end_time || '17:00').slice(0, 5)}</span>
+          </span>
+          <span class="font-medium text-slate-800 flex items-center gap-1.5 min-w-0">
+            ${tech?.avatar ? `<img src="${tech.avatar}" class="w-4 h-4 rounded-full object-cover shrink-0 ring-1 ring-slate-200/80">` : ''}
+            <span class="truncate">${tech ? tech.name : b.tech_id}</span>
+          </span>
+        </div>
+      </div>
+    `;
+
+    const pad = 14;
+    let x = event.clientX + pad;
+    let y = event.clientY + pad;
+    const popWidth = 320;
+    const popHeight = 150;
+    if (x + popWidth > window.innerWidth) x = event.clientX - popWidth - pad;
+    if (y + popHeight > window.innerHeight) y = event.clientY - popHeight - pad;
+
+    pop.style.left = `${Math.max(8, x)}px`;
+    pop.style.top = `${Math.max(8, y)}px`;
+    pop.classList.remove('hidden');
+    requestAnimationFrame(() => pop.classList.remove('opacity-0'));
+  },
+
+  hideQuickPeek() {
+    const pop = document.getElementById('calendar-quick-peek');
+    if (!pop) return;
+    pop.classList.add('opacity-0');
+    setTimeout(() => {
+      if (pop.classList.contains('opacity-0')) pop.classList.add('hidden');
+    }, 150);
+  },
+
   openDetailModal(bookingId) {
+    this.hideQuickPeek();
     this._currentDetailBookingId = String(bookingId);
     const b = BookingData.bookings.find(item => String(item.booking_id) === String(bookingId));
     if (!b) {
@@ -3378,32 +4115,31 @@ const BookingUI = {
 
     let statusText = '';
     if (isOff) {
-      statusText = `<span class="inline-flex items-center gap-1.5 whitespace-nowrap text-slate-700 font-bold font-condensed bg-slate-100 px-3 py-1 rounded-full border border-slate-300 text-xs tracking-wide shadow-2xs">
-        <span class="w-2 h-2 rounded-full bg-slate-500"></span> NGHỈ PHÉP (OFF)
+      statusText = `<span class="inline-flex items-center gap-1.5 whitespace-nowrap text-slate-700 font-medium bg-slate-100 px-2.5 py-0.5 rounded-md border border-slate-200/80 text-xs">
+        <span class="w-1.5 h-1.5 rounded-full bg-slate-500"></span> Nghỉ phép (OFF)
       </span>`;
     } else if (isOverdue) {
-      statusText = `<span class="inline-flex items-center gap-1.5 whitespace-nowrap text-rose-700 font-extrabold font-condensed bg-rose-50 px-3 py-1 rounded-full border border-rose-300 text-xs tracking-wide shadow-2xs animate-pulse">
-        <svg class="w-3.5 h-3.5 text-rose-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-        CẦN HOÀN THÀNH
+      statusText = `<span class="inline-flex items-center gap-1.5 whitespace-nowrap text-rose-700 font-medium bg-rose-50 px-2.5 py-0.5 rounded-md border border-rose-200/80 text-xs">
+        <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span> Cần hoàn thành
       </span>`;
     } else if (b.status === 'IN_PROGRESS') {
-      statusText = `<span class="inline-flex items-center gap-1.5 whitespace-nowrap text-emerald-800 font-extrabold font-condensed bg-emerald-50 px-3 py-1 rounded-full border border-emerald-300 text-xs tracking-wide shadow-2xs">
+      statusText = `<span class="inline-flex items-center gap-1.5 whitespace-nowrap text-emerald-700 font-medium bg-emerald-50 px-2.5 py-0.5 rounded-md border border-emerald-200/80 text-xs">
         <span class="relative flex h-2 w-2 shrink-0">
           <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
           <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
         </span>
-        ĐANG THỰC HIỆN
+        Đang thực hiện
       </span>`;
     } else if (b.status === 'APPROVED') {
-      statusText = `<span class="inline-flex items-center gap-1.5 whitespace-nowrap text-accent-800 font-bold font-condensed bg-accent-50 px-3 py-1 rounded-full border border-accent-200 text-xs tracking-wide shadow-2xs">${Lucide.check} ĐÃ DUYỆT</span>`;
+      statusText = `<span class="inline-flex items-center gap-1.5 whitespace-nowrap text-emerald-700 font-medium bg-emerald-50 px-2.5 py-0.5 rounded-md border border-emerald-200/80 text-xs">${Lucide.check} Đã duyệt</span>`;
     } else if (b.status === 'COMPLETED') {
-      statusText = `<span class="inline-flex items-center gap-1.5 whitespace-nowrap text-blue-800 font-bold font-condensed bg-blue-50 px-3 py-1 rounded-full border border-blue-200 text-xs tracking-wide shadow-2xs">${Lucide.check} HOÀN THÀNH</span>`;
+      statusText = `<span class="inline-flex items-center gap-1.5 whitespace-nowrap text-sky-700 font-medium bg-sky-50 px-2.5 py-0.5 rounded-md border border-sky-200/80 text-xs">${Lucide.check} Hoàn thành</span>`;
     } else if (b.status === 'PENDING') {
-      statusText = `<span class="inline-flex items-center gap-1.5 whitespace-nowrap text-amber-800 font-bold font-condensed bg-amber-50 px-3 py-1 rounded-full border border-amber-200 text-xs tracking-wide shadow-2xs">${Lucide.clock} CHỜ DUYỆT</span>`;
+      statusText = `<span class="inline-flex items-center gap-1.5 whitespace-nowrap text-amber-800 font-medium bg-amber-50 px-2.5 py-0.5 rounded-md border border-amber-200/80 text-xs">${Lucide.clock} Chờ duyệt</span>`;
     } else if (b.status === 'REJECTED') {
-      statusText = `<span class="inline-flex items-center gap-1.5 whitespace-nowrap text-burgundy-800 font-bold font-condensed bg-burgundy-50 px-3 py-1 rounded-full border border-burgundy-200 text-xs tracking-wide shadow-2xs">${Lucide.x} TỪ CHỐI</span>`;
+      statusText = `<span class="inline-flex items-center gap-1.5 whitespace-nowrap text-rose-700 font-medium bg-rose-50 px-2.5 py-0.5 rounded-md border border-rose-200/80 text-xs">${Lucide.x} Từ chối</span>`;
     } else {
-      statusText = `<span class="inline-flex items-center gap-1.5 whitespace-nowrap text-slate-700 font-bold font-condensed bg-slate-100 px-3 py-1 rounded-full border border-slate-200 text-xs tracking-wide shadow-2xs">ĐÃ HỦY</span>`;
+      statusText = `<span class="inline-flex items-center gap-1.5 whitespace-nowrap text-slate-600 font-medium bg-slate-100 px-2.5 py-0.5 rounded-md border border-slate-200/80 text-xs">Đã hủy</span>`;
     }
 
     const bStart = b.booking_date;
@@ -3440,90 +4176,90 @@ const BookingUI = {
                     ((b.created_by || '').toLowerCase().trim() === curEmailLower);
 
     content.innerHTML = `
-      <div class="space-y-3.5">
+      <div class="space-y-4">
         ${isOverdue ? `
-          <div class="p-3.5 rounded-xl bg-rose-50 border border-rose-200 flex items-start gap-3 shadow-2xs animate-pulse">
-            <svg class="w-5 h-5 text-rose-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+          <div class="p-3.5 rounded-xl bg-rose-50/80 border border-rose-200/80 flex items-start gap-3">
+            <svg class="w-4 h-4 text-rose-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
             <div class="min-w-0">
-              <h5 class="text-xs font-bold text-rose-900 font-condensed uppercase tracking-wider">Cần Xác Nhận Hoàn Thành Task</h5>
+              <h5 class="text-xs font-semibold text-rose-900">Cần xác nhận hoàn thành task</h5>
               <p class="text-[11px] text-rose-700 mt-0.5 leading-relaxed">Task này đã qua hạn thực hiện (${bStart}) nhưng chưa được nhấn Hoàn thành. Kỹ sư phụ trách hoặc Quản lý vui lòng xác nhận kết quả công việc để đóng task.</p>
             </div>
           </div>
         ` : ''}
 
-        <!-- Header: ID, Time, Status Pill & Title -->
-        <div class="pb-3 border-b border-slate-100 pr-8 space-y-1.5">
-          <div class="flex items-center justify-between gap-2">
-            <div class="flex items-center gap-2 flex-wrap min-w-0">
-              <span class="text-xs font-black font-mono text-brand-700 bg-brand-50 border border-brand-200/80 px-2.5 py-0.5 rounded-md tracking-wider">${b.booking_id}</span>
+        <!-- Header: Title Top Row + Metadata Pills Underneath -->
+        <div class="pb-3.5 border-b border-slate-100 space-y-2">
+          <h3 class="text-base sm:text-lg font-bold text-slate-900 leading-snug tracking-tight break-words pr-10">${b.title}</h3>
+          <div class="flex items-center justify-between gap-2 flex-wrap">
+            <div class="flex items-center gap-1.5 flex-wrap min-w-0">
+              <span class="text-[11px] font-semibold font-mono text-slate-600 bg-[#f7f8fa] border border-slate-200/80 px-2 py-0.5 rounded-md">${b.booking_id}</span>
               ${isOff ? `
-                <span class="inline-flex items-center gap-1 text-[11px] font-mono font-bold text-slate-700 bg-slate-100 border border-slate-300 px-2 py-0.5 rounded-md">
+                <span class="inline-flex items-center gap-1 text-[11px] font-medium text-slate-700 bg-[#f7f8fa] border border-slate-200/80 px-2 py-0.5 rounded-md">
                   Nghỉ phép (OFF)
                 </span>
               ` : `
-                <span class="inline-flex items-center gap-1 text-[11px] font-mono font-bold text-slate-700 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-md">
+                <span class="inline-flex items-center gap-1 text-[11px] font-mono font-medium text-slate-600 bg-[#f7f8fa] border border-slate-200/80 px-2 py-0.5 rounded-md">
                   ${Lucide.clock} ${timeStr}
                 </span>
-                ${initIsOt ? `<span class="inline-flex items-center gap-1 text-[10px] font-extrabold text-amber-800 bg-amber-50 border border-amber-300 px-2 py-0.5 rounded-md">⚡ OT: +${initOtHours}h</span>` : ''}
+                ${initIsOt ? `<span class="inline-flex items-center gap-1 text-[11px] font-medium text-amber-800 bg-amber-50 border border-amber-200/80 px-2 py-0.5 rounded-md"><svg class="w-3 h-3 text-amber-600 inline shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>OT +${initOtHours}h</span>` : ''}
               `}
             </div>
             <div class="flex-shrink-0">${statusText}</div>
           </div>
-          <h3 class="text-base sm:text-lg font-extrabold text-slate-900 leading-snug break-words">${b.title}</h3>
         </div>
 
-        <!-- 2 Balanced Information Cards Grid -->
+        <!-- 2 Balanced Information Panels -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-          <!-- Card 1: Technician -->
-          <div class="bg-slate-50/80 rounded-2xl p-3 sm:p-3.5 border border-slate-200/80 flex items-center gap-3">
-            <img src="${tech ? tech.avatar : ''}" class="w-12 h-12 rounded-full object-cover flex-shrink-0 border-2 border-white shadow-2xs ring-1 ring-slate-200/80">
+          <!-- Panel 1: Technician -->
+          <div class="bg-[#f7f8fa] rounded-xl p-3.5 border border-slate-200/75 flex items-center gap-3">
+            <img src="${tech ? tech.avatar : ''}" class="w-11 h-11 rounded-full object-cover flex-shrink-0 border border-white shadow-2xs ring-1 ring-slate-200/80">
             <div class="min-w-0 flex-1">
               <div class="flex items-center justify-between gap-1 mb-0.5">
-                <span class="text-[10px] font-bold tracking-wider text-slate-400 uppercase">Kỹ sư phụ trách</span>
-                <span class="text-[10px] font-bold text-brand-700 bg-brand-50 px-2 py-0.5 rounded-full border border-brand-200/70">Kỹ thuật</span>
+                <span class="text-[11px] font-medium text-slate-500">Kỹ sư phụ trách</span>
+                <span class="text-[10px] font-medium text-slate-600 bg-white px-2 py-0.5 rounded-md border border-slate-200/80">Kỹ thuật</span>
               </div>
-              <strong class="text-xs sm:text-sm font-bold text-slate-900 block truncate leading-tight">${tech ? tech.name : b.tech_id}</strong>
-              <a href="tel:${tech ? tech.phone : ''}" class="text-xs text-slate-600 hover:text-brand-600 font-medium inline-flex items-center gap-1.5 mt-1 transition-colors">
+              <strong class="text-[13px] font-semibold text-slate-900 block truncate leading-tight">${tech ? tech.name : b.tech_id}</strong>
+              <a href="tel:${tech ? tech.phone : ''}" class="text-xs text-slate-500 hover:text-slate-900 font-medium inline-flex items-center gap-1.5 mt-1 transition-colors">
                 <span class="text-slate-400">${Lucide.phone}</span>
                 <span>${tech ? tech.phone : 'Chưa có SĐT'}</span>
               </a>
             </div>
           </div>
 
-          <!-- Card 2: Date & Shift Time (Clean & Compact) -->
-          <div class="bg-slate-50/80 rounded-2xl p-3 sm:p-3.5 border border-slate-200/80 flex flex-col justify-between space-y-2 relative" id="detail-daterange-picker-wrapper">
+          <!-- Panel 2: Date & Shift Time -->
+          <div class="bg-[#f7f8fa] rounded-xl p-3.5 border border-slate-200/75 flex flex-col justify-between space-y-2 relative" id="detail-daterange-picker-wrapper">
             <div class="flex items-center justify-between">
-              <span class="text-[10px] font-bold tracking-wider text-slate-400 uppercase">Thời gian thực hiện</span>
-              <span id="label-detail-duration-tag" class="text-[10px] font-extrabold text-brand-700 bg-brand-50 px-2 py-0.5 rounded-full border border-brand-200/70">
+              <span class="text-[11px] font-medium text-slate-500">Thời gian thực hiện</span>
+              <span id="label-detail-duration-tag" class="text-[10px] font-medium text-slate-600 bg-white px-2 py-0.5 rounded-md border border-slate-200/80">
                 ${diffDays} ngày
               </span>
             </div>
 
             <div class="flex items-center justify-between gap-2">
               <div class="flex items-center gap-1.5 min-w-0">
-                <span class="text-brand-600 flex-shrink-0">${Lucide.calendar}</span>
-                <span id="label-detail-daterange" class="text-xs font-bold text-slate-900 font-condensed tracking-tight truncate">
+                <span class="text-slate-500 flex-shrink-0">${Lucide.calendar}</span>
+                <span id="label-detail-daterange" class="text-xs font-semibold text-slate-900 tracking-tight truncate">
                   ${diffDays === 1 ? BookingUI.formatDateDisplay(bStart) : `${BookingUI.formatDateDisplay(bStart)} → ${BookingUI.formatDateDisplay(bEnd)}`}
                 </span>
               </div>
               ${canEdit && (b.status === 'PENDING' || b.status === 'APPROVED' || b.status === 'IN_PROGRESS') ? `
-                <button id="btn-detail-daterange" type="button" onclick="BookingUI.openDetailDatePicker('${b.booking_id}')" class="text-[11px] font-bold text-brand-600 hover:text-brand-700 inline-flex items-center gap-1 flex-shrink-0 cursor-pointer transition-colors">
+                <button id="btn-detail-daterange" type="button" onclick="BookingUI.openDetailDatePicker('${b.booking_id}')" class="text-[11px] font-semibold text-slate-700 hover:text-slate-900 inline-flex items-center gap-1 flex-shrink-0 cursor-pointer transition-colors">
                   ${Lucide.pencil} Đổi ngày
                 </button>
               ` : ''}
             </div>
 
-            <!-- Time slot row: clean inline editable inputs or view display -->
-            <div class="flex items-center gap-2 pt-1.5 border-t border-slate-200/70 text-xs">
-              <span class="text-brand-600 flex-shrink-0">${Lucide.clock}</span>
+            <!-- Time slot row -->
+            <div class="flex items-center gap-2 pt-2 border-t border-slate-200/70 text-xs">
+              <span class="text-slate-500 flex-shrink-0">${Lucide.clock}</span>
               ${canEdit && (b.status === 'PENDING' || b.status === 'APPROVED' || b.status === 'IN_PROGRESS') ? `
                 <div class="flex items-center gap-1.5 flex-1 min-w-0">
-                  <input type="time" id="detail-edit-start-time" value="${sTime}" class="w-full min-w-0 bg-white border border-slate-200 rounded-lg px-2 py-1 text-xs font-mono font-bold text-slate-800 text-center focus:outline-hidden focus:border-brand-500 focus:ring-1 focus:ring-brand-500 shadow-2xs transition-all">
-                  <span class="text-slate-400 font-bold shrink-0">–</span>
-                  <input type="time" id="detail-edit-end-time" value="${eTime}" class="w-full min-w-0 bg-white border border-slate-200 rounded-lg px-2 py-1 text-xs font-mono font-bold text-slate-800 text-center focus:outline-hidden focus:border-brand-500 focus:ring-1 focus:ring-brand-500 shadow-2xs transition-all">
+                  <input type="time" id="detail-edit-start-time" value="${sTime}" class="w-full min-w-0 bg-white border border-slate-200 rounded-lg px-2 py-1 text-xs font-mono font-semibold text-slate-800 text-center focus:outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-900/10 shadow-2xs transition-all">
+                  <span class="text-slate-400 font-medium shrink-0">–</span>
+                  <input type="time" id="detail-edit-end-time" value="${eTime}" class="w-full min-w-0 bg-white border border-slate-200 rounded-lg px-2 py-1 text-xs font-mono font-semibold text-slate-800 text-center focus:outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-900/10 shadow-2xs transition-all">
                 </div>
               ` : `
-                <span class="font-mono text-xs font-extrabold text-slate-900 tracking-tight">${timeStr}</span>
+                <span class="font-mono text-xs font-semibold text-slate-900 tracking-tight">${timeStr}</span>
               `}
               <span id="sublabel-detail-daterange" class="hidden"></span>
             </div>
@@ -3537,8 +4273,8 @@ const BookingUI = {
               <!-- Header -->
               <div class="flex items-center justify-between pb-2.5 border-b border-slate-100">
                 <div class="flex items-center gap-2">
-                  <span id="detail-dp-target-badge" class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-brand-50 text-brand-700 font-condensed border border-brand-100">1 Lịch chọn dải ngày</span>
-                  <span id="detail-dp-month-year" class="text-xs font-bold text-slate-900">Tháng 11, 2026</span>
+                  <span id="detail-dp-target-badge" class="px-2 py-0.5 rounded-md text-[10px] font-medium bg-[#f7f8fa] text-slate-700 border border-slate-200/80">Chọn dải ngày</span>
+                  <span id="detail-dp-month-year" class="text-xs font-semibold text-slate-900">Tháng 11, 2026</span>
                 </div>
                 <div class="flex items-center gap-1">
                   <button type="button" onclick="BookingUI.changeDetailDpMonth(-1)" class="w-7 h-7 sm:w-6 sm:h-6 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 flex items-center justify-center transition-colors cursor-pointer" title="Tháng trước">
@@ -3551,13 +4287,13 @@ const BookingUI = {
               </div>
 
               <!-- Dynamic Instruction Banner -->
-              <div id="detail-dp-instruction-banner" class="mt-2 px-2.5 py-1.5 rounded-xl bg-slate-50 border border-slate-200/80 text-[10px] text-slate-600 flex items-center gap-1.5">
-                <span id="detail-dp-instruction-dot" class="w-1.5 h-1.5 rounded-full bg-brand-500 flex-shrink-0 animate-pulse"></span>
+              <div id="detail-dp-instruction-banner" class="mt-2 px-2.5 py-1.5 rounded-xl bg-[#f7f8fa] border border-slate-200/80 text-[10px] text-slate-600 flex items-center gap-1.5">
+                <span id="detail-dp-instruction-dot" class="w-1.5 h-1.5 rounded-full bg-slate-900 flex-shrink-0"></span>
                 <span id="detail-dp-instruction-text" class="truncate font-medium">Nhấp 1 ngày để chọn task 1 ngày. Nhấp ngày thứ 2 để đặt task liên ngày.</span>
               </div>
 
               <!-- Weekdays -->
-              <div class="grid grid-cols-7 text-center text-[9px] font-bold text-slate-400 uppercase py-1.5">
+              <div class="grid grid-cols-7 text-center text-[10px] font-medium text-slate-400 py-1.5">
                 <div>T2</div><div>T3</div><div>T4</div><div>T5</div><div>T6</div><div>T7</div><div>CN</div>
               </div>
 
@@ -3569,32 +4305,32 @@ const BookingUI = {
               <!-- Footer -->
               <div class="pt-2 mt-2 border-t border-slate-100 flex items-center justify-between gap-1 flex-wrap">
                 <div class="flex items-center gap-1 flex-wrap">
-                  <button type="button" onclick="BookingUI.setDetailDpQuick('today')" class="px-2 py-1 sm:py-0.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-bold transition-colors cursor-pointer">Hôm nay</button>
-                  <button type="button" onclick="BookingUI.setDetailDpQuick('tomorrow')" class="px-2 py-1 sm:py-0.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-bold transition-colors cursor-pointer">Ngày mai</button>
-                  <button type="button" onclick="BookingUI.setDetailDpQuick('plus3')" class="px-2 py-1 sm:py-0.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-bold transition-colors cursor-pointer">3 ngày</button>
-                  <button type="button" onclick="BookingUI.setDetailDpQuick('plus7')" class="px-2 py-1 sm:py-0.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-bold transition-colors cursor-pointer">1 tuần</button>
+                  <button type="button" onclick="BookingUI.setDetailDpQuick('today')" class="px-2 py-1 sm:py-0.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-medium transition-colors cursor-pointer">Hôm nay</button>
+                  <button type="button" onclick="BookingUI.setDetailDpQuick('tomorrow')" class="px-2 py-1 sm:py-0.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-medium transition-colors cursor-pointer">Ngày mai</button>
+                  <button type="button" onclick="BookingUI.setDetailDpQuick('plus3')" class="px-2 py-1 sm:py-0.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-medium transition-colors cursor-pointer">3 ngày</button>
+                  <button type="button" onclick="BookingUI.setDetailDpQuick('plus7')" class="px-2 py-1 sm:py-0.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-medium transition-colors cursor-pointer">1 tuần</button>
                 </div>
-                <button type="button" onclick="BookingUI.closeDetailDatePicker()" class="px-2.5 py-1 sm:py-0.5 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-[10px] font-bold shadow-xs transition-colors cursor-pointer ml-auto">Xong</button>
+                <button type="button" onclick="BookingUI.closeDetailDatePicker()" class="px-2.5 py-1 sm:py-0.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-[10px] font-medium shadow-xs transition-colors cursor-pointer ml-auto">Xong</button>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Detailed Properties Card (Clean & Concise) -->
-        <div class="bg-slate-50/60 rounded-2xl border border-slate-200/80 p-3 space-y-2.5 text-xs">
+        <!-- Detailed Properties Surface -->
+        <div class="bg-[#f7f8fa] rounded-xl border border-slate-200/75 p-3.5 space-y-2.5 text-xs">
           <!-- Row: Location & Requester -->
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pb-2.5 border-b border-slate-200/60">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pb-2.5 border-b border-slate-200/70">
             <div class="flex items-start gap-2.5 min-w-0">
               <span class="text-slate-400 mt-0.5 flex-shrink-0">${Lucide.mapPin}</span>
               <div class="min-w-0 flex-1">
-                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block leading-tight">Địa điểm</span>
+                <span class="text-[11px] font-medium text-slate-500 block leading-tight">Địa điểm</span>
                 <span class="text-xs font-semibold text-slate-900 break-words mt-0.5 block">${b.location}</span>
               </div>
             </div>
             <div class="flex items-start gap-2.5 min-w-0">
               <span class="text-slate-400 mt-0.5 flex-shrink-0">${Lucide.user}</span>
               <div class="min-w-0 flex-1">
-                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block leading-tight">Người đặt lịch</span>
+                <span class="text-[11px] font-medium text-slate-500 block leading-tight">Người đặt lịch</span>
                 <div class="flex items-center gap-1.5 mt-0.5 min-w-0">
                   ${(() => {
                     const reqUser = (BookingData.users || []).find(u => (u.email || '').toLowerCase() === (b.requester_email || '').toLowerCase());
@@ -3610,10 +4346,10 @@ const BookingUI = {
           </div>
 
           ${b.approver_email ? `
-            <div class="flex items-start gap-2.5 min-w-0 pb-2.5 border-b border-slate-200/60">
+            <div class="flex items-start gap-2.5 min-w-0 pb-2.5 border-b border-slate-200/70">
               <span class="text-emerald-600 mt-0.5 flex-shrink-0">${Lucide.check}</span>
               <div class="min-w-0 flex-1">
-                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block leading-tight">Người phê duyệt</span>
+                <span class="text-[11px] font-medium text-slate-500 block leading-tight">Người phê duyệt</span>
                 <div class="flex items-center gap-1.5 mt-0.5 min-w-0">
                   ${(() => {
                     const appUser = (BookingData.users || []).find(u => (u.email || '').toLowerCase() === (b.approver_email || '').toLowerCase());
@@ -3632,7 +4368,7 @@ const BookingUI = {
             <div class="bg-rose-50/80 border border-rose-200/80 rounded-xl p-2.5 text-rose-800 flex items-start gap-2.5">
               <span class="mt-0.5 text-rose-600 flex-shrink-0">${Lucide.x}</span>
               <div class="min-w-0">
-                <strong class="block text-xs font-bold text-rose-900 mb-0.5">Lý do từ chối:</strong>
+                <strong class="block text-xs font-semibold text-rose-900 mb-0.5">Lý do từ chối:</strong>
                 <span class="text-xs text-rose-700 leading-relaxed">${b.reject_reason}</span>
               </div>
             </div>
@@ -3642,7 +4378,7 @@ const BookingUI = {
             <div class="flex items-start gap-2.5 min-w-0">
               <span class="text-slate-400 mt-0.5 flex-shrink-0">${Lucide.fileText}</span>
               <div class="min-w-0 flex-1">
-                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block leading-tight">Ghi chú công việc</span>
+                <span class="text-[11px] font-medium text-slate-500 block leading-tight">Ghi chú công việc</span>
                 <p class="text-xs text-slate-700 leading-relaxed mt-0.5 whitespace-pre-wrap">${b.notes}</p>
               </div>
             </div>
@@ -3654,7 +4390,7 @@ const BookingUI = {
     // Render Context-Aware Action Footer (Balanced Dual-Zone Layout)
     if (footer) {
       const editBtnHtml = canEditContent ? `
-        <button onclick="BookingUI.openEditBookingModal('${b.booking_id}')" type="button" class="px-3.5 py-2 rounded-xl text-xs font-semibold bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 shadow-2xs inline-flex items-center justify-center gap-1.5 transition-all cursor-pointer whitespace-nowrap shrink-0">
+        <button onclick="BookingUI.openEditBookingModal('${b.booking_id}')" type="button" class="h-10 sm:h-9 px-3.5 rounded-xl text-xs font-medium bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 shadow-2xs inline-flex items-center justify-center gap-1.5 transition-all cursor-pointer whitespace-nowrap shrink-0">
           ${Lucide.pencil} <span>Sửa nội dung</span>
         </button>
       ` : '';
@@ -3663,67 +4399,69 @@ const BookingUI = {
         const actionButtons = [];
         if (canReject) {
           actionButtons.push(`
-            <button onclick="BookingUI.openRejectModal('${b.booking_id}', 'detail')" type="button" class="px-3.5 py-2 rounded-xl text-xs font-semibold bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 shadow-2xs inline-flex items-center justify-center gap-1 transition-all cursor-pointer whitespace-nowrap">
-              ${Lucide.x} Từ Chối
+            <button onclick="BookingUI.openRejectModal('${b.booking_id}', 'detail')" type="button" class="h-10 sm:h-9 px-3.5 rounded-xl text-xs font-medium bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 shadow-2xs inline-flex items-center justify-center gap-1 transition-all cursor-pointer whitespace-nowrap">
+              ${Lucide.x} Từ chối
             </button>
           `);
         } else if (canCancel && isOwner) {
           actionButtons.push(`
-            <button onclick="BookingUI.handleCancelFromDetail('${b.booking_id}')" type="button" class="px-3.5 py-2 rounded-xl text-xs font-semibold bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 shadow-2xs inline-flex items-center justify-center gap-1 transition-all cursor-pointer whitespace-nowrap">
-              ${Lucide.x} Hủy Đơn
+            <button onclick="BookingUI.handleCancelFromDetail('${b.booking_id}')" type="button" class="h-10 sm:h-9 px-3.5 rounded-xl text-xs font-medium bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 shadow-2xs inline-flex items-center justify-center gap-1 transition-all cursor-pointer whitespace-nowrap">
+              ${Lucide.x} Hủy đơn
             </button>
           `);
         }
         if (canApprove) {
           actionButtons.push(`
-            <button onclick="BookingUI.handleApproveFromDetail('${b.booking_id}')" type="button" class="px-4 py-2 rounded-xl text-xs font-bold bg-accent-600 hover:bg-accent-700 active:bg-accent-800 text-white shadow-xs inline-flex items-center justify-center gap-1.5 transition-all cursor-pointer whitespace-nowrap">
+            <button onclick="BookingUI.handleApproveFromDetail('${b.booking_id}')" type="button" class="h-10 sm:h-9 px-4 rounded-xl text-xs font-semibold bg-slate-900 hover:bg-slate-800 active:bg-slate-950 text-white shadow-2xs inline-flex items-center justify-center gap-1.5 transition-all cursor-pointer whitespace-nowrap">
               ${Lucide.check} Duyệt
             </button>
           `);
         }
         footer.innerHTML = `
-          <div class="flex flex-col-reverse sm:flex-row sm:items-center justify-between gap-2.5 w-full">
-            <div class="flex items-center gap-2 shrink-0">
-              <button onclick="BookingUI.closeDetailModal()" type="button" class="px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors cursor-pointer text-center whitespace-nowrap shrink-0">
+          <div class="flex flex-col-reverse sm:flex-row sm:items-center justify-between gap-2 w-full">
+            <div class="grid ${editBtnHtml ? 'grid-cols-2' : 'grid-cols-1'} sm:flex sm:items-center gap-2 shrink-0">
+              <button onclick="BookingUI.closeDetailModal()" type="button" class="h-10 sm:h-9 px-3.5 rounded-xl text-xs font-medium bg-[#f7f8fa] hover:bg-slate-100 text-slate-700 border border-slate-200/80 transition-colors cursor-pointer text-center whitespace-nowrap shrink-0">
                 Đóng
               </button>
               ${editBtnHtml}
             </div>
-            <div class="flex items-center gap-2 justify-end shrink-0 flex-wrap sm:flex-nowrap">
-              ${actionButtons.join('')}
-            </div>
+            ${actionButtons.length ? `
+              <div class="grid ${actionButtons.length > 1 ? 'grid-cols-2' : 'grid-cols-1'} sm:flex sm:items-center gap-2 sm:justify-end shrink-0">
+                ${actionButtons.join('')}
+              </div>
+            ` : ''}
           </div>
         `;
       } else if (b.status === 'APPROVED') {
         const startShiftBtnHtml = canStartShift && !isOverdue ? `
-          <button onclick="BookingUI.handleStartShift('${b.booking_id}')" type="button" class="px-4 py-2 rounded-xl text-xs font-black font-condensed uppercase tracking-wider bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white shadow-xs inline-flex items-center justify-center gap-1.5 transition-all cursor-pointer whitespace-nowrap">
+          <button onclick="BookingUI.handleStartShift('${b.booking_id}')" type="button" class="h-10 sm:h-9 px-4 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white shadow-2xs inline-flex items-center justify-center gap-1.5 transition-all cursor-pointer whitespace-nowrap">
             <span class="relative flex h-2 w-2 shrink-0">
               <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
               <span class="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
             </span>
-            <span>Bắt Đầu Task</span>
+            <span>Bắt đầu task</span>
           </button>
         ` : '';
 
         const completeOverdueBtnHtml = canComplete ? `
-          <button onclick="BookingUI.handleCompleteBooking('${b.booking_id}')" type="button" class="px-4 py-2 rounded-xl text-xs font-black font-condensed uppercase tracking-wider bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white shadow-xs inline-flex items-center justify-center gap-1.5 transition-all cursor-pointer whitespace-nowrap ${isOverdue ? 'animate-pulse ring-2 ring-emerald-400' : ''}">
+          <button onclick="BookingUI.handleCompleteBooking('${b.booking_id}')" type="button" class="h-10 sm:h-9 px-4 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white shadow-2xs inline-flex items-center justify-center gap-1.5 transition-all cursor-pointer whitespace-nowrap ${isOverdue ? 'ring-2 ring-emerald-400/50' : ''}">
             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-            <span>${isOverdue ? 'Xác Nhận Hoàn Thành Task' : 'Hoàn Thành Task'}</span>
+            <span>${isOverdue ? 'Xác nhận hoàn thành' : 'Hoàn thành task'}</span>
           </button>
         ` : '';
 
         footer.innerHTML = `
-          <div class="flex flex-col-reverse sm:flex-row sm:items-center justify-between gap-2.5 w-full">
-            <div class="flex items-center gap-2 shrink-0">
-              <button onclick="BookingUI.closeDetailModal()" type="button" class="px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors cursor-pointer text-center whitespace-nowrap shrink-0">
+          <div class="flex flex-col-reverse sm:flex-row sm:items-center justify-between gap-2 w-full">
+            <div class="grid ${editBtnHtml ? 'grid-cols-2' : 'grid-cols-1'} sm:flex sm:items-center gap-2 shrink-0">
+              <button onclick="BookingUI.closeDetailModal()" type="button" class="h-10 sm:h-9 px-3.5 rounded-xl text-xs font-medium bg-[#f7f8fa] hover:bg-slate-100 text-slate-700 border border-slate-200/80 transition-colors cursor-pointer text-center whitespace-nowrap shrink-0">
                 Đóng
               </button>
               ${editBtnHtml}
             </div>
             <div class="flex items-center gap-2 justify-end shrink-0 flex-wrap sm:flex-nowrap">
               ${canEdit ? `
-                <button onclick="BookingUI.handleSaveApprovedDates('${b.booking_id}')" type="button" class="px-3.5 py-2 rounded-xl text-xs font-bold bg-brand-600 hover:bg-brand-700 text-white shadow-xs inline-flex items-center justify-center gap-1.5 transition-all cursor-pointer whitespace-nowrap">
-                  ${Lucide.check} Lưu Đổi Lịch
+                <button onclick="BookingUI.handleSaveApprovedDates('${b.booking_id}')" type="button" class="flex-1 sm:flex-initial h-10 sm:h-9 px-3.5 rounded-xl text-xs font-semibold bg-slate-900 hover:bg-slate-800 text-white shadow-2xs inline-flex items-center justify-center gap-1.5 transition-all cursor-pointer whitespace-nowrap">
+                  ${Lucide.check} Lưu đổi lịch
                 </button>
               ` : ''}
               ${startShiftBtnHtml}
@@ -3733,23 +4471,23 @@ const BookingUI = {
         `;
       } else if (b.status === 'IN_PROGRESS') {
         footer.innerHTML = `
-          <div class="flex flex-col-reverse sm:flex-row sm:items-center justify-between gap-2.5 w-full">
-            <div class="flex items-center gap-2 shrink-0">
-              <button onclick="BookingUI.closeDetailModal()" type="button" class="px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors cursor-pointer text-center whitespace-nowrap shrink-0">
+          <div class="flex flex-col-reverse sm:flex-row sm:items-center justify-between gap-2 w-full">
+            <div class="grid ${editBtnHtml ? 'grid-cols-2' : 'grid-cols-1'} sm:flex sm:items-center gap-2 shrink-0">
+              <button onclick="BookingUI.closeDetailModal()" type="button" class="h-10 sm:h-9 px-3.5 rounded-xl text-xs font-medium bg-[#f7f8fa] hover:bg-slate-100 text-slate-700 border border-slate-200/80 transition-colors cursor-pointer text-center whitespace-nowrap shrink-0">
                 Đóng
               </button>
               ${editBtnHtml}
             </div>
             <div class="flex items-center gap-2 justify-end shrink-0 flex-wrap sm:flex-nowrap">
               ${canEdit ? `
-                <button onclick="BookingUI.handleSaveApprovedDates('${b.booking_id}')" type="button" class="px-3.5 py-2 rounded-xl text-xs font-bold bg-brand-600 hover:bg-brand-700 text-white shadow-xs inline-flex items-center justify-center gap-1.5 transition-all cursor-pointer whitespace-nowrap">
-                  ${Lucide.check} Lưu Đổi Lịch
+                <button onclick="BookingUI.handleSaveApprovedDates('${b.booking_id}')" type="button" class="flex-1 sm:flex-initial h-10 sm:h-9 px-3.5 rounded-xl text-xs font-semibold bg-slate-900 hover:bg-slate-800 text-white shadow-2xs inline-flex items-center justify-center gap-1.5 transition-all cursor-pointer whitespace-nowrap">
+                  ${Lucide.check} Lưu đổi lịch
                 </button>
               ` : ''}
               ${canComplete ? `
-                <button onclick="BookingUI.handleCompleteBooking('${b.booking_id}')" type="button" class="px-4 py-2 rounded-xl text-xs font-black font-condensed uppercase tracking-wider bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white shadow-xs inline-flex items-center justify-center gap-1.5 transition-all cursor-pointer whitespace-nowrap ${isOverdue ? 'animate-pulse ring-2 ring-emerald-400' : ''}">
+                <button onclick="BookingUI.handleCompleteBooking('${b.booking_id}')" type="button" class="flex-1 sm:flex-initial h-10 sm:h-9 px-4 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white shadow-2xs inline-flex items-center justify-center gap-1.5 transition-all cursor-pointer whitespace-nowrap ${isOverdue ? 'ring-2 ring-emerald-400/50' : ''}">
                   <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-                  <span>${isOverdue ? 'Xác Nhận Hoàn Thành Task' : 'Hoàn Thành Task'}</span>
+                  <span>${isOverdue ? 'Xác nhận hoàn thành' : 'Hoàn thành task'}</span>
                 </button>
               ` : ''}
             </div>
@@ -3757,8 +4495,8 @@ const BookingUI = {
         `;
       } else {
         footer.innerHTML = `
-          <div class="flex items-center justify-between gap-2.5 w-full">
-            <button onclick="BookingUI.closeDetailModal()" type="button" class="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors cursor-pointer whitespace-nowrap">
+          <div class="grid ${editBtnHtml ? 'grid-cols-2' : 'grid-cols-1'} sm:flex sm:items-center sm:justify-between gap-2.5 w-full">
+            <button onclick="BookingUI.closeDetailModal()" type="button" class="h-10 sm:h-9 px-4 rounded-xl text-xs font-medium bg-[#f7f8fa] hover:bg-slate-100 text-slate-700 border border-slate-200/80 transition-colors flex items-center justify-center cursor-pointer whitespace-nowrap">
               Đóng
             </button>
             ${editBtnHtml}
@@ -3767,8 +4505,11 @@ const BookingUI = {
       }
     }
 
-    modal.classList.remove('hidden');
-    modal.classList.add('flex');
+    if (window.App && App.openModalEl) App.openModalEl(modal);
+    else {
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
   },
 
   openDetailDatePicker(bookingId) {
@@ -3870,9 +4611,9 @@ const BookingUI = {
         if (instructionDot) instructionDot.className = 'w-1.5 h-1.5 rounded-full bg-amber-500 flex-shrink-0 animate-ping';
       } else {
         badge.textContent = '1 Lịch chọn dải ngày';
-        badge.className = 'px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-brand-50 text-brand-700 font-condensed border border-brand-100';
+        badge.className = 'px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-slate-100 text-slate-900 font-condensed border border-slate-200';
         instructionText.textContent = 'Nhấp 1 ngày để chọn task 1 ngày. Nhấp ngày thứ 2 để đặt task liên ngày.';
-        if (instructionDot) instructionDot.className = 'w-1.5 h-1.5 rounded-full bg-brand-500 flex-shrink-0 animate-pulse';
+        if (instructionDot) instructionDot.className = 'w-1.5 h-1.5 rounded-full bg-slate-900 flex-shrink-0 animate-pulse';
       }
     }
 
@@ -3898,14 +4639,14 @@ const BookingUI = {
         const isHoverEnd = this.detailHoverDate && dayStr === this.detailHoverDate && dayStr > startDateVal;
 
         if (isStart) {
-          cellClass += 'bg-brand-600 text-white font-extrabold shadow-xs cursor-pointer rounded-xl ring-2 ring-brand-300 ';
+          cellClass += 'bg-slate-900 text-white font-extrabold shadow-xs cursor-pointer rounded-xl ring-2 ring-slate-400 ';
         } else if (isHoverEnd) {
-          cellClass += 'bg-brand-600 text-white font-extrabold shadow-xs cursor-pointer rounded-r-xl ';
+          cellClass += 'bg-slate-900 text-white font-extrabold shadow-xs cursor-pointer rounded-r-xl ';
         } else if (isHover) {
-          cellClass += 'bg-brand-50 text-brand-700 font-bold hover:bg-brand-100 cursor-pointer rounded-none ';
+          cellClass += 'bg-slate-100 text-slate-900 font-bold hover:bg-slate-200 cursor-pointer rounded-none ';
         } else {
           cellClass += 'text-slate-800 hover:bg-slate-100 rounded-xl cursor-pointer ';
-          if (isToday) cellClass += 'ring-1 ring-brand-500/50 text-brand-600 ';
+          if (isToday) cellClass += 'ring-1 ring-slate-400 text-slate-900 ';
         }
       } else {
         const isStart = dayStr === startDateVal;
@@ -3914,16 +4655,16 @@ const BookingUI = {
         const isInRange = startDateVal && endDateVal && dayStr > startDateVal && dayStr < endDateVal;
 
         if (isSingle) {
-          cellClass += 'bg-brand-600 text-white font-extrabold shadow-xs cursor-pointer rounded-xl ';
+          cellClass += 'bg-slate-900 text-white font-extrabold shadow-xs cursor-pointer rounded-xl ';
         } else if (isStart) {
-          cellClass += 'bg-brand-600 text-white font-extrabold shadow-xs cursor-pointer rounded-l-xl rounded-r-none ';
+          cellClass += 'bg-slate-900 text-white font-extrabold shadow-xs cursor-pointer rounded-l-xl rounded-r-none ';
         } else if (isEnd) {
-          cellClass += 'bg-brand-600 text-white font-extrabold shadow-xs cursor-pointer rounded-r-xl rounded-l-none ';
+          cellClass += 'bg-slate-900 text-white font-extrabold shadow-xs cursor-pointer rounded-r-xl rounded-l-none ';
         } else if (isInRange) {
-          cellClass += 'bg-brand-50 text-brand-700 font-bold hover:bg-brand-100 cursor-pointer rounded-none ';
+          cellClass += 'bg-slate-100 text-slate-900 font-bold hover:bg-slate-200 cursor-pointer rounded-none ';
         } else {
           cellClass += 'text-slate-800 hover:bg-slate-100 rounded-xl cursor-pointer ';
-          if (isToday) cellClass += 'ring-1 ring-brand-500/50 text-brand-600 ';
+          if (isToday) cellClass += 'ring-1 ring-slate-400 text-slate-900 ';
         }
       }
 
@@ -4061,7 +4802,7 @@ const BookingUI = {
     } else if (hrs > 8) {
       const otHours = (hrs - 8).toFixed(1);
       badge.className = 'text-[10px] font-extrabold text-amber-800 bg-amber-50 px-2.5 py-0.5 rounded-full border border-amber-300 flex items-center gap-1 animate-pulse';
-      badge.innerHTML = `<span>⚡ ${hrs.toFixed(1)}h</span> • <span class="text-amber-900 font-black">Tăng ca (+${otHours}h OT)</span>`;
+      badge.innerHTML = `<span class="flex items-center gap-1"><svg class="w-3 h-3 text-amber-600 inline shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>${hrs.toFixed(1)}h</span> • <span class="text-amber-900 font-black">Tăng ca (+${otHours}h OT)</span>`;
       if (otContainer) otContainer.classList.remove('hidden');
     } else {
       badge.className = 'text-[10px] font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200';
@@ -4272,7 +5013,7 @@ const BookingUI = {
         Toast.show(res.error || 'Không thể bắt đầu task.', 'error');
         return;
       }
-      Toast.show(`🟢 Đã bắt đầu task "${booking.title}"! Giờ làm việc đang được tính.`, 'success', 'Bắt đầu task');
+      Toast.show(`Đã bắt đầu task "${booking.title}"! Giờ làm việc đang được tính.`, 'success', 'Bắt đầu task');
       this.closeDetailModal();
       this.render();
     } catch (err) {
@@ -4299,32 +5040,32 @@ const BookingUI = {
 
     content.innerHTML = `
       <div class="space-y-4">
-        <!-- Rejection Header with Alert Pill -->
-        <div class="flex items-start gap-3 pb-3.5 border-b border-burgundy-100">
-          <div class="w-10 h-10 rounded-xl bg-burgundy-50 border border-burgundy-200 text-burgundy-800 flex items-center justify-center flex-shrink-0 shadow-2xs">
+        <!-- Rejection Header with Alert Icon -->
+        <div class="flex items-start gap-3 pb-3.5 border-b border-slate-100">
+          <div class="w-10 h-10 rounded-xl bg-rose-50 border border-rose-200/80 text-rose-600 flex items-center justify-center flex-shrink-0">
             ${Lucide.x}
           </div>
-          <div class="min-w-0 flex-1">
-            <span class="text-xs font-extrabold font-condensed text-burgundy-800 tracking-wider block">TỪ CHỐI YÊU CẦU</span>
-            <h3 class="text-base font-bold text-slate-900 mt-0.5 leading-snug break-words">${b.booking_id}: ${b.title}</h3>
+          <div class="min-w-0 flex-1 pr-6">
+            <span class="text-[11px] font-semibold text-rose-600 block">Từ chối yêu cầu</span>
+            <h3 class="text-base font-bold text-slate-900 mt-0.5 leading-snug tracking-tight break-words">${b.booking_id}: ${b.title}</h3>
             <p class="text-xs text-slate-500 mt-0.5">Vui lòng cung cấp lý do từ chối để thông báo cho người đặt (${b.requester_name}).</p>
           </div>
         </div>
 
         <!-- Quick Reason Tags -->
         <div>
-          <label class="block text-xs font-semibold text-slate-700 mb-1.5">Gợi ý lý do nhanh:</label>
+          <label class="block text-xs font-medium text-slate-600 mb-1.5">Gợi ý lý do nhanh:</label>
           <div class="flex flex-wrap gap-1.5">
-            <button type="button" onclick="BookingUI.selectRejectReason('Kỹ sư bận task ưu tiên')" class="px-2.5 py-1 text-xs rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 font-medium transition-colors shadow-2xs">
+            <button type="button" onclick="BookingUI.selectRejectReason('Kỹ sư bận task ưu tiên')" class="px-2.5 py-1 text-xs rounded-lg border border-slate-200/90 bg-[#f7f8fa] hover:bg-slate-100 text-slate-700 font-medium transition-colors cursor-pointer">
               Kỹ sư bận task ưu tiên
             </button>
-            <button type="button" onclick="BookingUI.selectRejectReason('Trùng lịch bảo trì định kỳ')" class="px-2.5 py-1 text-xs rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 font-medium transition-colors shadow-2xs">
+            <button type="button" onclick="BookingUI.selectRejectReason('Trùng lịch bảo trì định kỳ')" class="px-2.5 py-1 text-xs rounded-lg border border-slate-200/90 bg-[#f7f8fa] hover:bg-slate-100 text-slate-700 font-medium transition-colors cursor-pointer">
               Trùng lịch bảo trì
             </button>
-            <button type="button" onclick="BookingUI.selectRejectReason('Sai địa điểm / Cần bổ sung thông tin')" class="px-2.5 py-1 text-xs rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 font-medium transition-colors shadow-2xs">
+            <button type="button" onclick="BookingUI.selectRejectReason('Sai địa điểm / Cần bổ sung thông tin')" class="px-2.5 py-1 text-xs rounded-lg border border-slate-200/90 bg-[#f7f8fa] hover:bg-slate-100 text-slate-700 font-medium transition-colors cursor-pointer">
               Sai địa điểm / Cần bổ sung
             </button>
-            <button type="button" onclick="BookingUI.selectRejectReason('Không đủ thiết bị chuyên dụng')" class="px-2.5 py-1 text-xs rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 font-medium transition-colors shadow-2xs">
+            <button type="button" onclick="BookingUI.selectRejectReason('Không đủ thiết bị chuyên dụng')" class="px-2.5 py-1 text-xs rounded-lg border border-slate-200/90 bg-[#f7f8fa] hover:bg-slate-100 text-slate-700 font-medium transition-colors cursor-pointer">
               Thiếu thiết bị
             </button>
           </div>
@@ -4332,33 +5073,39 @@ const BookingUI = {
 
         <!-- Reason Textarea -->
         <div>
-          <label for="reject-reason-input" class="block text-xs font-semibold text-slate-700 mb-1">
-            Nội dung lý do từ chối <span class="text-burgundy-800">*</span>
+          <label for="reject-reason-input" class="block text-xs font-medium text-slate-700 mb-1">
+            Nội dung lý do từ chối <span class="text-rose-600">*</span>
           </label>
-          <textarea id="reject-reason-input" rows="3" placeholder="Nhập lý do chi tiết từ chối yêu cầu này..." class="w-full text-xs text-slate-800 bg-white border border-slate-200 rounded-xl p-3 focus:border-burgundy-800 focus:ring-1 focus:ring-burgundy-800 outline-none transition-all shadow-2xs resize-none"></textarea>
+          <textarea id="reject-reason-input" rows="3" placeholder="Nhập lý do chi tiết từ chối yêu cầu này..." class="w-full text-xs text-slate-800 bg-[#f7f8fa] focus:bg-white border border-slate-200 rounded-xl p-3 focus:border-rose-400 focus:ring-2 focus:ring-rose-500/15 outline-none transition-all resize-none"></textarea>
           <p class="text-[11px] text-slate-400 mt-1">Lý do từ chối sẽ được lưu và gửi đến hộp thông báo của người book.</p>
         </div>
       </div>
     `;
 
     footer.innerHTML = `
-      <div class="flex items-center justify-between w-full">
-        <button onclick="${backAction}" type="button" class="px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors flex items-center gap-1.5">
+      <div class="grid grid-cols-2 sm:flex sm:items-center sm:justify-between gap-2 w-full">
+        <button onclick="${backAction}" type="button" class="h-10 sm:h-9 px-3.5 rounded-xl text-xs font-medium border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 transition-colors flex items-center justify-center gap-1.5 cursor-pointer">
           ${Lucide.arrowLeft} Quay lại
         </button>
-        <button onclick="BookingUI.confirmReject('${bookingId}')" type="button" class="px-4 py-2 rounded-xl text-xs font-bold bg-burgundy-800 hover:bg-burgundy-900 active:bg-burgundy-950 text-white shadow-xs flex items-center gap-1.5 transition-all">
-          ${Lucide.x} Xác Nhận Từ Chối
+        <button onclick="BookingUI.confirmReject('${bookingId}')" type="button" class="h-10 sm:h-9 px-4 rounded-xl text-xs font-semibold bg-rose-600 hover:bg-rose-700 active:bg-rose-800 text-white shadow-2xs flex items-center justify-center gap-1.5 transition-all cursor-pointer whitespace-nowrap">
+          ${Lucide.x} Xác nhận từ chối
         </button>
       </div>
     `;
 
-    modal.classList.remove('hidden');
-    modal.classList.add('flex');
-
-    setTimeout(() => {
-      const textarea = document.getElementById('reject-reason-input');
-      if (textarea) textarea.focus();
-    }, 50);
+    if (window.App && App.openModalEl) {
+      App.openModalEl(modal, () => {
+        const textarea = document.getElementById('reject-reason-input');
+        if (textarea) textarea.focus();
+      });
+    } else {
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      setTimeout(() => {
+        const textarea = document.getElementById('reject-reason-input');
+        if (textarea) textarea.focus();
+      }, 50);
+    }
   },
 
   selectRejectReason(reasonText) {
@@ -4430,8 +5177,11 @@ const BookingUI = {
     this._currentDetailBookingId = null;
     const modal = document.getElementById('detail-modal');
     if (modal) {
-      modal.classList.add('hidden');
-      modal.classList.remove('flex');
+      if (window.App && App.closeModalEl) App.closeModalEl(modal);
+      else {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }
     }
     this.closeDetailDatePicker();
   },
@@ -4483,7 +5233,7 @@ const BookingUI = {
 
     if (headerCount) {
       headerCount.innerHTML = `
-        <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-brand-50 text-brand-800 border border-brand-200 font-condensed">
+        <span class="text-xs font-medium text-slate-500 font-display">
           ${filtered.length} kỹ sư
         </span>
       `;
@@ -4491,12 +5241,12 @@ const BookingUI = {
 
     if (filtered.length === 0) {
       container.innerHTML = `
-        <div class="py-8 sm:py-12 text-center">
-          <div class="w-12 h-12 rounded-full bg-slate-100 text-slate-400 mx-auto flex items-center justify-center mb-3">
+        <div class="py-10 sm:py-12 px-4 text-center">
+          <div class="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 mx-auto flex items-center justify-center mb-3">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
           </div>
-          <h4 class="text-base font-bold text-slate-900">Không tìm thấy kỹ sư nào phù hợp</h4>
-          <p class="text-xs text-slate-500 mt-1">Thử đổi từ khóa tìm kiếm hoặc bấm nút "Thêm Kỹ Sư".</p>
+          <h4 class="text-sm sm:text-base font-semibold text-slate-900">Không tìm thấy kỹ sư</h4>
+          <p class="text-xs text-slate-500 mt-1">Thử đổi từ khóa tìm kiếm hoặc thêm kỹ sư mới.</p>
         </div>
       `;
       return;
@@ -4519,31 +5269,31 @@ const BookingUI = {
         <div class="p-4 hover:bg-slate-50/70 transition-colors space-y-2.5">
           <div class="flex items-start justify-between gap-2.5">
             <div class="flex items-center gap-3 min-w-0">
-              <img src="${t.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&h=120&q=80'}" alt="${t.name}" class="w-10 h-10 rounded-full object-cover border border-slate-200 flex-shrink-0">
+              <img src="${t.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&h=120&q=80'}" alt="${t.name}" class="w-10 h-10 rounded-full object-cover flex-shrink-0">
               <div class="min-w-0">
                 <div class="flex items-center gap-2">
                   <h4 class="font-bold text-slate-900 text-sm leading-tight truncate">${t.name}</h4>
-                  <span class="text-[10px] font-black font-condensed text-brand-600 uppercase tracking-wider flex-shrink-0">${t.tech_id}</span>
+                  <span class="text-[10px] font-semibold font-display text-slate-500 uppercase tracking-wider flex-shrink-0">${t.tech_id}</span>
                 </div>
                 <div class="flex items-center gap-2 mt-0.5 text-xs">
                   ${t.phone ? `
-                    <a href="tel:${t.phone}" class="inline-flex items-center gap-1 font-bold text-slate-600 hover:text-brand-600 font-condensed">
+                    <a href="tel:${t.phone}" class="inline-flex items-center gap-1 font-semibold text-slate-600 hover:text-slate-900 font-condensed">
                       <span>${t.phone}</span>
                     </a>
                     <span class="text-slate-300">•</span>
                   ` : ''}
-                  <span class="font-bold font-condensed text-brand-700">${assignedCount} task</span>
+                  <span class="font-semibold font-display text-slate-800">${assignedCount} task</span>
                 </div>
               </div>
             </div>
             ${canManageTechs ? `
-              <button type="button" onclick="BookingUI.toggleTechStatus('${t.tech_id}')" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold font-condensed uppercase border transition-all cursor-pointer flex-shrink-0 ${isActive ? 'bg-accent-50 text-accent-700 border-accent-200' : 'bg-slate-100 text-slate-600 border-slate-200'}">
-                <span class="w-1.5 h-1.5 rounded-full ${isActive ? 'bg-accent-500' : 'bg-slate-400'}"></span>
+              <button type="button" onclick="BookingUI.toggleTechStatus('${t.tech_id}')" class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-medium transition-all cursor-pointer flex-shrink-0 ${isActive ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'}">
+                <span class="w-1.5 h-1.5 rounded-full ${isActive ? 'bg-emerald-500' : 'bg-slate-400'}"></span>
                 <span>${isActive ? 'Hoạt động' : 'Tạm dừng'}</span>
               </button>
             ` : `
-              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold font-condensed uppercase border flex-shrink-0 ${isActive ? 'bg-accent-50 text-accent-700 border-accent-200' : 'bg-slate-100 text-slate-600 border-slate-200'}">
-                <span class="w-1.5 h-1.5 rounded-full ${isActive ? 'bg-accent-500' : 'bg-slate-400'}"></span>
+              <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-medium flex-shrink-0 ${isActive ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'}">
+                <span class="w-1.5 h-1.5 rounded-full ${isActive ? 'bg-emerald-500' : 'bg-slate-400'}"></span>
                 <span>${isActive ? 'Hoạt động' : 'Tạm dừng'}</span>
               </span>
             `}
@@ -4556,16 +5306,16 @@ const BookingUI = {
               `).join('') : '<span class="text-[11px] text-slate-400">Đa nhiệm</span>'}
             </div>
             <div class="flex items-center gap-1.5 flex-shrink-0">
-              <a href="template-report.html?tech=${t.tech_id}" class="h-8 px-2.5 rounded-lg border border-brand-200 bg-brand-50 hover:bg-brand-100 text-brand-700 font-semibold text-xs transition-colors flex items-center gap-1 shadow-2xs" title="Xem & xuất báo cáo 16:9">
-                <svg class="w-3.5 h-3.5 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                <span>Báo cáo 16:9</span>
+              <a href="template-report.html?tech=${t.tech_id}" class="h-9 px-3 rounded-xl bg-slate-100/80 hover:bg-slate-100 text-slate-700 font-medium text-xs transition-colors flex items-center gap-1.5" title="Xem &amp; xuất báo cáo">
+                <svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                <span>Báo cáo</span>
               </a>
               ${canManageTechs ? `
-                <button type="button" onclick="BookingUI.openTechModal('${t.tech_id}')" class="h-8 px-2.5 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold text-xs transition-colors flex items-center gap-1 cursor-pointer">
-                  <svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+                <button type="button" onclick="BookingUI.openTechModal('${t.tech_id}')" class="h-9 px-3 rounded-xl bg-slate-100/80 hover:bg-slate-100 text-slate-700 font-medium text-xs transition-colors flex items-center gap-1 cursor-pointer">
+                  <svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
                   <span>Sửa</span>
                 </button>
-                <button type="button" onclick="BookingUI.deleteTech('${t.tech_id}')" class="h-8 px-2.5 rounded-lg border border-rose-200 hover:bg-rose-50 text-rose-600 font-semibold text-xs transition-colors flex items-center gap-1 cursor-pointer">
+                <button type="button" onclick="BookingUI.deleteTech('${t.tech_id}')" class="h-9 px-3 rounded-xl hover:bg-rose-50 text-rose-600 font-medium text-xs transition-colors flex items-center gap-1 cursor-pointer">
                   <span>Xóa</span>
                 </button>
               ` : ''}
@@ -4581,59 +5331,57 @@ const BookingUI = {
       const isActive = t.is_active;
 
       return `
-        <tr class="hover:bg-slate-50/70 transition-colors">
+        <tr class="group hover:bg-slate-50/70 transition-colors">
           <td class="py-3 px-4 whitespace-nowrap">
             <div class="flex items-center gap-3">
-              <img src="${t.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&h=120&q=80'}" alt="${t.name}" class="w-9 h-9 rounded-full object-cover border border-slate-200 flex-shrink-0">
+              <img src="${t.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&h=120&q=80'}" alt="${t.name}" class="w-9 h-9 rounded-full object-cover flex-shrink-0">
               <div class="min-w-0">
-                <p class="font-bold text-slate-900 text-sm leading-tight">${t.name}</p>
-                <p class="text-[10px] font-black font-condensed text-brand-600 uppercase tracking-wider mt-0.5">${t.tech_id}</p>
+                <p class="font-semibold text-slate-900 text-sm leading-tight">${t.name}</p>
+                <p class="text-[10.5px] font-medium font-mono tabular-nums text-slate-400 mt-0.5">${t.tech_id}</p>
               </div>
             </div>
           </td>
           <td class="py-3 px-3.5 whitespace-nowrap">
-            <a href="tel:${t.phone}" class="inline-flex items-center gap-1.5 font-bold text-slate-700 hover:text-brand-600 font-condensed tracking-wide">
-              <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
+            <a href="tel:${t.phone}" class="inline-flex items-center gap-1.5 font-medium text-slate-700 hover:text-slate-900 font-mono tabular-nums text-xs">
+              <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
               <span>${t.phone || 'Chưa cập nhật'}</span>
             </a>
           </td>
           <td class="py-3 px-3.5 min-w-[200px]">
             <div class="flex flex-wrap gap-1">
               ${skillsList.map(s => `
-                <span class="px-2 py-0.5 rounded-md text-[10px] font-medium bg-slate-100 text-slate-700">${s.trim()}</span>
+                <span class="px-2 py-0.5 rounded-md text-[11px] font-medium bg-slate-100 text-slate-700">${s.trim()}</span>
               `).join('')}
             </div>
           </td>
           <td class="py-3 px-3.5 whitespace-nowrap">
-            <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-bold font-condensed bg-brand-50 text-brand-700 border border-brand-100">
-              ${assignedCount} task
-            </span>
+            <span class="text-xs font-semibold text-slate-800 font-display tabular-nums">${assignedCount} task</span>
           </td>
           <td class="py-3 px-3.5 whitespace-nowrap">
             ${canManageTechs ? `
-              <button type="button" onclick="BookingUI.toggleTechStatus('${t.tech_id}')" class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold font-condensed uppercase border transition-all cursor-pointer ${isActive ? 'bg-accent-50 text-accent-700 border-accent-200 hover:bg-accent-100' : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200'}" title="Nhấp để đổi trạng thái">
-                <span class="w-1.5 h-1.5 rounded-full ${isActive ? 'bg-accent-500' : 'bg-slate-400'}"></span>
+              <button type="button" onclick="BookingUI.toggleTechStatus('${t.tech_id}')" class="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer ${isActive ? 'text-emerald-700 hover:bg-emerald-50' : 'text-slate-500 hover:bg-slate-100'}" title="Nhấp để đổi trạng thái">
+                <span class="w-1.5 h-1.5 rounded-full ${isActive ? 'bg-emerald-500' : 'bg-slate-400'}"></span>
                 <span>${isActive ? 'Hoạt động' : 'Tạm dừng'}</span>
               </button>
             ` : `
-              <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold font-condensed uppercase border ${isActive ? 'bg-accent-50 text-accent-700 border-accent-200' : 'bg-slate-100 text-slate-600 border-slate-200'}">
-                <span class="w-1.5 h-1.5 rounded-full ${isActive ? 'bg-accent-500' : 'bg-slate-400'}"></span>
+              <span class="inline-flex items-center gap-1.5 text-xs font-medium ${isActive ? 'text-emerald-700' : 'text-slate-500'}">
+                <span class="w-1.5 h-1.5 rounded-full ${isActive ? 'bg-emerald-500' : 'bg-slate-400'}"></span>
                 <span>${isActive ? 'Hoạt động' : 'Tạm dừng'}</span>
               </span>
             `}
           </td>
           <td class="py-3 px-4 text-right whitespace-nowrap">
-            <div class="flex items-center justify-end gap-1.5">
-              <a href="template-report.html?tech=${t.tech_id}" class="px-2.5 py-1.5 rounded-lg border border-brand-200 bg-brand-50 hover:bg-brand-100 text-brand-700 font-semibold text-xs transition-colors inline-flex items-center gap-1 shadow-2xs" title="Xem & xuất báo cáo 16:9">
-                <svg class="w-3.5 h-3.5 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                <span>Báo cáo 16:9</span>
+            <div class="flex items-center justify-end gap-1 lg:opacity-55 lg:group-hover:opacity-100 transition-opacity">
+              <a href="template-report.html?tech=${t.tech_id}" class="h-8 px-2.5 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 font-medium text-xs transition-colors inline-flex items-center gap-1.5" title="Xem &amp; xuất báo cáo">
+                <svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                <span>Báo cáo</span>
               </a>
               ${canManageTechs ? `
-                <button type="button" onclick="BookingUI.openTechModal('${t.tech_id}')" class="p-1.5 rounded-lg text-slate-600 hover:text-brand-600 hover:bg-brand-50 transition-colors cursor-pointer" title="Sửa thông tin">
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+                <button type="button" onclick="BookingUI.openTechModal('${t.tech_id}')" class="p-1.5 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer" title="Sửa thông tin">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
                 </button>
                 <button type="button" onclick="BookingUI.deleteTech('${t.tech_id}')" class="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer" title="Xóa kỹ sư">
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                 </button>
               ` : ''}
             </div>
@@ -4651,14 +5399,14 @@ const BookingUI = {
       <!-- Desktop View (Table) -->
       <div class="hidden lg:block overflow-x-auto">
         <table class="w-full text-left text-xs text-slate-600" style="min-width: 840px;">
-          <thead class="text-[11px] font-bold font-condensed uppercase tracking-wider text-slate-400 bg-slate-50/70 border-b border-slate-100">
+          <thead class="text-[11px] font-medium text-slate-400 bg-slate-50/70 border-b border-slate-100">
             <tr>
-              <th class="py-3 px-4">Kỹ Sư</th>
-              <th class="py-3 px-3.5">Liên Hệ</th>
-              <th class="py-3 px-3.5">Chuyên Môn & Năng Lực</th>
-              <th class="py-3 px-3.5">Khối Lượng Task</th>
-              <th class="py-3 px-3.5">Trạng Thái</th>
-              <th class="py-3 px-4 text-right">Báo Cáo & Thao Tác</th>
+              <th class="py-3 px-4 font-medium">Kỹ sư</th>
+              <th class="py-3 px-3.5 font-medium">Liên hệ</th>
+              <th class="py-3 px-3.5 font-medium">Chuyên môn &amp; năng lực</th>
+              <th class="py-3 px-3.5 font-medium">Khối lượng task</th>
+              <th class="py-3 px-3.5 font-medium">Trạng thái</th>
+              <th class="py-3 px-4 text-right font-medium">Báo cáo &amp; thao tác</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-100">
@@ -4720,11 +5468,11 @@ const BookingUI = {
         if (isSuper) {
           if (phoneInput) {
             phoneInput.readOnly = false;
-            phoneInput.className = 'w-full text-xs bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-800 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-brand-500/20';
+            phoneInput.className = 'w-full text-xs bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400';
           }
           if (emailInput) {
             emailInput.readOnly = false;
-            emailInput.className = 'w-full text-xs bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-800 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-brand-500/20 font-mono';
+            emailInput.className = 'w-full text-xs bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 font-mono';
           }
           if (phoneBadge) {
             phoneBadge.className = 'inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-md';
@@ -4774,12 +5522,12 @@ const BookingUI = {
       if (phoneInput) {
         phoneInput.value = '';
         phoneInput.readOnly = false;
-        phoneInput.className = 'w-full text-xs bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-800 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-brand-500/20';
+        phoneInput.className = 'w-full text-xs bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400';
       }
       if (emailInput) {
         emailInput.value = '';
         emailInput.readOnly = false;
-        emailInput.className = 'w-full text-xs bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-800 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-brand-500/20 font-mono';
+        emailInput.className = 'w-full text-xs bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 font-mono';
       }
       if (phoneBadge) {
         phoneBadge.className = 'hidden';
@@ -4799,16 +5547,25 @@ const BookingUI = {
       if (activeCheckbox) activeCheckbox.checked = true;
     }
 
-    modal.classList.remove('hidden');
-    modal.classList.add('flex');
-    if (nameInput) nameInput.focus();
+    if (window.App && App.openModalEl) {
+      App.openModalEl(modal, () => {
+        if (nameInput) nameInput.focus();
+      });
+    } else {
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      if (nameInput) nameInput.focus();
+    }
   },
 
   closeTechModal() {
     const modal = document.getElementById('tech-modal');
     if (modal) {
-      modal.classList.add('hidden');
-      modal.classList.remove('flex');
+      if (window.App && App.closeModalEl) App.closeModalEl(modal);
+      else {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }
     }
   },
 
@@ -5092,7 +5849,7 @@ const BookingUI = {
     const isAll = this.userReferrerFilter === 'all';
 
     let html = `
-      <button type="button" onclick="BookingUI.setReferrerFilter('all')" class="px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${isAll ? 'bg-brand-600 text-white shadow-2xs' : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-100'}">
+      <button type="button" onclick="BookingUI.setReferrerFilter('all')" class="px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${isAll ? 'bg-slate-900 text-white shadow-2xs' : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-100'}">
         Tất cả (${BookingData.users.length})
       </button>
     `;
@@ -5134,9 +5891,9 @@ const BookingUI = {
       const btn = document.getElementById(`user-filter-${f}`);
       if (!btn) return;
       if (this.userFilter === f) {
-        btn.className = 'px-3 py-1.5 rounded-lg text-xs font-bold bg-white text-slate-900 shadow-2xs transition-all cursor-pointer';
+        btn.className = 'py-2.5 lg:py-3.5 text-xs font-semibold text-slate-900 border-b-2 border-slate-900 transition-all cursor-pointer whitespace-nowrap';
       } else {
-        btn.className = 'px-3 py-1.5 rounded-lg text-xs font-medium text-slate-600 hover:text-slate-900 transition-all cursor-pointer';
+        btn.className = 'py-2.5 lg:py-3.5 text-xs font-medium text-slate-500 hover:text-slate-900 border-b-2 border-transparent transition-all cursor-pointer whitespace-nowrap';
       }
     });
 
@@ -5204,11 +5961,11 @@ const BookingUI = {
 
       let roleBadge = '';
       if (u.role === 'admin') {
-        roleBadge = `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold font-condensed uppercase bg-amber-100 text-amber-900 border border-amber-300">Admin cấp cao</span>`;
+        roleBadge = `<span class="inline-flex items-center px-2 py-0.5 rounded-md text-[10.5px] font-semibold bg-amber-50 text-amber-800">Admin cấp cao</span>`;
       } else if (u.role === 'approver') {
-        roleBadge = `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold font-condensed uppercase bg-brand-50 text-brand-800 border border-brand-200">Người vận hành</span>`;
+        roleBadge = `<span class="inline-flex items-center px-2 py-0.5 rounded-md text-[10.5px] font-medium bg-slate-100 text-slate-800">Người vận hành</span>`;
       } else {
-        roleBadge = `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold font-condensed uppercase bg-slate-100 text-slate-700 border border-slate-200">Người dùng</span>`;
+        roleBadge = `<span class="inline-flex items-center px-2 py-0.5 rounded-md text-[10.5px] font-medium bg-slate-100 text-slate-600">Người dùng</span>`;
       }
 
       const cleanName = BookingData.cleanUserName(u.full_name);
@@ -5217,9 +5974,9 @@ const BookingUI = {
         <div onclick="BookingUI.openUserDetail('${u.email}')" class="p-4 hover:bg-slate-50/70 transition-colors flex items-center justify-between gap-3 cursor-pointer">
           <div class="flex items-center gap-3 min-w-0">
             ${u.avatar ? `
-              <img src="${u.avatar}" alt="" class="w-10 h-10 rounded-full object-cover border border-slate-200 flex-shrink-0">
+              <img src="${u.avatar}" alt="" class="w-10 h-10 rounded-full object-cover flex-shrink-0">
             ` : `
-              <div class="w-10 h-10 rounded-full ${isSuper ? 'bg-amber-500 text-white' : (u.role === 'approver' ? 'bg-brand-50 text-brand-700' : 'bg-slate-200 text-slate-700')} font-bold text-xs flex items-center justify-center flex-shrink-0">
+              <div class="w-10 h-10 rounded-full ${isSuper ? 'bg-amber-500 text-white' : (u.role === 'approver' ? 'bg-slate-100 text-slate-900' : 'bg-slate-200 text-slate-700')} font-bold text-xs flex items-center justify-center flex-shrink-0">
                 ${initials}
               </div>
             `}
@@ -5232,7 +5989,7 @@ const BookingUI = {
               <div class="flex items-center gap-2 mt-0.5 text-[11px] text-slate-500">
                 <span>${u.department || 'Phòng Dự án'}</span>
                 <span>•</span>
-                <span class="font-condensed font-bold text-brand-600">${perms.length}/${totalPerms} quyền</span>
+                <span class="font-display font-semibold text-slate-800">${perms.length}/${totalPerms} quyền</span>
               </div>
             </div>
           </div>
@@ -5250,27 +6007,27 @@ const BookingUI = {
 
       let roleBadge = '';
       if (u.role === 'admin') {
-        roleBadge = `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold font-condensed uppercase bg-amber-100 text-amber-900 border border-amber-300">Admin cấp cao</span>`;
+        roleBadge = `<span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold bg-amber-50 text-amber-800">Admin cấp cao</span>`;
       } else if (u.role === 'approver') {
-        roleBadge = `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold font-condensed uppercase bg-brand-50 text-brand-800 border border-brand-200">Người vận hành</span>`;
+        roleBadge = `<span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-slate-100 text-slate-800">Người vận hành</span>`;
       } else {
-        roleBadge = `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold font-condensed uppercase bg-slate-100 text-slate-700 border border-slate-200">Người dùng</span>`;
+        roleBadge = `<span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-slate-100 text-slate-600">Người dùng</span>`;
       }
 
       const ref = BookingData.getReferrer(u);
       let refDisplay = '';
       if (isSuper) {
-        refDisplay = `<span class="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold font-condensed uppercase bg-amber-50 text-amber-800 border border-amber-200">Gốc hệ thống</span>`;
+        refDisplay = `<span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-amber-50 text-amber-800">Gốc hệ thống</span>`;
       } else if (ref) {
         const refInitials = (ref.full_name || 'R').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
         refDisplay = `
           <div class="flex items-center gap-2">
-            <div class="w-6 h-6 rounded-full bg-slate-100 border border-slate-200 text-slate-700 font-bold text-[9px] flex items-center justify-center flex-shrink-0">
+            <div class="w-6 h-6 rounded-full bg-slate-100 text-slate-700 font-bold text-[9px] flex items-center justify-center flex-shrink-0">
               ${refInitials}
             </div>
             <div class="min-w-0">
-              <p class="font-bold text-slate-800 text-[11px] truncate leading-tight">${BookingData.cleanUserName(ref.full_name)}</p>
-              <p class="text-[10px] text-brand-600 font-mono truncate">${ref.email}</p>
+              <p class="font-semibold text-slate-800 text-[11px] truncate leading-tight">${BookingData.cleanUserName(ref.full_name)}</p>
+              <p class="text-[10px] text-slate-500 font-mono truncate">${ref.email}</p>
             </div>
           </div>
         `;
@@ -5287,14 +6044,14 @@ const BookingUI = {
           <td class="py-3 px-4">
             <div class="flex items-center gap-2.5">
               ${u.avatar ? `
-                <img src="${u.avatar}" alt="" class="w-8 h-8 rounded-full object-cover border border-slate-200 flex-shrink-0">
+                <img src="${u.avatar}" alt="" class="w-8 h-8 rounded-full object-cover flex-shrink-0">
               ` : `
-                <div class="w-8 h-8 rounded-full ${isSuper ? 'bg-amber-500 text-white' : (u.role === 'approver' ? 'bg-brand-50 text-brand-700' : 'bg-slate-200 text-slate-700')} font-bold text-xs flex items-center justify-center flex-shrink-0">
+                <div class="w-8 h-8 rounded-full ${isSuper ? 'bg-amber-500 text-white' : (u.role === 'approver' ? 'bg-slate-100 text-slate-900' : 'bg-slate-200 text-slate-700')} font-bold text-xs flex items-center justify-center flex-shrink-0">
                   ${initials}
                 </div>
               `}
               <div class="min-w-0">
-                <p class="font-bold text-slate-900 group-hover:text-brand-600 transition-colors truncate">${cleanName}</p>
+                <p class="font-semibold text-slate-900 group-hover:text-slate-900 transition-colors truncate">${cleanName}</p>
                 <p class="text-[11px] text-slate-400 truncate font-mono">${u.email}</p>
               </div>
             </div>
@@ -5303,14 +6060,14 @@ const BookingUI = {
           <td class="py-3 px-3.5 text-slate-700 font-medium">${u.department || 'Phòng Dự án'}</td>
           <td class="py-3 px-3.5">${roleBadge}</td>
           <td class="py-3 px-3.5">
-            <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold ${perms.length === totalPerms ? 'bg-amber-100 text-amber-800' : (perms.length >= 8 ? 'bg-brand-50 text-brand-700' : 'bg-slate-100 text-slate-600')} font-condensed">
+            <span class="text-xs font-semibold font-display tabular-nums ${perms.length === totalPerms ? 'text-amber-700' : 'text-slate-700'}">
               ${perms.length}/${totalPerms} quyền
             </span>
           </td>
           <td class="py-3 px-4 text-right whitespace-nowrap">
-            <div class="flex items-center justify-end gap-1.5">
+            <div class="flex items-center justify-end gap-1 lg:opacity-55 lg:group-hover:opacity-100 transition-opacity">
               ${canManagePerms ? `
-                <button type="button" onclick="event.stopPropagation(); BookingUI.openUserDetail('${u.email}')" class="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-slate-100 hover:bg-brand-50 text-slate-700 hover:text-brand-600 transition-colors cursor-pointer flex items-center gap-1">
+                <button type="button" onclick="event.stopPropagation(); BookingUI.openUserDetail('${u.email}')" class="px-2.5 py-1.5 rounded-lg text-xs font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer flex items-center gap-1">
                   <span>Phân quyền</span>
                 </button>
               ` : ''}
@@ -5372,6 +6129,7 @@ const BookingUI = {
     if (listView) listView.classList.add('hidden');
     if (addView) addView.classList.add('hidden');
     detailView.classList.remove('hidden');
+    this.syncHeaderBackButton();
 
     const breadcrumbName = document.getElementById('user-detail-breadcrumb-name');
     const pageTitle = document.getElementById('user-detail-page-title');
@@ -5409,7 +6167,7 @@ const BookingUI = {
         emailInput.value = user.email;
         emailInput.readOnly = !callerIsAdmin;
         emailInput.className = callerIsAdmin
-          ? 'w-full text-xs bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-800 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-brand-500/20 font-mono'
+          ? 'w-full text-xs bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 font-mono'
           : 'w-full text-xs bg-slate-100 border border-slate-200 rounded-xl p-2.5 text-slate-500 font-mono cursor-not-allowed';
       }
       if (emailHint) {
@@ -5424,7 +6182,7 @@ const BookingUI = {
         phoneInput.value = user.phone || '';
         phoneInput.readOnly = !callerIsAdmin;
         phoneInput.className = callerIsAdmin
-          ? 'w-full text-xs bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-800 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-brand-500/20'
+          ? 'w-full text-xs bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400'
           : 'w-full text-xs bg-slate-100 border border-slate-200 rounded-xl p-2.5 text-slate-500 cursor-not-allowed';
       }
 
@@ -5434,7 +6192,7 @@ const BookingUI = {
         passwordInput.disabled = !callerIsAdmin;
         passwordInput.readOnly = !callerIsAdmin;
         passwordInput.className = callerIsAdmin
-          ? 'w-full text-xs bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-800 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-brand-500/20 font-medium'
+          ? 'w-full text-xs bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 font-medium'
           : 'w-full text-xs bg-slate-100 border border-slate-200 rounded-xl p-2.5 text-slate-500 font-medium cursor-not-allowed';
       }
       if (passHint) passHint.classList.toggle('hidden', callerIsAdmin);
@@ -5513,6 +6271,7 @@ const BookingUI = {
     if (detailView) detailView.classList.add('hidden');
     if (addView) addView.classList.add('hidden');
     if (listView) listView.classList.remove('hidden');
+    this.syncHeaderBackButton();
     this.renderUsers();
     this.renderReferrers();
   },
@@ -5546,6 +6305,7 @@ const BookingUI = {
     if (listView) listView.classList.add('hidden');
     if (detailView) detailView.classList.add('hidden');
     addView.classList.remove('hidden');
+    this.syncHeaderBackButton();
 
     // Reset form fields
     const nameEl = document.getElementById('user-add-name');
@@ -5625,7 +6385,7 @@ const BookingUI = {
       const perms = groups[grpName];
       return `
         <div class="py-3.5 first:pt-2 last:pb-0 space-y-2">
-          <p class="font-condensed text-xs font-extrabold uppercase tracking-wider text-brand-700 flex items-center justify-between">
+          <p class="font-condensed text-xs font-extrabold uppercase tracking-wider text-slate-900 flex items-center justify-between">
             <span>${grpName}</span>
             <span class="text-[11px] text-slate-400 font-semibold">${perms.length} chức năng</span>
           </p>
@@ -5634,7 +6394,7 @@ const BookingUI = {
               const checked = selectedKeys.includes(p.key) ? 'checked' : '';
               return `
                 <label class="flex items-start gap-2.5 p-2 rounded-lg hover:bg-slate-50 cursor-pointer text-xs transition-colors">
-                  <input type="checkbox" name="user-add-perm-checkbox" value="${p.key}" ${checked} onchange="BookingUI.updateAddPermCountBadge()" class="mt-0.5 w-4 h-4 rounded text-brand-600 focus:ring-brand-500 border-slate-300 cursor-pointer">
+                  <input type="checkbox" name="user-add-perm-checkbox" value="${p.key}" ${checked} onchange="BookingUI.updateAddPermCountBadge()" class="mt-0.5 w-4 h-4 rounded text-slate-900 focus:ring-slate-900 border-slate-300 cursor-pointer">
                   <div class="min-w-0">
                     <span class="font-semibold text-slate-900 block leading-tight">${p.label}</span>
                     <span class="text-[10px] text-slate-400 block mt-0.5">${p.desc}</span>
@@ -5799,7 +6559,7 @@ const BookingUI = {
       const perms = groups[grpName];
       return `
         <div class="py-3.5 first:pt-2 last:pb-0 space-y-2">
-          <p class="font-condensed text-xs font-extrabold uppercase tracking-wider text-brand-700 flex items-center justify-between">
+          <p class="font-condensed text-xs font-extrabold uppercase tracking-wider text-slate-900 flex items-center justify-between">
             <span>${grpName}</span>
             <span class="text-[11px] text-slate-400 font-semibold">${perms.length} chức năng</span>
           </p>
@@ -5808,7 +6568,7 @@ const BookingUI = {
               const checked = selectedKeys.includes(p.key) ? 'checked' : '';
               return `
                 <label class="flex items-start gap-2.5 p-2 rounded-lg hover:bg-slate-50 cursor-pointer text-xs transition-colors">
-                  <input type="checkbox" name="user-detail-perm-checkbox" value="${p.key}" ${checked} onchange="BookingUI.updateDetailPermCountBadge()" class="mt-0.5 w-4 h-4 rounded text-brand-600 focus:ring-brand-500 border-slate-300 cursor-pointer">
+                  <input type="checkbox" name="user-detail-perm-checkbox" value="${p.key}" ${checked} onchange="BookingUI.updateDetailPermCountBadge()" class="mt-0.5 w-4 h-4 rounded text-slate-900 focus:ring-slate-900 border-slate-300 cursor-pointer">
                   <div class="min-w-0">
                     <span class="font-semibold text-slate-900 block leading-tight">${p.label}</span>
                     <span class="text-[10px] text-slate-400 block mt-0.5">${p.desc}</span>
@@ -5897,7 +6657,7 @@ const BookingUI = {
       return `
         <tr onclick="BookingUI.openDetailModal('${bId}')" class="hover:bg-slate-50/80 transition-colors cursor-pointer group">
           <td class="py-2.5 px-3">
-            <span class="font-bold text-slate-900 font-condensed tracking-wide text-xs bg-slate-100 group-hover:bg-brand-50 group-hover:text-brand-700 px-2 py-0.5 rounded-md border border-slate-200/60 transition-colors">${bId}</span>
+            <span class="font-bold text-slate-900 font-condensed tracking-wide text-xs bg-slate-100 group-hover:bg-slate-100 group-hover:text-slate-900 px-2 py-0.5 rounded-md border border-slate-200/60 transition-colors">${bId}</span>
           </td>
           <td class="py-2.5 px-3">
             <div class="font-bold text-slate-900 text-xs">${b.title || 'Task kỹ thuật'}</div>
@@ -5918,7 +6678,7 @@ const BookingUI = {
             </span>
           </td>
           <td class="py-2.5 px-3 text-right">
-            <button type="button" onclick="event.stopPropagation(); BookingUI.openDetailModal('${bId}')" class="px-2.5 py-1 rounded-lg text-xs font-bold text-brand-600 hover:text-brand-700 hover:bg-brand-50 border border-brand-200/60 hover:border-brand-300 transition-all cursor-pointer inline-flex items-center gap-1 shadow-2xs">
+            <button type="button" onclick="event.stopPropagation(); BookingUI.openDetailModal('${bId}')" class="px-2.5 py-1 rounded-lg text-xs font-bold text-slate-900 hover:text-slate-900 hover:bg-slate-100 border border-slate-200 hover:border-slate-400 transition-all cursor-pointer inline-flex items-center gap-1 shadow-2xs">
               <span>Chi tiết</span>
               <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
             </button>
@@ -6135,14 +6895,21 @@ const BookingUI = {
     this.togglePasswordAccordion(false);
 
     // Open full-screen modal & lock background scroll
-    modal.classList.remove('hidden');
-    modal.classList.add('flex');
     document.body.classList.add('overflow-hidden');
+    if (window.App && App.openModalEl) App.openModalEl(modal);
+    else {
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
   },
 
   closeProfileModal() {
     const modal = document.getElementById('user-profile-modal');
     if (modal) {
+      if (window.App && App.closeModalEl) {
+        App.closeModalEl(modal, () => document.body.classList.remove('overflow-hidden'));
+        return;
+      }
       modal.classList.add('hidden');
       modal.classList.remove('flex');
     }
@@ -6498,7 +7265,7 @@ const BookingUI = {
     }
     this.applyRolePermissions();
     this.switchTab('timeline');
-    const authBadge = result.user?.auth_verified ? ' (🔒 Đã xác thực Supabase Auth)' : '';
+    const authBadge = result.user?.auth_verified ? ' (Đã xác thực Supabase Auth)' : '';
     Toast.show(`Đăng nhập thành công: ${result.user.full_name}${authBadge}`, 'success', 'K-Workspace');
     return true;
   },
@@ -6765,16 +7532,22 @@ const BookingUI = {
     if (selectTpl) selectTpl.value = this.selectedEmailTemplateKey || 'tech_invite';
     if (targetEmailInput) targetEmailInput.value = BookingData.currentUser?.email || '';
     if (modal) {
-      modal.classList.remove('hidden');
-      modal.classList.add('flex');
+      if (window.App && App.openModalEl) App.openModalEl(modal);
+      else {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+      }
     }
   },
 
   closeSendTestModal() {
     const modal = document.getElementById('email-test-modal');
     if (modal) {
-      modal.classList.add('hidden');
-      modal.classList.remove('flex');
+      if (window.App && App.closeModalEl) App.closeModalEl(modal);
+      else {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }
     }
   },
 

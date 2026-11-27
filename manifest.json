@@ -36,5 +36,28 @@
       "type": "image/png",
       "purpose": "maskable"
     }
+  ],
+  "shortcuts": [
+    {
+      "name": "Đặt lịch mới",
+      "short_name": "Đặt lịch",
+      "description": "Tạo yêu cầu điều phối kỹ sư mới",
+      "url": "index.html?action=new-booking",
+      "icons": [{ "src": "images/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Lịch trực kỹ sư",
+      "short_name": "Lịch trực",
+      "description": "Xem lịch điều phối tháng và danh sách ca trực",
+      "url": "index.html?tab=timeline",
+      "icons": [{ "src": "images/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Duyệt yêu cầu",
+      "short_name": "Duyệt đơn",
+      "description": "Xử lý hàng đợi yêu cầu chờ phê duyệt",
+      "url": "index.html?tab=approval",
+      "icons": [{ "src": "images/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    }
   ]
 }

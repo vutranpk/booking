@@ -2,7 +2,7 @@
 <html lang="vi" class="h-full bg-slate-50/60">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <title>Đăng Nhập Bảo Mật | K-Workspace Portal</title>
@@ -29,9 +29,9 @@
       --color-brand-100: #dbe5f5;
       --color-brand-200: #bed0ee;
       --color-brand-500: #396bb2;
-      --color-brand-600: #213664;
-      --color-brand-700: #192b52;
-      --color-brand-800: #132140;
+      --color-brand-600: #0f172a;
+      --color-brand-700: #020617;
+      --color-brand-800: #000000;
       --color-accent-50: #f2f8ef;
       --color-accent-500: #569c43;
       --color-accent-600: #39772a;
@@ -46,17 +46,17 @@
   </style>
 
   <!-- Centralized Design System & Tailwind CDN -->
-  <script src="assets/js/core/design-system.js?v=20261109.1900"></script>
+  <script src="assets/js/core/design-system.js?v=20261126.1720"></script>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="min-h-screen font-sans text-slate-800 antialiased bg-white selection:bg-brand-600 selection:text-white flex flex-col lg:flex-row overflow-x-hidden">
+<body class="min-h-screen font-sans text-slate-800 antialiased bg-white selection:bg-slate-900 selection:text-white flex flex-col lg:flex-row overflow-x-hidden">
 
   <!-- ======================================================== -->
   <!-- 🌟 LEFT SIDE: BRAND IDENTITY & ARCHITECTURAL ATMOSPHERE -->
   <!-- ======================================================== -->
-  <aside class="bg-brand-600 w-full lg:w-[46%] xl:w-[44%] p-6 sm:p-10 lg:p-14 xl:p-16 flex flex-col justify-between relative overflow-hidden flex-shrink-0">
+  <aside class="bg-slate-950 w-full lg:w-[46%] xl:w-[44%] p-6 sm:p-10 lg:p-14 xl:p-16 flex flex-col justify-between relative overflow-hidden flex-shrink-0">
     <div class="absolute inset-0 bg-cover bg-center opacity-45" style="background-image: url('images/bg-login.webp')"></div>
-    <div class="absolute inset-0 bg-gradient-to-br from-[#0b1428]/85 via-[#192b52]/75 to-[#213664]/80"></div>
+    <div class="absolute inset-0 bg-gradient-to-br from-[#020617]/90 via-[#0f172a]/85 to-[#1e293b]/80"></div>
 
 
     <!-- Center: Punchy Brand Editorial -->
@@ -81,9 +81,9 @@
     <!-- Top Right Quick Link -->
     <div class="flex items-center justify-between">
       <div class="inline-flex items-center mb-6">
-        <img src="images/logo-full.png" alt="Phúc Sinh Consumer Corp." class="h-8 sm:h-10 w-auto object-contain">
+        <img src="images/logo-full.png" alt="Phúc Sinh Consumer Corp." class="h-9 sm:h-10 w-auto object-contain">
       </div>
-      <a href="public-reports.html" class="inline-flex items-center gap-1.5 text-xs font-bold font-condensed uppercase tracking-wider text-brand-600 hover:text-accent-600 transition-colors">
+      <a href="public-reports.html" class="inline-flex items-center gap-1.5 text-xs font-bold font-condensed uppercase tracking-wider text-slate-700 hover:text-slate-950 transition-colors">
         <span>Xem lịch trực</span>
         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
       </a>
@@ -99,7 +99,7 @@
         <!-- Headline & Subtitle -->
         <div class="mb-6 sm:mb-7">
           <span class="font-condensed text-[11px] font-bold uppercase tracking-widest text-accent-600 block mb-1">Chào mừng trở lại</span>
-          <h1 class="font-condensed text-2xl sm:text-3xl font-black text-brand-600 tracking-tight uppercase">
+          <h1 class="font-condensed text-2xl sm:text-3xl font-black text-slate-900 tracking-tight uppercase">
             Đăng Nhập Hệ Thống
           </h1>
           <p class="text-xs text-slate-500 mt-1.5">
@@ -140,7 +140,7 @@
                      autocapitalize="none"
                      value=""
                      placeholder="name@phucsinh.com"
-                     class="w-full text-xs bg-slate-50/70 hover:bg-slate-50 focus:bg-white border border-slate-200/90 focus:border-accent-500 rounded-xl pl-10 pr-3.5 py-3.5 text-slate-900 placeholder:text-slate-400 font-medium transition-all">
+                     class="w-full text-xs bg-slate-50/70 hover:bg-slate-50 focus:bg-white border border-slate-200/90 focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 rounded-xl pl-10 pr-3.5 py-3.5 text-slate-900 placeholder:text-slate-400 font-medium transition-all">
             </div>
           </div>
 
@@ -163,7 +163,7 @@
                      autocomplete="current-password"
                      value=""
                      placeholder="••••••••"
-                     class="w-full text-xs bg-slate-50/70 hover:bg-slate-50 focus:bg-white border border-slate-200/90 focus:border-accent-500 rounded-xl pl-10 pr-10 py-3.5 text-slate-900 placeholder:text-slate-400 font-medium transition-all">
+                     class="w-full text-xs bg-slate-50/70 hover:bg-slate-50 focus:bg-white border border-slate-200/90 focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 rounded-xl pl-10 pr-10 py-3.5 text-slate-900 placeholder:text-slate-400 font-medium transition-all">
               <button type="button"
                       onclick="togglePassword()"
                       class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-700 cursor-pointer transition-colors"
@@ -179,7 +179,7 @@
           <!-- Submit Button (Phúc Sinh Corporate Navy) -->
           <button id="login-submit-btn"
                   type="submit"
-                  class="w-full mt-2 py-3.5 px-5 rounded-xl bg-brand-600 hover:bg-brand-700 active:bg-brand-800 active:scale-[0.99] text-white font-condensed font-bold uppercase tracking-wider text-sm shadow-xs hover:shadow-sm flex items-center justify-center gap-2 transition-all cursor-pointer">
+                  class="w-full mt-2 py-3.5 px-5 rounded-xl bg-slate-900 hover:bg-slate-800 active:bg-slate-950 active:scale-[0.99] text-white font-condensed font-bold uppercase tracking-wider text-sm shadow-xs hover:shadow-sm flex items-center justify-center gap-2 transition-all cursor-pointer">
             <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/></svg>
             <span>Đăng Nhập Hệ Thống</span>
           </button>
@@ -191,12 +191,12 @@
           </div>
 
           <a href="public-reports.html"
-             class="w-full py-3 px-4 rounded-xl border border-slate-200 hover:border-brand-300 bg-slate-50/70 hover:bg-brand-50/50 text-slate-700 hover:text-brand-700 text-xs font-bold transition-all flex items-center justify-center gap-2 group cursor-pointer shadow-2xs">
-            <svg class="w-4 h-4 text-slate-400 group-hover:text-brand-600 transition-colors flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+             class="w-full py-3 px-4 rounded-xl border border-slate-200 hover:border-slate-400 bg-slate-50/70 hover:bg-slate-100 text-slate-700 hover:text-slate-900 text-xs font-bold transition-all flex items-center justify-center gap-2 group cursor-pointer shadow-2xs">
+            <svg class="w-4 h-4 text-slate-400 group-hover:text-slate-900 transition-colors flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
             </svg>
             <span>Tra cứu Lịch trực Kỹ sư công khai</span>
-            <svg class="w-3.5 h-3.5 text-slate-400 group-hover:text-brand-600 group-hover:translate-x-0.5 transition-all flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="w-3.5 h-3.5 text-slate-400 group-hover:text-slate-900 group-hover:translate-x-0.5 transition-all flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
             </svg>
           </a>
@@ -215,7 +215,7 @@
 
         <div class="mb-6">
           <span class="font-condensed text-[11px] font-bold uppercase tracking-widest text-accent-600 block mb-1">Hỗ trợ bảo mật tài khoản</span>
-          <h2 class="font-condensed text-2xl sm:text-3xl font-black text-brand-600 tracking-tight uppercase">
+          <h2 class="font-condensed text-2xl sm:text-3xl font-black text-slate-900 tracking-tight uppercase">
             Quên Mật Khẩu?
           </h2>
           <p class="text-xs text-slate-500 mt-1.5 leading-relaxed">
@@ -241,7 +241,7 @@
                      autocapitalize="none"
                      value=""
                      placeholder="Nhập email công việc của bạn (vd: name@phucsinh.com)"
-                     class="w-full text-xs bg-slate-50/70 hover:bg-slate-50 focus:bg-white border border-slate-200/90 focus:border-accent-500 rounded-xl pl-10 pr-3.5 py-3.5 text-slate-900 placeholder:text-slate-400 font-medium transition-all">
+                     class="w-full text-xs bg-slate-50/70 hover:bg-slate-50 focus:bg-white border border-slate-200/90 focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 rounded-xl pl-10 pr-3.5 py-3.5 text-slate-900 placeholder:text-slate-400 font-medium transition-all">
             </div>
           </div>
 

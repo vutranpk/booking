@@ -44,13 +44,23 @@ const PWANotificationManager = {
     }
   },
 
+  isStandalone() {
+    try {
+      return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+    } catch (_) {
+      return false;
+    }
+  },
+
   // 2. Lắng nghe tương tác từ Service Worker (khi người dùng bấm thông báo ngoài màn hình)
   initServiceWorkerMessageListener() {
     if (!('serviceWorker' in navigator)) return;
 
     navigator.serviceWorker.addEventListener('message', (event) => {
       if (event.data && event.data.type === 'OPEN_BOOKING_MODAL' && event.data.bookingId) {
-        if (window.BookingUI && typeof BookingUI.openDetailModal === 'function') {
+        if (window.BookingUI && typeof BookingUI.openBookingFromDeepLink === 'function') {
+          BookingUI.openBookingFromDeepLink(event.data.bookingId);
+        } else if (window.BookingUI && typeof BookingUI.openDetailModal === 'function') {
           BookingUI.openDetailModal(event.data.bookingId);
         }
       }
@@ -69,33 +79,35 @@ const PWANotificationManager = {
     window.addEventListener('appinstalled', () => {
       this.deferredInstallPrompt = null;
       this.hideInstallBanner();
+      this.closeInstallGuideModal();
       if (window.Toast) {
-        Toast.show('Ứng dụng K-Workspace đã được cài đặt vào điện thoại của bạn!', 'success', 'Cài đặt thành công');
+        Toast.show('Ứng dụng K-Workspace đã được cài đặt thành công!', 'success', 'Cài đặt thành công');
       }
     });
   },
 
   renderInstallBanner() {
+    if (this.isStandalone()) return;
     // Chỉ hiển thị banner nếu chưa từng bấm "Để sau" trong phiên này
     if (sessionStorage.getItem('k_workspace_dismiss_install') === 'true') return;
-    
+
     let banner = document.getElementById('pwa-install-banner');
     if (!banner) {
       banner = document.createElement('div');
       banner.id = 'pwa-install-banner';
-      banner.className = 'fixed bottom-4 left-4 right-4 sm:left-auto sm:right-6 sm:w-96 z-[9990] bg-white border border-slate-200/90 rounded-2xl p-4 shadow-2xl flex items-center gap-3.5 animate-bounce-in transition-all';
+      banner.className = 'fixed bottom-[5.25rem] left-3 right-3 sm:left-auto sm:right-6 lg:bottom-6 sm:w-96 z-[9990] bg-white border border-slate-200/90 rounded-2xl p-3.5 shadow-2xl flex items-center gap-3 transition-all';
       banner.innerHTML = `
-        <div class="w-12 h-12 rounded-xl bg-brand-50 border border-brand-200/80 flex items-center justify-center shrink-0">
-          <img src="images/symbol.png" alt="Logo" class="w-8 h-8 object-contain">
+        <div class="w-11 h-11 rounded-xl bg-slate-100 border border-slate-200/80 flex items-center justify-center shrink-0">
+          <img src="images/symbol.png" alt="Logo" class="w-7 h-7 object-contain">
         </div>
         <div class="flex-1 min-w-0">
-          <h4 class="text-xs font-bold text-slate-900 font-condensed uppercase tracking-wider">Cài Đặt Ứng Dụng</h4>
-          <p class="text-[11px] text-slate-600 mt-0.5 leading-snug">Cài đặt K-Workspace vào điện thoại để nhận thông báo ca trực tức thì.</p>
+          <h4 class="text-xs font-semibold text-slate-900">Cài ứng dụng K-Workspace</h4>
+          <p class="text-[11px] text-slate-500 mt-0.5 leading-snug">Mở nhanh từ màn hình chính &amp; nhận thông báo ca trực tức thì.</p>
           <div class="flex items-center gap-2 mt-2">
-            <button type="button" onclick="PWANotificationManager.triggerInstall()" class="px-3 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold font-condensed uppercase tracking-wider cursor-pointer shadow-xs transition-colors">
-              Cài Đặt Ngay
+            <button type="button" onclick="PWANotificationManager.triggerInstall()" class="h-8 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold cursor-pointer shadow-xs transition-colors">
+              Cài đặt ngay
             </button>
-            <button type="button" onclick="PWANotificationManager.dismissInstallBanner()" class="px-2.5 py-1.5 rounded-lg text-slate-500 hover:text-slate-800 text-xs font-semibold cursor-pointer transition-colors">
+            <button type="button" onclick="PWANotificationManager.dismissInstallBanner()" class="h-8 px-2.5 rounded-xl text-slate-500 hover:text-slate-800 hover:bg-slate-100 text-xs font-medium cursor-pointer transition-colors">
               Để sau
             </button>
           </div>
@@ -115,15 +127,127 @@ const PWANotificationManager = {
     this.hideInstallBanner();
   },
 
+  closeInstallGuideModal() {
+    const modal = document.getElementById('pwa-install-guide-modal');
+    if (modal) {
+      modal.remove();
+      if (window.App && typeof App.syncBodyScrollLock === 'function') {
+        App.syncBodyScrollLock();
+      } else {
+        document.body.classList.remove('overflow-hidden');
+      }
+    }
+  },
+
+  openInstallGuideModal() {
+    this.closeInstallGuideModal();
+
+    const ua = navigator.userAgent || '';
+    const isIos = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
+    const isAndroid = /Android/i.test(ua);
+    const standalone = this.isStandalone();
+
+    let title = 'Cài ứng dụng K-Workspace';
+    let subtitle = 'Truy cập nhanh như app native trên PC & điện thoại';
+    let stepsHtml = '';
+
+    if (standalone) {
+      title = 'Đang chạy ở chế độ Ứng dụng';
+      subtitle = 'K-Workspace đã được cài đặt trên thiết bị này';
+      stepsHtml = `
+        <div class="p-3.5 rounded-2xl bg-emerald-50/70 border border-emerald-200/80 flex items-start gap-3">
+          <span class="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M5 13l4 4L19 7"/></svg>
+          </span>
+          <div class="text-xs text-emerald-950 leading-relaxed">
+            <p class="font-semibold">Bạn đang sử dụng phiên bản App độc lập</p>
+            <p class="text-[11px] text-emerald-800 mt-0.5">Thông báo ca trực, phím tắt mở nhanh và tự động đồng bộ đang hoạt động.</p>
+          </div>
+        </div>
+      `;
+    } else if (isIos) {
+      stepsHtml = `
+        <ol class="space-y-2.5 text-xs text-slate-700">
+          <li class="flex items-start gap-2.5 p-2.5 rounded-xl bg-[#f7f8fa] border border-slate-200/70">
+            <span class="w-5 h-5 rounded-full bg-slate-900 text-white text-[11px] font-semibold flex items-center justify-center shrink-0">1</span>
+            <span>Mở trang bằng trình duyệt <strong>Safari</strong> trên iPhone / iPad.</span>
+          </li>
+          <li class="flex items-start gap-2.5 p-2.5 rounded-xl bg-[#f7f8fa] border border-slate-200/70">
+            <span class="w-5 h-5 rounded-full bg-slate-900 text-white text-[11px] font-semibold flex items-center justify-center shrink-0">2</span>
+            <span>Nhấn nút <strong>Chia sẻ (Share)</strong> ở thanh công cụ phía dưới màn hình.</span>
+          </li>
+          <li class="flex items-start gap-2.5 p-2.5 rounded-xl bg-[#f7f8fa] border border-slate-200/70">
+            <span class="w-5 h-5 rounded-full bg-slate-900 text-white text-[11px] font-semibold flex items-center justify-center shrink-0">3</span>
+            <span>Cuộn xuống và chọn <strong>Thêm vào MH chính (Add to Home Screen)</strong> ➔ bấm <strong>Thêm</strong>.</span>
+          </li>
+        </ol>
+      `;
+    } else if (isAndroid) {
+      stepsHtml = `
+        <ol class="space-y-2.5 text-xs text-slate-700">
+          <li class="flex items-start gap-2.5 p-2.5 rounded-xl bg-[#f7f8fa] border border-slate-200/70">
+            <span class="w-5 h-5 rounded-full bg-slate-900 text-white text-[11px] font-semibold flex items-center justify-center shrink-0">1</span>
+            <span>Nhấn biểu tượng menu <strong>⋮ (3 chấm)</strong> ở góc trên bên phải trình duyệt Chrome / Edge.</span>
+          </li>
+          <li class="flex items-start gap-2.5 p-2.5 rounded-xl bg-[#f7f8fa] border border-slate-200/70">
+            <span class="w-5 h-5 rounded-full bg-slate-900 text-white text-[11px] font-semibold flex items-center justify-center shrink-0">2</span>
+            <span>Chọn <strong>Cài đặt ứng dụng</strong> hoặc <strong>Thêm vào màn hình chính</strong>.</span>
+          </li>
+        </ol>
+      `;
+    } else {
+      stepsHtml = `
+        <ol class="space-y-2.5 text-xs text-slate-700">
+          <li class="flex items-start gap-2.5 p-2.5 rounded-xl bg-[#f7f8fa] border border-slate-200/70">
+            <span class="w-5 h-5 rounded-full bg-slate-900 text-white text-[11px] font-semibold flex items-center justify-center shrink-0">1</span>
+            <span>Nhìn ở góc phải thanh địa chỉ trình duyệt (<strong>Chrome / Edge</strong>), nhấn biểu tượng <strong>Cài đặt ứng dụng</strong> (màn hình có mũi tên xuống).</span>
+          </li>
+          <li class="flex items-start gap-2.5 p-2.5 rounded-xl bg-[#f7f8fa] border border-slate-200/70">
+            <span class="w-5 h-5 rounded-full bg-slate-900 text-white text-[11px] font-semibold flex items-center justify-center shrink-0">2</span>
+            <span>Nếu đã cài trước đó, bạn có thể mở trực tiếp <strong>K-Workspace</strong> từ Desktop, Start Menu hoặc Launchpad.</span>
+          </li>
+        </ol>
+      `;
+    }
+
+    const modal = document.createElement('div');
+    modal.id = 'pwa-install-guide-modal';
+    modal.className = 'fixed inset-0 z-[9995] flex items-end sm:items-center justify-center bg-slate-900/45 backdrop-blur-sm p-0 sm:p-4 overflow-y-auto';
+    modal.onclick = (e) => {
+      if (e.target === modal) this.closeInstallGuideModal();
+    };
+    modal.innerHTML = `
+      <div class="bg-white rounded-t-3xl sm:rounded-2xl max-w-md w-full px-4 pt-2.5 pb-[max(1rem,env(safe-area-inset-bottom))] sm:p-5 border-t sm:border border-slate-200/80 shadow-xl relative my-0 sm:my-auto">
+        <div class="w-10 h-1 bg-slate-300/80 rounded-full mx-auto mb-2.5 sm:hidden"></div>
+        <div class="flex items-center justify-between pb-3.5 border-b border-slate-100 mb-4 gap-3">
+          <div class="flex items-center gap-2.5 min-w-0">
+            <span class="w-9 h-9 rounded-xl bg-[#f7f8fa] border border-slate-200/80 flex items-center justify-center shrink-0">
+              <img src="images/symbol.png" alt="K-Workspace" class="w-5 h-5 object-contain">
+            </span>
+            <div class="min-w-0">
+              <h3 class="text-sm font-semibold text-slate-900 truncate">${title}</h3>
+              <p class="text-[11px] text-slate-500 truncate">${subtitle}</p>
+            </div>
+          </div>
+          <button type="button" onclick="PWANotificationManager.closeInstallGuideModal()" class="w-9 h-9 rounded-xl bg-[#f7f8fa] hover:bg-slate-100 border border-slate-200/80 text-slate-400 hover:text-slate-700 flex items-center justify-center cursor-pointer transition-colors shrink-0" aria-label="Đóng">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+        ${stepsHtml}
+        <div class="pt-4 mt-4 border-t border-slate-100 flex justify-end">
+          <button type="button" onclick="PWANotificationManager.closeInstallGuideModal()" class="w-full sm:w-auto h-11 sm:h-9 px-5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold transition-colors cursor-pointer">
+            Đã hiểu
+          </button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    document.body.classList.add('overflow-hidden');
+  },
+
   async triggerInstall() {
     if (!this.deferredInstallPrompt) {
-      // Hướng dẫn nếu là iPhone Safari
-      const isIos = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-      if (isIos) {
-        alert('Để cài đặt trên iPhone:\n1. Bấm nút Chia sẻ (biểu tượng mũi tên hướng lên ở dưới cùng Safari)\n2. Chọn "Thêm vào MH chính" (Add to Home Screen)');
-      } else {
-        alert('Vui lòng chọn menu cài đặt của trình duyệt và bấm "Cài đặt ứng dụng" hoặc "Thêm vào màn hình chính".');
-      }
+      this.openInstallGuideModal();
       return;
     }
 
@@ -146,7 +270,7 @@ const PWANotificationManager = {
     banner.className = 'fixed top-3 left-3 right-3 sm:left-auto sm:right-6 sm:w-96 z-[99999] bg-slate-900 text-white rounded-2xl p-3.5 shadow-2xl flex items-center justify-between gap-3 border border-slate-700 animate-in fade-in slide-in-from-top-4 duration-300';
     banner.innerHTML = `
       <div class="flex items-center gap-2.5 min-w-0">
-        <span class="w-8 h-8 rounded-xl bg-brand-500/20 text-brand-400 flex items-center justify-center shrink-0">
+        <span class="w-8 h-8 rounded-xl bg-white/10 text-white flex items-center justify-center shrink-0">
           <svg class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
         </span>
         <div class="min-w-0">
@@ -155,7 +279,7 @@ const PWANotificationManager = {
         </div>
       </div>
       <div class="flex items-center gap-1.5 shrink-0">
-        <button type="button" onclick="PWANotificationManager.forceUpdateApp()" class="px-3 py-1.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold font-condensed uppercase tracking-wider cursor-pointer shadow-xs transition-colors">
+        <button type="button" onclick="PWANotificationManager.forceUpdateApp()" class="px-3 py-1.5 rounded-xl bg-white hover:bg-slate-100 text-slate-950 text-xs font-bold font-condensed uppercase tracking-wider cursor-pointer shadow-xs transition-colors">
           Cập Nhật
         </button>
         <button type="button" onclick="document.getElementById('pwa-update-banner')?.remove()" class="p-1.5 text-slate-400 hover:text-white rounded-lg transition-colors cursor-pointer">
@@ -198,10 +322,14 @@ const PWANotificationManager = {
   // 4. Kiểm tra và hiển thị nút Bật thông báo
   checkAndRenderPermissionPrompt() {
     if (!('Notification' in window)) return;
-    
-    // Nếu quyền đang ở trạng thái 'default' (chưa cho phép hoặc từ chối)
+
+    // Nếu quyền đang ở trạng thái 'default', đợi splash screen ẩn hẳn mới hiển thị gọn gàng
     if (Notification.permission === 'default') {
-      this.renderNotificationPromptBanner();
+      setTimeout(() => {
+        if (Notification.permission === 'default') {
+          this.renderNotificationPromptBanner();
+        }
+      }, 1200);
     }
   },
 
@@ -212,19 +340,19 @@ const PWANotificationManager = {
     if (!promptEl) {
       promptEl = document.createElement('div');
       promptEl.id = 'pwa-notif-permission-banner';
-      promptEl.className = 'fixed top-18 left-4 right-4 sm:left-auto sm:right-6 sm:w-96 z-[9980] bg-gradient-to-r from-brand-50 to-white border border-brand-200 rounded-2xl p-3.5 shadow-xl flex items-start gap-3 transition-all';
+      promptEl.className = 'fixed top-[4.25rem] left-3 right-3 sm:left-auto sm:right-6 lg:top-6 sm:w-96 z-[9980] bg-white border border-slate-200/90 rounded-2xl p-3.5 shadow-xl flex items-start gap-3 transition-all';
       promptEl.innerHTML = `
-        <div class="w-10 h-10 rounded-xl bg-brand-600 text-white flex items-center justify-center shrink-0 shadow-xs mt-0.5">
+        <div class="w-10 h-10 rounded-xl bg-slate-900 text-white flex items-center justify-center shrink-0 shadow-xs mt-0.5">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
         </div>
         <div class="flex-1 min-w-0">
-          <h5 class="text-xs font-bold text-slate-900 font-condensed uppercase tracking-wider">Bật Thông Báo Ca Trực</h5>
-          <p class="text-[11px] text-slate-600 mt-0.5 leading-relaxed">Nhận thông báo khi có lịch làm việc mới, ca được duyệt hoặc cần hoàn thành.</p>
+          <h5 class="text-xs font-semibold text-slate-900">Bật thông báo ca trực</h5>
+          <p class="text-[11px] text-slate-500 mt-0.5 leading-relaxed">Nhận thông báo tức thì khi có lịch làm việc mới hoặc ca được duyệt.</p>
           <div class="flex items-center gap-2 mt-2">
-            <button type="button" onclick="PWANotificationManager.requestPermission()" class="px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold font-condensed uppercase tracking-wider cursor-pointer shadow-xs transition-colors">
-              Bật Thông Báo
+            <button type="button" onclick="PWANotificationManager.requestPermission()" class="h-8 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold cursor-pointer shadow-xs transition-colors">
+              Bật thông báo
             </button>
-            <button type="button" onclick="PWANotificationManager.dismissNotificationPrompt()" class="px-2 py-1 rounded-lg text-slate-400 hover:text-slate-600 text-xs cursor-pointer transition-colors">
+            <button type="button" onclick="PWANotificationManager.dismissNotificationPrompt()" class="h-8 px-2.5 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 text-xs font-medium cursor-pointer transition-colors">
               Bỏ qua
             </button>
           </div>
@@ -243,7 +371,9 @@ const PWANotificationManager = {
   // 5. Yêu cầu cấp quyền Notification
   async requestPermission() {
     if (!('Notification' in window)) {
-      alert('Thiết bị hoặc trình duyệt này không hỗ trợ Thông báo hệ thống.');
+      if (window.Toast) {
+        Toast.show('Trình duyệt hiện tại chưa hỗ trợ thông báo đẩy hệ thống. Trên iPhone/iPad, hãy cài ứng dụng ra Màn hình chính trước.', 'info', 'Chưa hỗ trợ');
+      }
       return false;
     }
 
@@ -380,7 +510,7 @@ const PWANotificationManager = {
     if (isAssignedTech) {
       if (eventType === 'INSERT') {
         this.showNotification({
-          title: '🔔 Bạn có ca trực mới!',
+          title: 'Bạn có ca trực mới!',
           body: `Ca "${booking.title || 'Nhiệm vụ mới'}" ngày ${booking.booking_date} vừa được tạo.`,
           booking_id: booking.booking_id,
           tag: `assigned-${booking.booking_id}`,
@@ -389,7 +519,7 @@ const PWANotificationManager = {
       } else if (eventType === 'UPDATE') {
         if (oldRec && oldRec.status !== 'APPROVED' && newRec.status === 'APPROVED') {
           this.showNotification({
-            title: '✅ Ca trực đã được phê duyệt!',
+            title: 'Ca trực đã được phê duyệt!',
             body: `Ca "${booking.title}" ngày ${booking.booking_date} đã chính thức được duyệt.`,
             booking_id: booking.booking_id,
             tag: `approved-${booking.booking_id}`,
@@ -397,7 +527,7 @@ const PWANotificationManager = {
           });
         } else if (oldRec && (oldRec.booking_date !== newRec.booking_date || oldRec.start_time !== newRec.start_time)) {
           this.showNotification({
-            title: '📅 Lịch ca trực đã được cập nhật!',
+            title: 'Lịch ca trực đã được cập nhật!',
             body: `Ca "${booking.title}" đã được dời sang ngày ${newRec.booking_date} (${newRec.start_time || '08:00'}).`,
             booking_id: booking.booking_id,
             tag: `rescheduled-${booking.booking_id}`,
@@ -411,7 +541,7 @@ const PWANotificationManager = {
     else if (isApproverOrAdmin) {
       if (eventType === 'INSERT' && booking.status === 'PENDING') {
         this.showNotification({
-          title: '📋 Yêu cầu ca trực mới cần duyệt',
+          title: 'Yêu cầu ca trực mới cần duyệt',
           body: `Đơn từ ${booking.requester_email || 'User'}: "${booking.title}" ngày ${booking.booking_date}.`,
           booking_id: booking.booking_id,
           tag: `pending-${booking.booking_id}`,
@@ -419,7 +549,7 @@ const PWANotificationManager = {
         });
       } else if (eventType === 'UPDATE' && oldRec?.status === 'APPROVED' && newRec?.status === 'IN_PROGRESS') {
         this.showNotification({
-          title: '🟢 Kỹ sư đã bắt đầu ca trực',
+          title: 'Kỹ sư đã bắt đầu ca trực',
           body: `Kỹ sư ${booking.tech_id} đã nhấn bắt đầu ca "${booking.title}".`,
           booking_id: booking.booking_id,
           tag: `started-${booking.booking_id}`,
@@ -432,7 +562,7 @@ const PWANotificationManager = {
     else if (isOwner && eventType === 'UPDATE') {
       if (oldRec?.status === 'PENDING' && newRec?.status === 'APPROVED') {
         this.showNotification({
-          title: '🎉 Yêu cầu của bạn đã được duyệt!',
+          title: 'Yêu cầu của bạn đã được duyệt!',
           body: `Ca "${booking.title}" ngày ${booking.booking_date} đã được phê duyệt thành công.`,
           booking_id: booking.booking_id,
           tag: `user-approved-${booking.booking_id}`,
@@ -440,7 +570,7 @@ const PWANotificationManager = {
         });
       } else if (oldRec?.status === 'PENDING' && newRec?.status === 'REJECTED') {
         this.showNotification({
-          title: '❌ Yêu cầu của bạn bị từ chối',
+          title: 'Yêu cầu của bạn bị từ chối',
           body: `Lý do: ${booking.reject_reason || 'Không có lý do cụ thể'}.`,
           booking_id: booking.booking_id,
           tag: `user-rejected-${booking.booking_id}`,

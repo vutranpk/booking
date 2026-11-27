@@ -9,7 +9,7 @@ const Toast = {
       this.container.id = 'toast-container';
       document.body.appendChild(this.container);
     }
-    this.container.className = 'fixed top-5 right-5 z-[9999] flex flex-col gap-2.5 max-w-md w-full pointer-events-none px-4 sm:px-0';
+    this.container.className = 'fixed top-[4.25rem] sm:top-5 left-3 right-3 sm:left-auto sm:right-5 z-[9999] flex flex-col gap-2.5 sm:max-w-md sm:w-full pointer-events-none';
   },
 
   show(message, type = 'info', title = '') {
@@ -35,8 +35,8 @@ const Toast = {
         defaultTitle: 'Chú ý'
       },
       info: {
-        bg: 'bg-white border-brand-300 text-slate-900 ring-2 ring-brand-500/20',
-        iconBg: 'bg-brand-600 text-white',
+        bg: 'bg-white border-slate-200 text-slate-900 ring-2 ring-slate-900/10',
+        iconBg: 'bg-slate-900 text-white',
         icon: '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>',
         defaultTitle: 'Thông báo hệ thống'
       }

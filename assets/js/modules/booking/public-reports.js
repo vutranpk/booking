@@ -1,4 +1,4 @@
-(() => {
+﻿(() => {
   const $ = (id) => document.getElementById(id);
   const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]);
   const state = {
@@ -86,7 +86,7 @@
       <button type="button" data-tech-id="all" aria-pressed="${isAll}"
               class="hidden lg:inline-flex h-9 px-3.5 rounded-full text-xs font-bold font-condensed uppercase tracking-wider transition-all items-center gap-1.5 shrink-0 cursor-pointer border ${
                 isAll
-                  ? 'bg-brand-600 text-white border-brand-600 shadow-2xs'
+                  ? 'bg-slate-900 text-white border-slate-900 shadow-2xs'
                   : 'bg-white text-slate-700 hover:bg-slate-100 border-slate-200/90'
               }"
               title="Xem lịch tất cả kỹ sư">
@@ -108,7 +108,7 @@
                 title="${escapeHtml(engineer.name)} (${shiftCount} ca trong tháng) • Nhấn để lọc"
                 class="relative w-10 h-10 lg:w-auto lg:h-9 p-0.5 lg:pl-1.5 lg:pr-3 lg:py-0 rounded-full transition-all shrink-0 inline-flex items-center justify-center lg:justify-start gap-2 cursor-pointer border ${
                   active
-                    ? 'bg-brand-600 text-white border-brand-600 ring-2 ring-brand-600 ring-offset-1 lg:ring-0 shadow-xs'
+                    ? 'bg-slate-900 text-white border-slate-900 ring-2 ring-slate-900 ring-offset-1 lg:ring-0 shadow-xs'
                     : isDimmed
                       ? 'bg-white text-slate-600 border-slate-200/80 opacity-50 hover:opacity-90 lg:opacity-100 lg:hover:bg-slate-100'
                       : 'bg-white text-slate-700 hover:bg-slate-100 border-slate-200/90 shadow-2xs'
@@ -124,7 +124,7 @@
             active
               ? 'bg-accent-600 text-white'
               : shiftCount > 0
-                ? 'bg-brand-600 text-white'
+                ? 'bg-slate-900 text-white'
                 : 'bg-slate-200 text-slate-600'
           }">${shiftCount}</span>
         </button>
@@ -190,7 +190,7 @@
             <div class="space-y-1">
               <p class="font-condensed text-xs font-bold text-slate-900">${dateLabel(dStart)}${dEnd !== dStart ? ` → ${dateLabel(dEnd)}` : ''}</p>
               <div class="flex items-center gap-1.5 pt-1 border-t border-slate-200/70 text-xs">
-                <svg class="w-3.5 h-3.5 text-brand-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 1118 0z"/></svg>
+                <svg class="w-3.5 h-3.5 text-slate-700 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 1118 0z"/></svg>
                 <span class="font-mono text-xs font-bold text-slate-900 tracking-tight">${timeLabel(detail.start_time) || '08:00'} - ${timeLabel(detail.end_time) || '17:00'}</span>
               </div>
             </div>
@@ -343,7 +343,7 @@
         html += `
           <div class="min-h-[78px] sm:min-h-[126px] p-1 sm:p-1.5 flex flex-col justify-start gap-0.5 sm:gap-1 transition-all relative ${
             isToday
-              ? 'bg-brand-50/25 ring-1 ring-inset ring-brand-400 z-10'
+              ? 'bg-slate-100/60 ring-1 ring-inset ring-slate-300 z-10'
               : dayInfo.isCurrentMonth
                 ? 'bg-white hover:bg-slate-50/70'
                 : 'bg-slate-50/40'
@@ -351,7 +351,7 @@
             <!-- Date Number (Top-left aligned, matching index.html) -->
             <div class="h-5 sm:h-6 flex items-center justify-between px-0.5 select-none mb-0.5">
               ${isToday ? `
-                <span class="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-brand-600 text-white flex items-center justify-center text-[10px] sm:text-xs font-bold font-condensed shadow-2xs">
+                <span class="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-slate-900 text-white flex items-center justify-center text-[10px] sm:text-xs font-bold font-condensed shadow-2xs">
                   ${dayNum}
                 </span>
               ` : `
@@ -359,7 +359,7 @@
                   !dayInfo.isCurrentMonth
                     ? 'text-slate-300 font-normal'
                     : isSunday
-                      ? 'text-burgundy-800 font-bold'
+                      ? 'text-rose-600 font-bold'
                       : 'text-slate-700 font-bold'
                 }">
                   ${showMonthTag ? `<span class="sm:hidden">${dayNum}/${monthNum}</span><span class="hidden sm:inline">${dayNum} thg ${monthNum}</span>` : dayNum}
@@ -511,7 +511,7 @@
     container.innerHTML = `
       <div class="px-4 py-2.5 bg-slate-50/70 border-b border-slate-100 flex items-center justify-between">
         <span class="font-condensed text-xs font-bold uppercase tracking-wider text-slate-700">Danh sách chi tiết lịch trực trong tháng</span>
-        <span class="font-condensed text-xs font-bold text-brand-600">${sorted.length} ca</span>
+        <span class="font-condensed text-xs font-bold text-slate-900">${sorted.length} ca</span>
       </div>
       <div class="divide-y divide-slate-100">
         ${Object.keys(grouped).map((dateStr) => {
@@ -523,8 +523,8 @@
           return `
             <div class="p-3.5 sm:px-5 flex items-start gap-3.5">
               <div class="w-12 flex-shrink-0 text-center pt-0.5">
-                <span class="block text-[10px] font-condensed font-bold uppercase tracking-wider ${isSun ? 'text-burgundy-800' : 'text-slate-400'}">${dow}</span>
-                <span class="block text-lg font-condensed font-black leading-tight ${isSun ? 'text-burgundy-800' : 'text-slate-900'}">${pad(d)}/${pad(m)}</span>
+                <span class="block text-[10px] font-condensed font-bold uppercase tracking-wider ${isSun ? 'text-rose-600 font-bold' : 'text-slate-400'}">${dow}</span>
+                <span class="block text-lg font-condensed font-black leading-tight ${isSun ? 'text-rose-600 font-bold' : 'text-slate-900'}">${pad(d)}/${pad(m)}</span>
               </div>
               <div class="flex-1 min-w-0 space-y-2">
                 ${items.map((row) => {
@@ -540,8 +540,8 @@
                       <div class="min-w-0 flex-1">
                         <div class="flex items-center gap-2 flex-wrap">
                           <p class="text-xs font-bold text-slate-900 truncate">${escapeHtml(title)}</p>
-                          ${timeText ? `<span class="inline-flex items-center gap-1 font-mono font-bold text-brand-700 bg-brand-50 border border-brand-200/80 px-1.5 py-0.5 rounded text-[10px]"><svg class="w-2.5 h-2.5 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 1118 0z"/></svg>${timeText}</span>` : ''}
-                          ${isMulti ? `<span class="text-[10px] font-condensed font-bold text-brand-700 bg-brand-50 px-1.5 py-0.5 rounded">→ ${dateLabel(row.end_date)}</span>` : ''}
+                          ${timeText ? `<span class="inline-flex items-center gap-1 font-mono font-bold text-slate-800 bg-slate-100 border border-slate-200/80 px-1.5 py-0.5 rounded text-[10px]"><svg class="w-2.5 h-2.5 text-slate-900" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 1118 0z"/></svg>${timeText}</span>` : ''}
+                          ${isMulti ? `<span class="text-[10px] font-condensed font-bold text-slate-800 bg-slate-100 px-1.5 py-0.5 rounded">→ ${dateLabel(row.end_date)}</span>` : ''}
                         </div>
                         <div class="flex items-center gap-2 mt-1 text-[11px] text-slate-500">
                           <span class="font-semibold text-slate-700">${escapeHtml(row.engineer_name)}</span>
@@ -702,7 +702,7 @@
       authArea.appendChild(badge);
     }
 
-    const backLink = el('a', 'shrink-0 h-9 inline-flex items-center gap-1.5 rounded-xl bg-brand-600 hover:bg-brand-700 px-3.5 text-xs font-bold font-condensed uppercase tracking-wider text-white transition shadow-xs');
+    const backLink = el('a', 'shrink-0 h-9 inline-flex items-center gap-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 active:bg-slate-950 px-3.5 text-xs font-bold font-condensed uppercase tracking-wider text-white transition shadow-xs');
     backLink.href = 'index.html';
     backLink.innerHTML = `
       <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>

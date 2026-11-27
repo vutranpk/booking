@@ -1,10 +1,21 @@
 // K-Workspace Service Worker (PWA & Push Notifications)
-// Version: 20261121.01
+// Version: 20261127.02
 
-const CACHE_NAME = 'k-workspace-v1';
+const CACHE_NAME = 'k-workspace-v2';
+const CORE_SHELL_URLS = [
+  './',
+  './index.html',
+  './login.html',
+  './manifest.json'
+];
 
 self.addEventListener('install', (event) => {
-  self.skipWaiting();
+  event.waitUntil(
+    caches.open(CACHE_NAME)
+      .then((cache) => Promise.allSettled(CORE_SHELL_URLS.map((u) => cache.add(u))))
+      .catch(() => {})
+      .then(() => self.skipWaiting())
+  );
 });
 
 self.addEventListener('activate', (event) => {
@@ -103,11 +114,39 @@ self.addEventListener('notificationclick', (event) => {
 });
 
 // ==========================================
-// 4. FETCH PASS-THROUGH (Yêu cầu chuẩn Chrome PWA WebAPK)
+// 4. NETWORK-FIRST SHELL CACHE (PWA WebAPK & Offline Resilience)
 // ==========================================
 self.addEventListener('fetch', (event) => {
+  const req = event.request;
+  if (req.method !== 'GET') return;
+
+  let url;
+  try {
+    url = new URL(req.url);
+  } catch (_) {
+    return;
+  }
+
+  // Bypass cross-origin APIs (Supabase REST/Realtime, CDNs, chrome-extension)
+  if (url.origin !== self.location.origin) return;
+
   event.respondWith(
-    fetch(event.request).catch(() => caches.match(event.request))
+    fetch(req)
+      .then((res) => {
+        if (res && res.ok && res.type === 'basic') {
+          const clone = res.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(req, clone)).catch(() => {});
+        }
+        return res;
+      })
+      .catch(async () => {
+        const cached = await caches.match(req, { ignoreSearch: true });
+        if (cached) return cached;
+        if (req.mode === 'navigate') {
+          return caches.match('./index.html');
+        }
+        return Response.error();
+      })
   );
 });
 

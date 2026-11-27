@@ -6,102 +6,102 @@
  * trang `design-system.html` (trực quan) và `index.html`.
  */
 
-// Bảng màu mặc định chuẩn WCAG 2.2 AA xoay quanh 2 màu chủ đạo #213664 và #569c43
+// Bảng màu mặc định chuẩn Orven SaaS Light Mode (Slate-900, Emerald-500 & Rose-600)
 const DEFAULT_DESIGN_TOKENS = {
-  themeName: 'Phúc Sinh Corporate (Navy & Botanical Green)',
+  themeName: 'Orven Modern SaaS (Slate-900 & High-Tech Emerald)',
   brand: {
-    50: '#f0f4fb',   // Nền thẻ nhạt tinh khiết
-    100: '#dbe5f5',  // Viền nhẹ, badge background
-    200: '#bed0ee',  // Viền active
-    300: '#93b1df',
-    400: '#618dcb',
-    500: '#396bb2',  // Accent phụ
-    600: '#213664',  // PRIMARY NAVY (Seed 1: Phúc Sinh Corporate Navy - Tương phản 12.0:1 trên nền trắng - Đạt AAA)
-    700: '#192b52',  // Hover nút chính (Tương phản 14.8:1 - Đạt AAA)
-    800: '#132140',  // Active / Pressed (Tương phản 17.5:1 - Đạt AAA)
-    900: '#0d172e',
-    950: '#070c19',
+    50: '#f8fafc',   // Slate-50: Nền thẻ nhạt tinh khiết
+    100: '#f1f5f9',  // Slate-100: Viền nhẹ, badge background
+    200: '#e2e8f0',  // Slate-200: Viền active, divider
+    300: '#cbd5e1',  // Slate-300
+    400: '#94a3b8',  // Slate-400
+    500: '#64748b',  // Slate-500: Text phụ
+    600: '#0f172a',  // Slate-900: Primary Action & Brand Identity
+    700: '#020617',  // Slate-950: Hover nút chính
+    800: '#000000',  // Pure Black: Active / Pressed
+    900: '#000000',
+    950: '#000000',
   },
   accent: {
-    50: '#f2f8ef',   // Nền thẻ xanh nhạt
-    100: '#e0f0da',  // Viền xanh nhạt
-    200: '#c4e3b9',  // Viền xanh active
-    300: '#9ccf8c',
-    400: '#73b65e',
-    500: '#569c43',  // SIGNATURE BOTANICAL GREEN (Seed 2: Phúc Sinh Nature Green - Biểu tượng, accent, status dot)
-    600: '#39772a',  // HIGH-CONTRAST GREEN (Đã tinh chỉnh tương phản WCAG 5.17:1 trên nền trắng & chữ trắng)
-    700: '#2b5c1f',  // Text / Hover (Tương phản 7.55:1 - Đạt AAA)
-    800: '#1f4316',  // Active (Tương phản 10.8:1 - Đạt AAA)
-    900: '#142b0e',
-    950: '#0a1707',
+    50: '#ecfdf5',   // Emerald-50: Nền thẻ xanh nhạt
+    100: '#d1fae5',  // Emerald-100: Viền xanh nhạt
+    200: '#a7f3d0',  // Emerald-200: Viền xanh active
+    300: '#6ee7b7',
+    400: '#34d399',
+    500: '#10b981',  // Emerald-500: Orven Signature Accent Green
+    600: '#059669',  // Emerald-600: High-contrast
+    700: '#047857',  // Emerald-700: Text / Hover
+    800: '#065f46',  // Emerald-800: Active
+    900: '#064e3b',
+    950: '#022c22',
   },
   status: {
     pending: {
       bg: '#fffbeb',     // amber-50
-      border: '#fcd34d', // amber-300
-      text: '#78350f',   // amber-900 (Đạt chuẩn WCAG AA >= 7.1:1 trên nền #fffbeb)
-      dot: '#d97706',    // amber-600
+      border: '#fde68a', // amber-200
+      text: '#b45309',   // amber-700
+      dot: '#f59e0b',    // amber-500
       label: 'Chờ duyệt'
     },
     approved: {
-      bg: '#f2f8ef',     // Green-50 (tương thích hoàn toàn với hệ thống màu xanh #569c43)
-      border: '#c4e3b9', // Green-200
-      text: '#2b5c1f',   // Green-700 (Đạt chuẩn WCAG AAA >= 7.55:1 trên nền #f2f8ef)
-      dot: '#569c43',    // Exact signature seed green #569c43
+      bg: '#ecfdf5',     // emerald-50
+      border: '#a7f3d0', // emerald-200
+      text: '#047857',   // emerald-700
+      dot: '#10b981',    // emerald-500
       label: 'Đã duyệt'
     },
     in_progress: {
-      bg: '#ecfdf5',     // emerald-50
-      border: '#6ee7b7', // emerald-300
-      text: '#065f46',   // emerald-800 (Tương phản >= 7.5:1 - Đạt AAA)
-      dot: '#10b981',    // emerald-500
+      bg: '#f0fdf4',     // green-50
+      border: '#86efac', // green-300
+      text: '#15803d',   // green-700
+      dot: '#22c55e',    // green-500
       label: 'Đang thực hiện'
     },
     completed: {
-      bg: '#eff6ff',     // blue-50
-      border: '#bfdbfe', // blue-200
-      text: '#1e40af',   // blue-800 (Đạt chuẩn WCAG AAA >= 7.2:1 trên nền #eff6ff)
-      dot: '#2563eb',    // blue-600
+      bg: '#f8fafc',     // slate-50
+      border: '#e2e8f0', // slate-200
+      text: '#334155',   // slate-700
+      dot: '#64748b',    // slate-500
       label: 'Hoàn thành'
     },
     rejected: {
-      bg: '#fdf2f4',     // burgundy-50
-      border: '#f6d0d6', // burgundy-200
-      text: '#800020',   // burgundy-800 ĐỎ ĐÔ (Tương phản 10.84:1 trên #fff và 9.8:1 trên #fdf2f4 - Đạt AAA)
-      dot: '#800020',    // burgundy-800 Đỏ đô chuẩn
+      bg: '#fff1f2',     // rose-50
+      border: '#fecdd3', // rose-200
+      text: '#be123c',   // rose-700
+      dot: '#f43f5e',    // rose-500
       label: 'Từ chối'
     },
     cancelled: {
       bg: '#f8fafc',     // slate-50
-      border: '#cbd5e1', // slate-300
-      text: '#334155',   // slate-700 (Đạt chuẩn WCAG AA >= 7.3:1 trên nền #f8fafc)
-      dot: '#64748b',    // slate-500
+      border: '#e2e8f0', // slate-200
+      text: '#64748b',   // slate-500
+      dot: '#94a3b8',    // slate-400
       label: 'Đã hủy'
     }
   },
   burgundy: {
-    50: '#fdf2f4',   // Nền thẻ nhạt
-    100: '#fbe6e9',  // Viền nhẹ, badge background
-    200: '#f6d0d6',  // Viền active
-    300: '#efaab6',
-    400: '#e3788b',
-    500: '#cf4d66',
-    600: '#b2314b',
-    700: '#942239',
-    800: '#800020',  // ĐỎ ĐÔ CHUẨN (Classic Burgundy: Chủ nhật, Từ chối, Cảnh báo xung đột - Tương phản 10.84:1 - Đạt AAA)
-    900: '#68001a',  // Hover nút đỏ đô
-    950: '#3d000f',
+    50: '#fff1f2',   // rose-50
+    100: '#ffe4e6',  // rose-100
+    200: '#fecdd3',  // rose-200
+    300: '#fda4af',
+    400: '#fb7185',
+    500: '#f43f5e',
+    600: '#e11d48',  // rose-600: Chuẩn nguy hiểm / Cảnh báo / Chủ nhật
+    700: '#be123c',  // rose-700
+    800: '#9f1239',  // rose-800
+    900: '#881337',
+    950: '#4c0519',
   },
   radii: {
-    btn: '0.75rem',    // 12px
-    card: '1rem',      // 16px
-    modal: '1.25rem',  // 20px
+    btn: '0.75rem',    // 12px (rounded-xl)
+    card: '1rem',      // 16px (rounded-2xl)
+    modal: '1rem',     // 16px (rounded-2xl)
     pill: '9999px',
     slot: '0.5rem',    // 8px
   },
   fonts: {
     sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
-    condensed: ['"Roboto Condensed"', 'Inter', 'system-ui', 'sans-serif'],
+    condensed: ['"Plus Jakarta Sans"', 'Inter', 'system-ui', 'sans-serif'],
   }
 };
 
@@ -161,8 +161,8 @@ const DesignSystem = {
     if (saved) {
       try {
         this.tokens = JSON.parse(saved);
-        // Tự động nâng cấp sang hệ thống màu mới Phúc Sinh (#213664 & #569c43) nếu đang lưu token cũ
-        if (!this.tokens.brand || this.tokens.brand[600] === '#4338ca' || (this.tokens.themeName && this.tokens.themeName.includes('Indigo'))) {
+        // Tự động nâng cấp sang hệ thống màu Executive Luxury mới (#16284f & #2c6e20)
+        if (!this.tokens.brand || this.tokens.brand[600] !== '#16284f' || (this.tokens.themeName && !this.tokens.themeName.includes('Executive Luxury'))) {
           this.tokens = JSON.parse(JSON.stringify(DEFAULT_DESIGN_TOKENS));
           localStorage.setItem('k_workspace_design_tokens', JSON.stringify(this.tokens));
         }
@@ -272,8 +272,9 @@ const DesignSystem = {
 
       /* Bulletproof Corporate Navy Gradient */
       .bg-phucsinh-navy-gradient {
-        background-color: #213664 !important;
-        background: linear-gradient(125deg, #0b1428 0%, #17274b 52%, #213664 100%) !important;
+        background-color: ${this.tokens.brand[600]} !important;
+        background: linear-gradient(135deg, #071328 0%, #0e2145 52%, ${this.tokens.brand[600]} 100%) !important;
+        box-shadow: 0 4px 20px rgba(7, 19, 40, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
       }
 
       /* Solid Brand Backgrounds (#213664) */
@@ -388,61 +389,64 @@ const DesignSystem = {
         animation: k-skeleton-shimmer 1.5s infinite ease-in-out !important;
       }
 
-      /* 🔤 DUAL-FONT TYPOGRAPHY SYSTEM (INTER + ROBOTO CONDENSED) */
+      /* 🔤 ORVEN GEOMETRIC TYPOGRAPHY SYSTEM (INTER + PLUS JAKARTA SANS) */
       .font-sans {
         font-family: 'Inter', system-ui, -apple-system, sans-serif !important;
         font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
       }
-      .font-condensed {
-        font-family: 'Roboto Condensed', 'Inter', system-ui, sans-serif !important;
+      .font-condensed,
+      .font-display {
+        font-family: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif !important;
         font-variant-numeric: tabular-nums;
       }
 
-      /* 🌿 SYSTEM BOTANICAL GREEN INPUT FOCUS (#569c43) */
+      /* 🌿 SYSTEM MODERN INPUT FOCUS */
       input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):focus,
       input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):focus-visible,
       select:focus,
       select:focus-visible,
       textarea:focus,
       textarea:focus-visible {
-        border-color: var(--color-accent-500, #569c43) !important;
+        border-color: #94a3b8 !important;
         outline: none !important;
-        box-shadow: 0 0 0 3px rgba(86, 156, 67, 0.2) !important;
+        box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.08) !important;
         background-color: #ffffff !important;
       }
       input[type="checkbox"]:focus-visible,
       input[type="radio"]:focus-visible {
-        outline: 2px solid var(--color-accent-500, #569c43) !important;
+        outline: 2px solid #0f172a !important;
         outline-offset: 2px !important;
       }
 
-      /* 🔒 STANDARDIZED COMPONENT TOKENS (ĐẢM BẢO TƯƠNG PHẢN TUYỆT ĐỐI) */
+      /* 🔒 STANDARDIZED COMPONENT TOKENS (SLATE-900 ORVEN PALETTE) */
       .k-brand-badge {
-        background-color: var(--color-brand-600) !important;
+        background-color: #0f172a !important;
         color: #ffffff !important;
-        font-weight: 800;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+        font-weight: 700;
+        box-shadow: 0 1px 2px 0 rgba(15, 23, 42, 0.05);
       }
       .k-btn-primary {
-        background-color: var(--color-brand-600) !important;
+        background-color: #0f172a !important;
         color: #ffffff !important;
         font-weight: 600;
-        transition: all 0.2s ease-in-out;
+        box-shadow: 0 1px 2px 0 rgba(15, 23, 42, 0.06) !important;
+        transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
       }
       .k-btn-primary:hover {
-        background-color: var(--color-brand-700) !important;
+        background-color: #1e293b !important;
+        box-shadow: 0 4px 12px -2px rgba(15, 23, 42, 0.12) !important;
       }
       .k-btn-primary:active {
-        background-color: var(--color-brand-800) !important;
+        background-color: #020617 !important;
       }
 
-      /* Bulletproof Text Selection (#213664) */
+      /* Bulletproof Text Selection (Slate-900) */
       ::selection {
-        background-color: var(--color-brand-600, #213664) !important;
+        background-color: #0f172a !important;
         color: #ffffff !important;
       }
       ::-moz-selection {
-        background-color: var(--color-brand-600, #213664) !important;
+        background-color: #0f172a !important;
         color: #ffffff !important;
       }
     `;
@@ -468,12 +472,16 @@ const DesignSystem = {
           fontFamily: {
             sans: this.tokens.fonts.sans,
             condensed: this.tokens.fonts.condensed,
+            display: ['"Plus Jakarta Sans"', 'Inter', 'system-ui', 'sans-serif'],
+          },
+          backdropBlur: {
+            xs: '2px',
           },
           boxShadow: {
-            '2xs': '0 1px 2px 0 rgba(0, 0, 0, 0.03)',
-            xs: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
-            card: '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05)',
-            hover: '0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.04)',
+            '2xs': '0 1px 2px 0 rgba(15, 23, 42, 0.03)',
+            xs: '0 1px 3px 0 rgba(15, 23, 42, 0.04), 0 1px 2px -1px rgba(15, 23, 42, 0.03)',
+            card: '0 1px 3px 0 rgba(15, 23, 42, 0.04), 0 4px 12px -2px rgba(15, 23, 42, 0.03)',
+            hover: '0 8px 20px -4px rgba(15, 23, 42, 0.08), 0 2px 6px -2px rgba(15, 23, 42, 0.04)',
           }
         }
       }
@@ -566,9 +574,9 @@ const SystemLoader = {
     progressBar.setAttribute('role', 'progressbar');
     progressBar.setAttribute('aria-valuemin', '0');
     progressBar.setAttribute('aria-valuemax', '100');
-    progressBar.className = 'fixed top-0 left-0 right-0 h-[2.5px] z-[99999] pointer-events-none opacity-0 transition-opacity duration-200 overflow-hidden bg-brand-100/40 select-none';
+    progressBar.className = 'fixed top-0 left-0 right-0 h-[2.5px] z-[99999] pointer-events-none opacity-0 transition-opacity duration-200 overflow-hidden bg-slate-200/40 select-none';
     progressBar.innerHTML = `
-      <div id="k-system-progress-inner" class="h-full w-full bg-gradient-to-r from-brand-600 via-accent-500 to-emerald-400 rounded-full transition-transform duration-200 origin-left"></div>
+      <div id="k-system-progress-inner" class="h-full w-full bg-gradient-to-r from-slate-900 via-emerald-500 to-emerald-400 rounded-full transition-transform duration-200 origin-left"></div>
     `;
 
     // 2. Invisible Click Shield (Only active during mutations to prevent double-click / spam, ZERO grey veil!)
