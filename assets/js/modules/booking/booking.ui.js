@@ -3439,6 +3439,8 @@ const BookingUI = {
 
       const isOverdue = BookingData.isPendingCompletion(b);
       const isAssignedTech = isTechnician && Boolean(techId) && String(b.tech_id) === String(techId);
+      const isClosedStatus = b.status === 'COMPLETED' || b.status === 'REJECTED' || b.status === 'CANCELLED';
+      const canEditThis = canEditBooking && !isClosedStatus;
       const canCompleteThis = (b.status === 'APPROVED' || b.status === 'IN_PROGRESS' || isOverdue) && (isAssignedTech || isSuper || isApprover);
 
       const isOff = /off|nghỉ|leave/i.test(b.title || '') || /off|nghỉ|leave/i.test(b.notes || '') || b.type === 'OFF';
@@ -3485,14 +3487,14 @@ const BookingUI = {
               </p>
             ` : ''}
           </div>
-          ${(canCompleteThis || canEditBooking || (b.status === 'PENDING' && canCancelBooking)) ? `
+          ${(canCompleteThis || canEditThis || (b.status === 'PENDING' && canCancelBooking)) ? `
             <div class="pt-1 flex items-center justify-end gap-2 flex-wrap" onclick="event.stopPropagation()">
               ${canCompleteThis ? `
                 <button onclick="BookingUI.handleCompleteBooking('${b.booking_id}')" class="h-9 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs transition-colors cursor-pointer flex items-center gap-1.5 shadow-2xs">
                   ${Lucide.check} <span>Hoàn thành</span>
                 </button>
               ` : ''}
-              ${canEditBooking ? `
+              ${canEditThis ? `
                 <button onclick="BookingUI.openEditBookingModal('${b.booking_id}')" class="h-9 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-xs transition-colors cursor-pointer flex items-center gap-1.5">
                   ${Lucide.pencil} <span>Sửa</span>
                 </button>
@@ -3516,6 +3518,8 @@ const BookingUI = {
 
       const isOverdue = BookingData.isPendingCompletion(b);
       const isAssignedTech = isTechnician && Boolean(techId) && String(b.tech_id) === String(techId);
+      const isClosedStatus = b.status === 'COMPLETED' || b.status === 'REJECTED' || b.status === 'CANCELLED';
+      const canEditThis = canEditBooking && !isClosedStatus;
       const canCompleteThis = (b.status === 'APPROVED' || b.status === 'IN_PROGRESS' || isOverdue) && (isAssignedTech || isSuper || isApprover);
 
       const isOff = /off|nghỉ|leave/i.test(b.title || '') || /off|nghỉ|leave/i.test(b.notes || '') || b.type === 'OFF';
@@ -3574,7 +3578,7 @@ const BookingUI = {
                   ${Lucide.check} <span>${isOverdue ? 'Xác nhận hoàn thành' : 'Hoàn thành'}</span>
                 </button>
               ` : ''}
-              ${canEditBooking ? `
+              ${canEditThis ? `
                 <button onclick="BookingUI.openEditBookingModal('${b.booking_id}')" class="px-2.5 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 font-medium text-xs lg:opacity-55 lg:group-hover:opacity-100 transition-all cursor-pointer inline-flex items-center gap-1">
                   ${Lucide.pencil} <span>Sửa</span>
                 </button>
@@ -3721,6 +3725,11 @@ const BookingUI = {
   },
 
   openEditBookingModal(booking_id) {
+    const b = BookingData.bookings.find(item => String(item.booking_id) === String(booking_id));
+    if (b && (b.status === 'COMPLETED' || b.status === 'REJECTED' || b.status === 'CANCELLED')) {
+      Toast.show('Task đã hoàn thành hoặc đã đóng, không thể chỉnh sửa.', 'warning');
+      return;
+    }
     this.closeDetailModal();
     this.openBookingModal('', '', '', booking_id);
   },
@@ -4265,7 +4274,8 @@ const BookingUI = {
     const canReject = BookingData.hasPermission('reject_booking');
     const canEdit = isSuper || BookingData.currentUser?.role === 'admin' || BookingData.hasPermission('edit_booking');
     const canCancel = BookingData.hasPermission('cancel_own_booking');
-    const canEditContent = isSuper || canEdit;
+    const isClosedTask = b.status === 'COMPLETED' || b.status === 'REJECTED' || b.status === 'CANCELLED';
+    const canEditContent = (isSuper || canEdit) && !isClosedTask;
     const isTechUser = BookingData.currentUser?.role === 'technician' || Boolean(BookingData.currentUser?.is_technician);
     const isAssignedTech = isTechUser && String(BookingData.currentUser?.tech_id) === String(b.tech_id);
     const canComplete = (b.status === 'APPROVED' || b.status === 'IN_PROGRESS') && (isAssignedTech || isSuper || canApprove || BookingData.hasPermission('self_checkin'));

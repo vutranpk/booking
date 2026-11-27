@@ -1127,6 +1127,9 @@ const BookingData = {
     if (!this.isAuthenticated()) return { success: false, error: 'Vui lòng đăng nhập.' };
     const booking = this.bookings.find(b => b.booking_id === booking_id);
     if (!booking) return { success: false, error: 'Không tìm thấy task.' };
+    if (booking.status === 'COMPLETED' || booking.status === 'REJECTED' || booking.status === 'CANCELLED') {
+      return { success: false, error: 'Task đã hoàn thành hoặc đã đóng, không thể chỉnh sửa.' };
+    }
 
     const isAdmin = this.isSuperAdmin();
     const canEdit = this.hasPermission('edit_booking');
@@ -1136,6 +1139,7 @@ const BookingData = {
 
     const techId = updatedData.tech_id || booking.tech_id;
     const startDate = updatedData.booking_date || booking.booking_date;
+    const endDate = updatedData.end_date || booking.end_date || startDate;
     let startTime = (updatedData.start_time || booking.start_time || '08:00').slice(0, 5);
     let endTime = (updatedData.end_time || booking.end_time || '17:00').slice(0, 5);
     if (startDate === endDate && startTime > endTime) {
